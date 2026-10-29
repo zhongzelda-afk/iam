@@ -236,14 +236,15 @@ const params = m => codeLines(19, [
   ["k", "Object id"], ["v", `Specimen_${m.no}`], ["", ""],
   ["k", "Family"], ["v", m.group || "Not recorded"], ["", ""],
   ["k", "I.A.M. reading"], ["v", m.identity ? m.identity.name : "None yet"], ["", ""],
-  ["k", "Status"], ["v", m.photo ? "Documented [√]" : "Photograph pending [ ]"]
+  ["k", "Status"], ["v", m.refImage ? "Reference image [~]" : m.photo ? "Documented [√]" : "Photograph pending [ ]"]
 ]);
+const detailSlots = m => (m.details || DETAILS.map(label => ({ label }))).map((d, i) => `<li class="${d.src ? "has" : ""}" style="--i:${i}"><span class="dimg">${d.src ? `<img src="${esc(d.src)}" alt="${esc(m.name)}, ${esc(d.label)}" loading="lazy">` : `${field()}<span class="pending-label">Pending</span>`}</span><span class="dlabel"><span>0${i + 1}</span>${esc(d.label)}</span></li>`).join("");
 const FINDERS = [[[54, 30, 9], [44, 56, 14]], [[40, 26, 10], [56, 60, 12]], [[58, 40, 8], [38, 62, 15]], [[46, 22, 11], [60, 52, 13]]];
 
 async function home() {
   const all = allMaterials().filter(m => !m.community && !m.retired);
   let cur = 0, timer = null;
-  const feat = all[0];
+  const feat = all.find(m => m.photo) || all[0];
   main.innerHTML = `
   <section class="wrap home-top">
     <div class="home-title">
@@ -263,17 +264,17 @@ async function home() {
             <circle class="draw" pathLength="1" cx="200" cy="200" r="150" stroke-dasharray="3 5" style="--d:200ms"/>
             <g class="draw-fade" style="--d:500ms"><path d="M200 20 V60 M200 340 V380 M20 200 H60 M340 200 H380"/>${[[70, 70], [330, 70], [70, 330], [330, 330]].map(([x, y]) => `<path d="M${x - 8} ${y} H${x + 8} M${x} ${y - 8} V${y + 8}"/>`).join("")}</g>
           </g></svg>
-          <div class="scale" aria-hidden="true"><span></span><em>— mm</em></div>
+          <div class="scale" aria-hidden="true"><span></span><em data-v-size>${all[0].size || "— mm"}</em></div>
           <a class="board-spec xray" href="#archive-${all[0].id}" data-v-link>${specimenArt(all[0], { large: true })}</a>
           ${FINDERS[0].map(([x, y, w], i) => `<span class="vf" data-vf="${i}" style="--x:${x}%;--y:${y}%;--w:${w}%"></span>`).join("")}
         </div>
-        <ol class="details" data-v-details>${DETAILS.map((d, i) => `<li><span class="dimg">${field()}<span class="pending-label">Pending</span></span><span class="dlabel"><span>0${i + 1}</span>${d}</span></li>`).join("")}</ol>
+        <ol class="details" data-v-details>${detailSlots(all[0])}</ol>
       </div>
       <pre class="code code-l" data-v-proto>${protocol(all[0])}</pre>
       <pre class="code code-r" data-v-params>${params(all[0])}</pre>
       <div class="viewer-foot">
         <span class="viewer-mark">${guilloche({ size: 120 })}</span>
-        <span class="viewer-count label"><span data-v-i>01</span> / ${String(all.length).padStart(2, "0")}</span>
+        <span class="viewer-count label"><span data-v-i>01</span> / ${String(all.length).padStart(2, "0")}<span class="ref-note" data-v-ref ${all[0].refImage ? "" : "hidden"}> · Reference image, not a specimen photograph</span></span>
         <div class="viewer-btns">
           <button class="vbtn" type="button" data-v-step="-1" aria-label="Previous specimen">←</button>
           <button class="vbtn" type="button" data-v-step="1" aria-label="Next specimen">→</button>
@@ -334,12 +335,17 @@ async function home() {
     link.classList.remove("swap"); void link.offsetWidth; link.classList.add("swap");
     link.innerHTML = specimenArt(m, { large: true });
     $("[data-v-open]", v).href = "#archive-" + m.id;
+    $("[data-v-size]", v).textContent = m.size || "— mm";
+    $("[data-v-details]", v).innerHTML = detailSlots(m);
+    $("[data-v-ref]", v).hidden = !m.refImage;
     FINDERS[cur % FINDERS.length].forEach(([x, y, w], k) => { const f = $(`[data-vf="${k}"]`, v); f.style.setProperty("--x", x + "%"); f.style.setProperty("--y", y + "%"); f.style.setProperty("--w", w + "%"); });
     type($("[data-v-proto]", v), protocol(m));
     type($("[data-v-params]", v), params(m));
   };
   const auto = () => { clearInterval(timer); if (!calm()) timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 6000); };
   $$("[data-v-step]", main).forEach(b => b.addEventListener("click", () => { show(cur + Number(b.dataset.vStep)); auto(); }));
+  const start = all.findIndex(m => m.photo);
+  if (start > 0) show(start);
   auto();
   leaving = () => clearInterval(timer);
 }
@@ -563,7 +569,7 @@ async function detail(id) {
     <a class="back" href="#archive" data-from="${m.id}">← Archive</a>
     <div class="detail">
       <div class="stage-col">
-        <div class="img stage">${stage(m, { large: true })}<span class="stage-id">No. ${m.no}</span>${m.photo ? `<button class="zoom" type="button" data-zoom aria-label="Inspect photograph">Inspect</button>` : ""}</div>
+        <div class="img stage">${stage(m, { large: true })}<span class="stage-id">No. ${m.no}${m.refImage ? " · Reference image, not a specimen photograph" : ""}</span>${m.photo ? `<button class="zoom" type="button" data-zoom aria-label="Inspect photograph">Inspect</button>` : ""}</div>
       </div>
       <div class="detail-info">
         <span class="label">${kindLabel(m)}</span>

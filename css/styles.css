@@ -573,8 +573,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* X-ray rendering of specimens */
 .xray .vessel g { stroke: var(--accent); stroke-opacity: .85; }
 .xray .vessel { filter: drop-shadow(0 0 5px rgba(185, 214, 227, .45)); }
-.xray .photo { filter: grayscale(1) invert(1) contrast(1.25) brightness(.95); mix-blend-mode: screen; }
-.xray:has(.photo)::after { content: ""; position: absolute; inset: 0; background: rgba(110, 170, 205, .3); mix-blend-mode: color; pointer-events: none; }
+/* real photographs stay in natural colour, their edges fade into the black */
+.board-spec .photo, .cat-img .photo, .spec-card-img .photo { -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 52%, transparent 71%); mask-image: radial-gradient(circle at 50% 50%, #000 52%, transparent 71%); }
+.board-spec:has(.photo) { inset: 4%; }
+.details li.has { animation: rise var(--slow) var(--ease) both; animation-delay: calc(var(--i) * 60ms); }
+.dimg img { width: 100%; height: 100%; object-fit: cover; }
+.ref-note { color: var(--muted); opacity: .8; }
 .xray .pending-label { color: var(--accent); opacity: .5; }
 
 /* catalogue */

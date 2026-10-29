@@ -9,6 +9,8 @@
 // no       catalogue number shown on the page
 // shape    placeholder outline until a real photograph exists: "cube" | "vial" | "stand"
 // photo    true when assets/materials/<id>.jpg exists (square, real photograph)
+// photo/refImage  refImage marks a reference image from Lynn's exhibition board, shown for layout, not a specimen photograph
+// details  close-ups { label, src }; size  height from the board
 // media    documented observations, e.g. { type: "video" | "image", src: "assets/materials/004-during.mp4", caption: "During" }
 
 const NR = "Not recorded";
@@ -51,7 +53,8 @@ export const FOUNDING = [
     note: "Pressed in bodystorming phase 1 (Sept 2026).",
     specimen: { name: "Aluminium Foil", variety: "Household kitchen foil", composition: "Rolled aluminium sheet", part: "Sheet, folded", condition: "New", preparation: "Folded into a block for the archive" },
     experiments: [press({ date: NR, context: "Bodystorming phase 1" })], media: [] },
-  { id: "004", no: "004", name: "Orange", type: "Sweet orange, cultivar not recorded", group: "Citrus", shape: "vial", tex: "orange",
+  { id: "004", photo: true, refImage: true, size: "85 mm", details: [{ label: "Surface", src: "assets/materials/004-d1.jpg" }, { label: "Peel", src: "assets/materials/004-d2.jpg" }, { label: "Juice", src: "assets/materials/004-d3.jpg" }],
+    no: "004", name: "Orange", type: "Sweet orange, cultivar not recorded", group: "Citrus", shape: "vial", tex: "orange",
     response: "Develops dents or pressure marks when squeezed. Changes beneath the surface may not be immediately visible.",
     traits: "Firm, textured peel · Rounded shape · Soft interior",
     identity: { name: "The Quiet Endurer", note: "Appears strong and composed, but may be affected beneath the surface.", card: "I01" },
@@ -60,7 +63,8 @@ export const FOUNDING = [
     note: "Pressed 1 Oct 2026 and in bodystorming phase 1.",
     specimen: { name: "Orange", variety: "Sweet orange, cultivar not recorded", composition: "Oily peel over juice-filled segments", part: "Whole fruit", condition: "Fresh", preparation: "Unpeeled, room temperature" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment, also pressed in bodystorming phase 1" })], media: [] },
-  { id: "006", no: "005", name: "Tomato", type: "Round tomato, cultivar not recorded", group: "Nightshade Fruits", shape: "vial", tex: "tomato",
+  { id: "006", photo: true, refImage: true, size: "70 mm", details: [{ label: "Surface", src: "assets/materials/006-d1.jpg" }, { label: "Texture", src: "assets/materials/006-d2.jpg" }, { label: "Interior", src: "assets/materials/006-d3.jpg" }],
+    no: "005", name: "Tomato", type: "Round tomato, cultivar not recorded", group: "Nightshade Fruits", shape: "vial", tex: "tomato",
     response: "Deforms under pressure. Stronger force may cause lasting damage to its skin or internal structure.",
     traits: "Thin skin · Soft flesh · Fluid-filled interior",
     identity: { name: "The Sensitive One", note: "Easily affected by external pressure, even when the damage is not immediately visible.", card: "I04" },
@@ -69,7 +73,8 @@ export const FOUNDING = [
     note: "Pressed 1 Oct 2026.",
     specimen: { name: "Tomato", variety: "Round tomato, cultivar not recorded", composition: "Thin skin over gel and seeds", part: "Whole fruit", condition: "Ripe", preparation: "Room temperature" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment" })], media: [] },
-  { id: "007", no: "006", name: "Pear", type: "Cultivar not recorded", group: "Pome Fruits", shape: "vial", tex: "pear",
+  { id: "007", photo: true, refImage: true, size: "110 mm", details: [{ label: "Stem", src: "assets/materials/007-d1.jpg" }, { label: "Skin", src: "assets/materials/007-d2.jpg" }, { label: "Flesh", src: "assets/materials/007-d3.jpg" }],
+    no: "006", name: "Pear", type: "Cultivar not recorded", group: "Pome Fruits", shape: "vial", tex: "pear",
     response: "Looks unchanged right after a press. Over the next hours the pressed area softens and turns brown.",
     words: [], speed: "delayed", after: "keeps", mode: "Bruises, browns over time",
     def: "Looks unchanged right after a press. Over the next hours the pressed area softens and turns brown.",
@@ -85,7 +90,8 @@ export const FOUNDING = [
     note: "Pressed 1 Oct 2026.",
     specimen: { name: "Shaving Foam", variety: "Aerosol shaving foam (brand not recorded)", composition: "Soap film around gas bubbles", part: "Dispensed mound", condition: "Freshly dispensed", preparation: "Sprayed onto a flat surface" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment" })], media: [] },
-  { id: "009", no: "008", name: "Cream", type: "Whipped dairy cream", group: "Foams", shape: "vial", tex: "cream",
+  { id: "009", photo: true, refImage: true, size: "40 mm", details: [{ label: "Foam", src: "assets/materials/009-d1.jpg" }, { label: "Texture", src: "assets/materials/009-d2.jpg" }, { label: "Surface", src: "assets/materials/009-d3.jpg" }],
+    no: "008", name: "Cream", type: "Whipped dairy cream", group: "Foams", shape: "vial", tex: "cream",
     response: "Holds soft peaks, takes a print easily, then sinks and turns liquid at room temperature.",
     words: [], speed: "delayed", after: "keeps", mode: "Deflates and melts",
     def: "Holds soft peaks, takes a print easily, then sinks and turns liquid at room temperature.",
