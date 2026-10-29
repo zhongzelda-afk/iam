@@ -551,9 +551,17 @@ function documentation(m) {
 function showDoc(m, i) {
   const x = m.media[i], view = $("#doc-view", main); if (!x || !view) return;
   view.innerHTML = x.type === "video"
-    ? `<video src="${esc(x.src)}" controls loop muted playsinline preload="metadata"></video>`
+    ? `<div class="doc-video"><video src="${esc(x.src)}" ${x.poster ? `poster="${esc(x.poster)}"` : ""} controls loop muted playsinline preload="metadata"></video>
+        ${x.chapters ? `<div class="doc-chapters" role="group" aria-label="Jump to action">${x.chapters.map(([l, t], i) => `<button type="button" class="chip" data-seek="${t}" data-i="${i}">${String(i + 1).padStart(2, "0")} ${esc(l)}</button>`).join("")}<span class="label doc-cap">${esc(x.caption || "")}</span></div>` : ""}</div>`
     : `<button class="doc-img" type="button" aria-label="Inspect photograph"><img src="${esc(x.src)}" alt="${esc(x.caption || m.name)}"></button>`;
   $(".doc-img", view)?.addEventListener("click", () => inspect(x.src, x.caption || m.name));
+  const vid = $("video", view);
+  if (vid && x.chapters) {
+    const chips = $$("[data-seek]", view);
+    chips.forEach(b => b.addEventListener("click", () => { vid.currentTime = Number(b.dataset.seek); vid.play().catch(() => { }); }));
+    // the action being shown is marked as the video plays
+    vid.addEventListener("timeupdate", () => { let k = 0; x.chapters.forEach(([, t], i) => { if (vid.currentTime >= t) k = i; }); chips.forEach((b, i) => b.setAttribute("aria-pressed", String(i === k))); });
+  }
   $$("[data-doc]", main).forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.doc) === i)));
 }
 
