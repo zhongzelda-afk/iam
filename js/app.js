@@ -1028,6 +1028,7 @@ const authErr = err => {
   if (m.includes("not confirmed")) return "Please confirm your email first. Check your inbox for the link.";
   if (m.includes("already registered") || m.includes("already been registered")) return "An account with this email already exists. Try signing in.";
   if (m.includes("password")) return err.message;
+  if (m.includes("email rate limit")) return "The Institute has sent too many emails this hour. Please try again later. If you already got a confirmation email, use that link.";
   if (m.includes("rate limit") || m.includes("security purposes")) return "Too many attempts. Please wait a minute and try again.";
   if (m.includes("fetch") || m.includes("network")) return "The archive could not be reached. Check your connection.";
   return err && err.message ? err.message : "Something went wrong. Please try again.";
