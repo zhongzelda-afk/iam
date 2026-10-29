@@ -1,5 +1,5 @@
-import { MATERIALS, byId, CHANGE_WORDS, WHEN_WORDS, BACK_WORDS, EXAMPLES } from "./data.js";
-import { seal, specimenArt, heroStill } from "./art.js";
+import { COLLECTIONS, SPECIMENS, byId, canonical, collectionOf, specimensIn, recorded, mainRecord, behaviourOf, slug, unslug, FAMILIES, CONDITIONS, CHANGE_WORDS, WHEN_WORDS, BACK_WORDS, EXAMPLES } from "./data.js";
+import { seal, specimenArt, responseDiagram } from "./art.js";
 import { mountEditor, mountPlayer, tracesSVG, defaultPose, defaultBody } from "./body.js";
 import * as store from "./store.js";
 
@@ -55,14 +55,14 @@ function stampSeals(root = document) {
   $$("[data-seal]", root).forEach(el => {
     if (el.dataset.done) return;
     const kind = el.dataset.seal;
-    el.innerHTML = seal({ color: kind === "foot" || kind === "light" ? "#F8F6EC" : kind === "coral" ? "#E96850" : "#963D4D", text: kind !== "nav", id: kind + Math.random().toString(36).slice(2, 6), hollow: kind === "foot" || kind === "light" });
+    el.innerHTML = seal({ color: kind === "foot" ? "#F1E8D7" : kind === "light" ? "#E6D2B4" : kind === "brass" ? "#A17C58" : "#6E302F", text: kind !== "nav", id: kind + Math.random().toString(36).slice(2, 6), hollow: kind === "foot" || kind === "light" });
     el.dataset.done = 1;
   });
 }
 
 // media: shows assets/materials/<id>.mp4 or .jpg when present, else the drawing
-function mediaFor(m, cls = "") {
-  return `<div class="media-slot ${cls}" data-media="${m.id}">${specimenArt(m.id)}</div>`;
+function mediaFor(s, cls = "") {
+  return `<div class="media-slot ${cls}" data-media="${s.id}">${specimenArt(s)}</div>`;
 }
 function upgradeMedia(root = document) {
   $$("[data-media]", root).forEach(slot => {
@@ -70,7 +70,7 @@ function upgradeMedia(root = document) {
     if (!byId(id)?.photo) return;
     const img = new Image();
     img.onload = () => { slot.innerHTML = ""; img.alt = byId(id)?.name || ""; slot.appendChild(img); };
-    img.src = `assets/materials/${id}.jpg`;
+    img.src = `assets/materials/${slug(id)}.jpg`;
   });
 }
 
@@ -85,7 +85,7 @@ const examples = () => EXAMPLES.map(e => ({ ...e, body: EXAMPLE_BODIES[e.id] }))
 
 async function collectiveRows() {
   let rows = [];
-  try { rows = await store.listShared(); } catch (e) { console.error(e); toast("The shared archive could not be reached. Showing what we have."); }
+  try { rows = (await store.listShared()).map(r => ({ ...r, material_id: canonical(r.material_id) })); } catch (e) { console.error(e); toast("The shared archive could not be reached. Showing what we have."); }
   const withReal = new Set(rows.map(r => r.material_id));
   return [...rows, ...examples().filter(x => !withReal.has(x.material_id))];
 }
@@ -99,11 +99,12 @@ function offlineNotice() {
 const routes = [
   [/^$/, home],
   [/^materials$/, materials],
-  [/^materials-(\d{3})$/, caseFile],
+  [/^materials-c(\d{3})$/, materials],
+  [/^materials-(\d{3}-\d{2})$/, caseFile],
   [/^lab$/, lab],
-  [/^lab-(\d{3})$/, lab],
+  [/^lab-(\d{3}-\d{2})$/, id => lab(unslug(id))],
   [/^collective$/, () => collective("words")],
-  [/^collective-(words|bodies|traces)(?:-(\d{3}))?$/, collective],
+  [/^collective-(words|bodies|traces)(?:-(\d{3}-\d{2}))?$/, (v, m) => collective(v, m ? unslug(m) : "")],
   [/^me$/, me],
   [/^about$/, about]
 ];
@@ -134,27 +135,27 @@ $(".nav-toggle").addEventListener("click", e => {
 });
 
 // ---------- shared fragments ----------
-function specCard(m, { count } = {}) {
-  return `<a class="card spec-card" href="#materials-${m.id}">
-    <span class="tag t-${m.tag}">Nº ${m.id}</span>
-    <div class="spec-top"><span class="spec-no">${m.id} / ${esc(m.name.toUpperCase())}</span></div>
-    <div class="spec-art">${mediaFor(m)}</div>
-    <div>
-      <h3 class="spec-name">${esc(m.name)}</h3>
-      <p class="spec-behaviour">${esc(m.behaviour)}</p>
-      <div class="spec-foot">
-        <span class="spec-open">OPEN CASE FILE →</span>
-        ${m.tested ? (count ? `<span class="mono small muted">${count} meaning${count > 1 ? "s" : ""}</span>` : "") : `<span class="untested">UNTESTED</span>`}
-      </div>
+const nr = v => (!v || v === "Not recorded") ? `<span class="nr">Not recorded</span>` : esc(v);
+
+function specCard(s, { count } = {}) {
+  const recs = recorded(s);
+  const planned = s.experiments.some(e => e.planned);
+  return `<a class="spec-card" href="#materials-${slug(s.id)}">
+    <div class="spec-art">${mediaFor(s)}</div>
+    <div class="spec-label">
+      <span class="spec-no">SPECIMEN ${s.id}</span>
+      <h3 class="spec-name">${esc(s.name)}</h3>
+      <p class="spec-variety">${esc(s.variety)}</p>
+      <span class="spec-records ${recs.length ? "has" : ""}">${recs.length ? `${recs.length} experiment record${recs.length > 1 ? "s" : ""}` : planned ? "Experiment planned" : "No experiment yet"}${count ? ` · ${count} meaning${count > 1 ? "s" : ""}` : ""}</span>
     </div>
   </a>`;
 }
 
 function quoteCard(e, { showMaterial = true } = {}) {
-  const m = byId(e.material_id) || { id: e.material_id, name: "Unknown" };
+  const s = byId(e.material_id) || { id: e.material_id, name: "Unknown specimen" };
   const rev = e.revisions && e.revisions.length ? e.revisions[e.revisions.length - 1] : null;
   return `<article class="card quote-card">
-    ${showMaterial ? `<span class="spec-no">SPECIMEN ${m.id} / ${esc(m.name.toUpperCase())}</span>` : ""}
+    ${showMaterial ? `<span class="spec-no">SPECIMEN ${s.id} / ${esc(s.name.toUpperCase())}</span>` : ""}
     ${rev ? `<p class="meaning"><s class="muted" style="font-size:.6em">${esc(e.meaning)}</s><br>${esc(rev.meaning)}</p>` : `<p class="meaning">${esc(e.meaning)}</p>`}
     ${e.meaning_note ? `<p class="why">${esc(e.meaning_note)}</p>` : ""}
     ${e.voice ? `<p class="voice">“${esc(e.voice)}”</p>` : ""}
@@ -163,74 +164,67 @@ function quoteCard(e, { showMaterial = true } = {}) {
 }
 
 // ---------- HOME / THE INSTITUTE ----------
+const CABINET = ["001.01", "004.01", "003.01", "008.01", "002.01", "007.01", "011.01", "013.01", "005.01", "006.01", "009.02", "004.02"];
 async function home() {
   const rows = await collectiveRows();
-  const counts = {}; rows.forEach(r => counts[r.material_id] = (counts[r.material_id] || 0) + 1);
   const latest = rows.filter(r => !r.example).slice(0, 3);
+  const nRec = SPECIMENS.reduce((n, s) => n + recorded(s).length, 0);
   main.innerHTML = `
-  <section class="hero">
-    <div class="hero-media" id="hero-media"><div class="hero-still">${heroStill}</div></div>
-    <div class="hero-seal" data-seal="light"></div>
-    <p class="hero-caption mono">Experiment 001 / Sponge under a palm</p>
-    <div class="hero-content">
-      <p class="eyebrow" style="color:var(--butter)">Department of Material Responses</p>
-      <h1>Materials respond.<br><em>We make it personal.</em></h1>
-      <p class="lede">Welcome to the Institute of Animate Matter, where everyday materials become subjects of human interpretation.</p>
-      <div class="btn-row">
-        <a class="btn btn-primary" href="#materials">Explore the Archive</a>
-        <a class="btn" href="#lab">Become a Material Translator</a>
-      </div>
-    </div>
-    <div class="hero-stamp"><span class="stamp">Certified<br>subjective finding</span></div>
-  </section>
-
-  <section class="section rounded-top">
-    <div class="wrap">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">The specimen catalogue</p>
-          <h2>Ten materials,<br>pressed and filed.</h2>
+  <section class="home-hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">Department of Material Responses · Est. 2026</p>
+        <h1 class="hero-title">I.A.M.</h1>
+        <p class="hero-sub">Institute of Animate Matter</p>
+        <div class="hero-rule"><span class="mono small">Cabinet of Material Responses</span></div>
+        <p class="hero-lede">A collection of ordinary materials, catalogued with precision, and the <em>entirely unscientific</em> things people believe they mean.</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="#materials">Open the Cabinet</a>
+          <a class="btn" href="#lab">Become a Material Translator</a>
         </div>
-        <a class="btn" href="#materials">See all ${MATERIALS.length} specimens</a>
+        <p class="mono small muted" style="margin-top:22px">${COLLECTIONS.length} collections · ${SPECIMENS.length} specimens · ${nRec} experiment records</p>
       </div>
-      <div class="catalogue">${MATERIALS.slice(0, 6).map(m => specCard(m, { count: counts[m.id] })).join("")}</div>
+      <div class="cabinet" aria-label="A cabinet of specimens">
+        <div class="cabinet-crest"><span class="mono">Cabinet I</span><span data-seal="light" style="width:34px;display:block"></span><span class="mono">Study collection</span></div>
+        <div class="cabinet-grid">${CABINET.map(id => { const s = byId(id); return `<a class="cabinet-cell" href="#materials-${slug(id)}" aria-label="${esc(s.name)}">${specimenArt(s)}<span class="mono">${id}</span></a>`; }).join("")}</div>
+      </div>
     </div>
   </section>
 
-  <section class="band band-ink">
+  <section class="band band-walnut">
     <div class="statement">
       <p class="mono" style="opacity:.7;margin-bottom:22px">Office of Human Interpretation</p>
-      <p class="big">We press materials. <em>They change.</em> Then something in us changes too.</p>
-      <p class="hand" style="color:var(--butter)">(we are keeping notes)</p>
+      <p class="big">The specimen is measured. <em>The meaning is not.</em></p>
+      <p class="mono small" style="opacity:.7">We keep both, and we keep them apart.</p>
     </div>
   </section>
 
   <section class="section">
     <div class="wrap">
-      <p class="eyebrow">How a translation is made</p>
-      <h2 style="font-size:clamp(34px,5vw,58px);margin-bottom:28px">Observe. Interpret.<br>Imagine. Perform.</h2>
+      <p class="eyebrow">How a translation is filed</p>
+      <h2 style="font-size:clamp(36px,5vw,60px);margin-bottom:28px">Observe. Interpret.<br>Imagine. Perform.</h2>
       <div class="steps">
-        <div class="step" style="background:var(--ivory)"><span class="num">01</span><h3>Observe</h3><p>Watch one material change. Write down only what you can see: how fast, and whether it comes back.</p><p class="mono small muted">Physical evidence</p></div>
-        <div class="step" style="background:var(--pink)"><span class="num">02</span><h3>Interpret</h3><p>Say what that change means to you. One word is enough. Nobody can be wrong here.</p><p class="mono small muted">Human projection</p></div>
-        <div class="step" style="background:var(--butter)"><span class="num">03</span><h3>Imagine</h3><p>If the material could speak while it changes, what would it say? Write it in the first person.</p><p class="mono small muted">Material voice</p></div>
-        <div class="step" style="background:var(--blue)"><span class="num">04</span><h3>Perform</h3><p>Translate the change into a body: yours, or one you borrow from the Institute.</p><p class="mono small muted">Body translation</p></div>
+        <div class="step"><span class="num">STEP 1 · EVIDENCE</span><h3>Observe</h3><p>Watch one specimen change. Record only what you can see: how fast, and whether it comes back.</p></div>
+        <div class="step rose"><span class="num">STEP 2 · INTERPRETATION</span><h3>Interpret</h3><p>Say what that change means to you. One word is enough. Nobody can be wrong here.</p></div>
+        <div class="step rose"><span class="num">STEP 3 · SPECULATION</span><h3>Imagine</h3><p>If the material could speak while it changes, what would it say? Write it as the material.</p></div>
+        <div class="step"><span class="num">STEP 4 · EMBODIMENT</span><h3>Perform</h3><p>Translate the change into a body: yours, or one you borrow from the Institute.</p></div>
       </div>
     </div>
   </section>
 
-  <section class="band band-butter section">
+  <section class="band band-card section">
     <div class="wrap split">
       <div>
-        <p class="eyebrow">Signature apparatus</p>
-        <h2 style="font-size:clamp(38px,5.6vw,70px)">Borrow a Body</h2>
-        <p class="serif" style="font-size:24px;font-weight:300;margin:14px 0 18px">“No body available? Borrow one from the Institute.”</p>
-        <p class="prose">Drag the joints, file two or three poses, then choose how fast the change happens and whether the body comes back. Speed and return are the two things the Institute measures in every material.</p>
+        <p class="eyebrow">Apparatus No. 1</p>
+        <h2 style="font-size:clamp(40px,5.6vw,72px)">Borrow a Body</h2>
+        <p class="serif" style="font-size:25px;margin:14px 0 18px;color:var(--olive)">“No body available? Borrow one from the Institute.”</p>
+        <p class="prose">Drag the joints, file two or three poses, then set how fast the change happens and whether the body comes back. Speed and return are the two things the Institute records for every specimen.</p>
         <div class="btn-row" style="margin-top:20px"><a class="btn btn-primary" href="#lab">Open the Translation Lab</a><a class="btn" href="#collective-bodies">Visit the Body Atlas</a></div>
       </div>
       <div class="panel" style="max-width:420px;justify-self:center;width:100%">
-        <span class="label" style="position:absolute;top:-12px;left:20px;background:var(--pink)">Specimen body 001</span>
+        <span class="plaque" style="position:absolute;top:-12px;left:20px">Embodied translation · example</span>
         <div class="figure-mini" id="home-fig"></div>
-        <p class="mono small muted" style="margin-top:10px">Sponge, as performed: instant, comes back</p>
+        <p class="mono small muted" style="margin-top:10px">Specimen 001.01 Kitchen Sponge, performed: instant, comes back</p>
       </div>
     </div>
   </section>
@@ -238,174 +232,179 @@ async function home() {
   <section class="section">
     <div class="wrap">
       <div class="section-head">
-        <div><p class="eyebrow">Collective Dictionary</p><h2>Recently recorded<br>meanings</h2></div>
+        <div><p class="eyebrow">Collective Dictionary</p><h2>Recently filed meanings</h2></div>
         <a class="btn" href="#collective">Read the wall</a>
       </div>
       ${latest.length ? `<div class="wall">${latest.map(e => quoteCard(e)).join("")}</div>` :
-      `<div class="empty"><h3>The wall is waiting for its first meaning.</h3><p>Be the first translator on record.</p><a class="btn btn-primary" href="#lab">Translate a material</a></div>`}
+      `<div class="empty"><h3>The wall is waiting for its first meaning.</h3><p>Be the first translator on record.</p><a class="btn btn-primary" href="#lab">Translate a specimen</a></div>`}
     </div>
   </section>
 
-  <section class="band band-pink section">
+  <section class="band band-rose section">
     <div class="wrap split">
       <div>
         <p class="eyebrow">About the Institute</p>
-        <h2 style="font-size:clamp(34px,4.6vw,56px)">An unserious-looking laboratory doing serious research about subjective meaning.</h2>
+        <h2 style="font-size:clamp(36px,4.6vw,58px)">A very orderly home for very disorderly meanings.</h2>
       </div>
       <div class="prose">
         <p>The Institute of Animate Matter is a fictional institution and a real research project. It asks how the way materials change can become a language that people read and perform with their bodies.</p>
-        <p>Everything here separates two kinds of record: what the material physically did, and what a person thinks it means. The first is evidence. The second is yours.</p>
-        <p class="hand">Institute property / handle with feeling</p>
-        <a class="btn" href="#about">Read about the research &amp; your data</a>
+        <p>Every record keeps two things apart: what the material physically did, and what a person thinks it means. The first is evidence. The second is yours.</p>
+        <p class="hand">institute property / handle with feeling</p>
+        <a class="btn" href="#about">About the research &amp; your data</a>
       </div>
     </div>
   </section>`;
 
   mountPlayer($("#home-fig"), EXAMPLE_BODIES["ex-1"], { trails: true, label: "Example body performing a sponge" });
-  // optional hero film, set HERO_VIDEO in config.js
-  const heroSrc = (window.IAM_CONFIG || {}).HERO_VIDEO;
-  if (!heroSrc) return;
-  const v = document.createElement("video");
-  Object.assign(v, { muted: true, loop: true, autoplay: true, playsInline: true, src: heroSrc });
-  v.setAttribute("aria-hidden", "true");
-  v.addEventListener("loadeddata", () => { if (!matchMedia("(prefers-reduced-motion: reduce)").matches) { const m = $("#hero-media"); m && (m.innerHTML = "", m.appendChild(v)); } });
-  v.load();
 }
 
-// ---------- MATERIALS ----------
-async function materials() {
+// ---------- MATERIAL ARCHIVE: THE CABINET ----------
+async function materials(collectionId = "") {
   const rows = await collectiveRows();
   const counts = {}; rows.filter(r => !r.example).forEach(r => counts[r.material_id] = (counts[r.material_id] || 0) + 1);
-  const state = { speed: "", rev: "" };
+  const modes = [...new Set(SPECIMENS.map(behaviourOf).filter(Boolean))];
+  const state = { col: collectionId, fam: "", beh: "", cond: "" };
   main.innerHTML = `
   <div class="wrap page-head">
     <p class="eyebrow">Department of Material Responses</p>
     <h1>The Material Archive</h1>
-    <p class="lede">Each specimen is pressed by a human palm and watched closely. Open a case file to see the evidence, then the meanings people have filed.</p>
+    <p class="lede">A cabinet of ordinary matter. Each drawer is a collection; each compartment holds one specimen and leads to its experiment records.</p>
   </div>
   <div class="wrap">
-    <div class="filters" role="group" aria-label="Filter specimens">
-      <span class="mono">Speed</span>
-      <button class="chip small" data-f="speed" data-v="instant" aria-pressed="false">Instant</button>
-      <button class="chip small" data-f="speed" data-v="delayed" aria-pressed="false">Delayed</button>
-      <span class="mono" style="margin-left:12px">Return</span>
-      <button class="chip small" data-f="rev" data-v="reversible" aria-pressed="false">Comes back</button>
-      <button class="chip small" data-f="rev" data-v="permanent" aria-pressed="false">Stays changed</button>
-    </div>
-    <div class="catalogue" id="cat"></div>
+    <form class="filters" id="filters" aria-label="Filter the cabinet">
+      <label>Collection<select class="select" data-f="col"><option value="">All collections</option>${COLLECTIONS.map(c => `<option value="${c.id}">${c.id} ${esc(c.name)}</option>`).join("")}</select></label>
+      <label>Material family<select class="select" data-f="fam"><option value="">All families</option>${FAMILIES.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>
+      <label>Physical behaviour<select class="select" data-f="beh"><option value="">Any behaviour</option>${modes.map(x => `<option>${esc(x)}</option>`).join("")}<option value="none">No experiment yet</option></select></label>
+      <label>Specimen condition<select class="select" data-f="cond"><option value="">Any condition</option>${CONDITIONS.map(x => `<option>${esc(x)}</option>`).join("")}</select></label>
+      <button type="reset" class="btn btn-small btn-ghost">Clear</button>
+    </form>
+    <div id="cab"></div>
+    <p class="rep-note"><span class="stamp brass" style="transform:none">Note</span><span>Cubes and jars are stylised archive representations at a common scale. The materials actually used in experiments, and how they were prepared, are described in each experiment record.</span></p>
   </div>`;
-  const draw = () => {
-    const list = MATERIALS.filter(m => (!state.speed || m.speed === state.speed) && (!state.rev || m.reversibility === state.rev));
-    $("#cat").innerHTML = list.length ? list.map(m => specCard(m, { count: counts[m.id] })).join("") : `<div class="empty" style="grid-column:1/-1"><h3>No specimen fits both.</h3><p>The Institute is accepting suggestions.</p></div>`;
-    upgradeMedia($("#cat"));
-  };
-  $$(".filters .chip").forEach(b => b.addEventListener("click", () => {
-    const f = b.dataset.f, v = b.dataset.v;
-    state[f] = state[f] === v ? "" : v;
-    $$(`.filters [data-f="${f}"]`).forEach(x => x.setAttribute("aria-pressed", String(state[f] === x.dataset.v)));
-    draw();
-  }));
+  $$("#filters select").forEach(sel => { sel.value = state[sel.dataset.f]; sel.addEventListener("change", () => { state[sel.dataset.f] = sel.value; draw(); }); });
+  $("#filters").addEventListener("reset", () => { setTimeout(() => { Object.keys(state).forEach(k => state[k] = ""); draw(); }); });
+  function draw() {
+    const fit = s => (!state.col || s.id.startsWith(state.col + ".")) && (!state.fam || s.family === state.fam)
+      && (!state.beh || (state.beh === "none" ? !behaviourOf(s) : behaviourOf(s) === state.beh)) && (!state.cond || s.condition === state.cond);
+    const drawers = COLLECTIONS.map(c => [c, specimensIn(c.id).filter(fit)]).filter(([, l]) => l.length);
+    $("#cab").innerHTML = drawers.length ? drawers.map(([c, l]) => `
+      <section class="drawer">
+        <div class="drawer-head"><span class="plaque">Collection ${c.id}</span><h2>${esc(c.name)}</h2><span class="mono small muted count">${l.length} specimen${l.length > 1 ? "s" : ""}</span></div>
+        <div class="compartments">${l.map(s => specCard(s, { count: counts[s.id] })).join("")}${'<div class="vacant" aria-hidden="true"><span class="mono">Vacant</span></div>'.repeat((4 - l.length % 4) % 4)}</div>
+      </section>`).join("") : `<div class="empty"><h3>No specimen fits all of these.</h3><p>Try clearing a filter.</p></div>`;
+    upgradeMedia($("#cab"));
+  }
   draw();
 }
 
 // ---------- CASE FILE ----------
-async function caseFile(id) {
-  const m = byId(id);
-  if (!m) { main.innerHTML = notFound(); return; }
-  const rows = (await collectiveRows()).filter(r => r.material_id === id);
+async function caseFile(slugId) {
+  const s = byId(unslug(slugId));
+  if (!s) { main.innerHTML = notFound(); return; }
+  const col = collectionOf(s);
+  const rows = (await collectiveRows()).filter(r => r.material_id === s.id);
   const real = rows.filter(r => !r.example);
-  const meanings = rows.map(latestMeaning);
-  const freq = {}; meanings.forEach(w => { const k = w.trim().toLowerCase(); freq[k] = (freq[k] || 0) + 1; });
+  const freq = {}; rows.map(latestMeaning).forEach(w => { const k = w.trim().toLowerCase(); freq[k] = (freq[k] || 0) + 1; });
   const words = Object.entries(freq).sort((a, b) => b[1] - a[1]);
   const voices = rows.filter(r => r.voice).slice(0, 4);
   const bodies = rows.filter(r => r.body && r.body.frames && r.body.frames.length).slice(0, 6);
-  const i = MATERIALS.indexOf(m), prev = MATERIALS[(i - 1 + MATERIALS.length) % MATERIALS.length], next = MATERIALS[(i + 1) % MATERIALS.length];
+  const i = SPECIMENS.indexOf(s), prev = SPECIMENS[(i - 1 + SPECIMENS.length) % SPECIMENS.length], next = SPECIMENS[(i + 1) % SPECIMENS.length];
+  const rec = mainRecord(s);
+
+  const recordHTML = e => `
+    <article class="record">
+      <header><span class="spec-no">EXPERIMENT ${s.id} / ${e.id} · ${esc(e.type.toUpperCase())}</span><span class="mono small muted">${esc(e.date)}</span></header>
+      ${e.planned ? `<p class="muted">Planned. No observation recorded yet.</p>` : `
+      <table class="typed"><tbody>
+        <tr><th>Context</th><td>${nr(e.context)}</td></tr>
+        <tr><th>Response speed</th><td>${e.speed === "instant" ? "Instant" : "Delayed"}</td></tr>
+        <tr><th>Reversibility</th><td>${e.reversibility === "reversible" ? "Returns toward first shape" : "Keeps the change"}</td></tr>
+        <tr><th>Mode of change</th><td>${esc(e.mode)}</td></tr>
+        <tr><th>Observed response</th><td style="font-family:var(--sans);font-size:15px">${esc(e.response)}</td></tr>
+      </tbody></table>
+      ${responseDiagram(e)}`}
+      <div class="media-strip">${e.media && e.media.length ? e.media.map(md => `<figure>${md.type === "video" ? `<video src="${esc(md.src)}" controls muted playsinline preload="metadata"></video>` : `<img src="${esc(md.src)}" alt="${esc(md.caption || s.name)}" loading="lazy">`}<figcaption>${esc(md.caption || "")}</figcaption></figure>`).join("") : `<div class="media-pending">Experiment media<br>not yet filed</div>`}</div>
+    </article>`;
 
   main.innerHTML = `
-  <div class="wrap page-head" style="padding-bottom:12px">
-    <a class="pill" href="#materials">← Archive</a>
+  <div class="wrap page-head" style="padding-bottom:4px">
+    <nav class="breadcrumb" aria-label="Catalogue position"><a href="#materials">Archive</a><span>/</span><a href="#materials-c${col.id}">Collection ${col.id} ${esc(col.name)}</a><span>/</span><span>Specimen ${s.id}</span></nav>
   </div>
   <div class="wrap">
     <div class="case-hero">
-      <div class="case-photo">
-        <div data-media="${m.id}" style="display:contents">${specimenArt(m.id)}</div>
-        <div class="watermark" data-seal="main"></div>
-        <span class="label photo-note">${m.tested ? "Specimen record" : "Awaiting experiment"}</span>
-        <span class="tag t-${m.tag}">Nº ${m.id}</span>
+      <div>
+        <div class="case-photo">
+          <div data-media="${s.id}" style="display:contents">${specimenArt(s)}</div>
+          <div class="watermark" data-seal="main"></div>
+          <span class="label photo-note">Archive representation</span>
+        </div>
+        <p class="rep-note">This ${s.display === "vial" ? "jar" : "cube"} is a stylised archive representation. ${recorded(s).length ? "The material used in the experiment is described below." : "No experiment has been carried out on this specimen yet."}</p>
       </div>
       <div class="case-meta">
-        <span class="spec-no">SPECIMEN RECORD ${m.id}</span>
-        <h1>${esc(m.name)}</h1>
-        <p class="spec-behaviour" style="margin:0">${esc(m.behaviour)}</p>
-        <div class="meta-grid">
-          <div class="meta-cell"><span class="mono">Speed</span><strong>${m.speed === "instant" ? "Instant" : "Delayed"}</strong></div>
-          <div class="meta-cell"><span class="mono">Return</span><strong>${m.reversibility === "reversible" ? "Comes back" : "Stays changed"}</strong></div>
-          <div class="meta-cell"><span class="mono">Meanings filed</span><strong>${real.length}</strong></div>
-        </div>
-        <div class="inset"><span class="mono muted">Mode of change</span><p class="serif" style="font-size:24px;margin:6px 0 0">${esc(m.mode)}</p></div>
-        <div class="btn-row"><a class="btn btn-primary" href="#lab-${m.id}">Translate this material</a><span class="stamp coral" style="margin-left:auto">Handle<br>with feeling</span></div>
+        <span class="spec-no">COLLECTION ${col.id} · SPECIMEN ${s.id}</span>
+        <h1>${esc(s.name)}</h1>
+        <table class="typed"><tbody>
+          <tr><th>Collection</th><td>${col.id} ${esc(col.name)}</td></tr>
+          <tr><th>Specimen ID</th><td>${s.id}</td></tr>
+          <tr><th>Common name</th><td>${esc(s.name)}</td></tr>
+          <tr><th>Variety / subtype</th><td>${nr(s.variety)}</td></tr>
+          <tr><th>Composition</th><td>${nr(s.composition)}</td></tr>
+          <tr><th>Specimen part</th><td>${nr(s.part)}</td></tr>
+          <tr><th>Physical condition</th><td>${nr(s.condition)}</td></tr>
+          <tr><th>Preparation / storage</th><td>${nr(s.preparation)}</td></tr>
+          <tr><th>Material family</th><td>${esc(s.family)}</td></tr>
+          <tr><th>Experiment records</th><td>${recorded(s).length || "None yet"}</td></tr>
+          <tr><th>Human interpretations</th><td>${real.length || "None yet"}</td></tr>
+          <tr><th>Embodied translations</th><td>${bodies.filter(b => !b.example).length || "None yet"}</td></tr>
+        </tbody></table>
+        <div class="btn-row"><a class="btn btn-primary" href="#lab-${slug(s.id)}">Translate this specimen</a><span class="stamp" style="margin-left:auto">Handle<br>with feeling</span></div>
       </div>
     </div>
 
     <div class="case-sections">
       <section class="card case-sec zone-evidence">
-        <header><p class="mono">01 / What it does</p><h2>Physical evidence</h2></header>
-        <div>
-          <ul class="evidence-list">
-            <li><span class="mono">Observed</span><span>${esc(m.does)}</span></li>
-            <li><span class="mono">Response speed</span><span>${m.speed === "instant" ? "Changes the moment force arrives." : "Takes time before the change shows."}</span></li>
-            <li><span class="mono">Reversibility</span><span>${m.reversibility === "reversible" ? "Returns toward its first shape." : "Keeps the change."}</span></li>
-            <li><span class="mono">Lab note</span><span>${esc(m.note)}</span></li>
-          </ul>
-          <p class="annot"><span class="mono small muted">Annotation</span><span class="hand">this part is measurable. the rest is not.</span></p>
-        </div>
+        <header><p class="mono">I / Experiment records</p><h2>Physical evidence</h2><p class="muted">What the material did. Recorded by the Institute.</p></header>
+        <div>${s.experiments.length ? s.experiments.map(recordHTML).join("") : `<p>No experiment has been carried out on this specimen yet.</p><p class="hand">the cabinet holds it anyway, in case.</p>`}</div>
       </section>
 
       <section class="card case-sec zone-projection">
-        <header><p class="mono">02 / What we think it means</p><h2>Human projection</h2></header>
+        <header><p class="mono">II / Human interpretations</p><h2>What people think it means</h2><p class="muted">Personal readings. Never properties of the material.</p></header>
         <div>
-          ${words.length ? `<div class="word-cloud">${words.map(([w, n]) => `<span style="font-size:${Math.min(56, 20 + n * 8)}px">${esc(w)}</span>`).join(`<span class="muted">·</span>`)}</div>
-          <p class="mono small" style="margin-top:16px">Conclusion: ${words.length > 1 ? "multiple meanings recorded" : "one meaning recorded so far"}${real.length ? "" : " (example only)"}</p>` : `<p>No meanings filed yet.</p>`}
-          <p class="annot"><span class="mono small muted">Reminder</span><span class="hand">meanings belong to people, not to ${esc(m.name.toLowerCase())}.</span></p>
+          ${words.length ? `<div class="word-cloud">${words.map(([w, n]) => `<span style="font-size:${Math.min(58, 24 + n * 8)}px">${esc(w)}</span>`).join(`<span class="sep">·</span>`)}</div>
+          <p class="mono small" style="margin-top:16px;color:var(--rose-ink)">Conclusion: ${words.length > 1 ? "multiple meanings recorded" : "one meaning recorded so far"}${real.length ? "" : " (example only)"}</p>` : `<p>No meanings filed yet.</p>`}
         </div>
       </section>
 
       <section class="card case-sec zone-voice">
-        <header><p class="mono">03 / What it might say</p><h2>Imagined voice</h2></header>
-        <div>${voices.length ? voices.map(v => `<p class="voice-line">“${esc(v.voice)}”</p><p class="mono small muted" style="margin:-6px 0 18px">${esc(v.alias || "Anonymous translator")}${v.example ? " · example" : ""}</p>`).join("") : `<p>No voices yet. Lend it one.</p>`}</div>
+        <header><p class="mono">III / Speculative voices</p><h2>What it might say</h2><p class="muted">Written by people, in the material's voice.</p></header>
+        <div>${voices.length ? voices.map(v => `<p class="voice-line">“${esc(v.voice)}”</p><p class="mono small muted" style="margin:0 0 18px">${esc(v.alias || "Anonymous translator")}${v.example ? " · example" : ""}</p>`).join("") : `<p>No voices yet. Lend it one.</p>`}</div>
       </section>
 
       <section class="card case-sec zone-body">
-        <header><p class="mono">04 / Body translations</p><h2>Performed by people</h2></header>
+        <header><p class="mono">IV / Embodied translations</p><h2>Performed by people</h2></header>
         <div>
-          ${bodies.length ? `<div class="quad-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${bodies.map(b => `<button class="body-tile" data-read="${esc(b.id)}"><div class="figure-mini" data-body="${esc(b.id)}"></div><span class="mono">${b.example ? "Example" : esc(b.alias || "Anonymous")} · read it</span></button>`).join("")}</div>
-          <p class="hand" style="margin-top:14px">tap a body to guess what it means before you are told.</p>` : `<p>No bodies filed for this material yet.</p>`}
+          ${bodies.length ? `<div class="quad-grid">${bodies.map(b => `<button class="body-tile" data-read="${esc(b.id)}"><div class="figure-mini" data-body="${esc(b.id)}"></div><span class="mono">${b.example ? "Example" : esc(b.alias || "Anonymous")} · read it</span></button>`).join("")}</div>
+          <p class="hand" style="margin-top:14px">tap a body to guess what it means before you are told.</p>` : `<p>No bodies filed for this specimen yet.</p>`}
         </div>
       </section>
 
       <section class="card case-sec zone-turn">
-        <header><p class="mono">05 / Your turn</p><h2>Add your reading</h2></header>
+        <header><p class="mono">V / Your turn</p><h2>File your reading</h2></header>
         <div>
-          <p class="serif" style="font-size:26px;font-weight:300">What does this change mean to you?</p>
-          <div class="btn-row"><a class="btn btn-primary" href="#lab-${m.id}">Start Experiment ${m.id}</a></div>
+          <p class="serif" style="font-size:28px">What does this change mean to you?</p>
+          <div class="btn-row"><a class="btn btn-primary" href="#lab-${slug(s.id)}">Start a translation of ${s.id}</a></div>
         </div>
       </section>
     </div>
 
     <div class="btn-row" style="justify-content:space-between;margin-top:32px">
-      <a class="pill" href="#materials-${prev.id}">← ${prev.id} / ${esc(prev.name)}</a>
-      <a class="pill" href="#materials-${next.id}">${next.id} / ${esc(next.name)} →</a>
+      <a class="pill" href="#materials-${slug(prev.id)}">← ${prev.id} ${esc(prev.name)}</a>
+      <a class="pill" href="#materials-${slug(next.id)}">${next.id} ${esc(next.name)} →</a>
     </div>
   </div>`;
 
   bodies.forEach(b => mountPlayer($(`[data-body="${CSS.escape(b.id)}"]`), b.body));
   $$("[data-read]").forEach(btn => btn.addEventListener("click", () => reinterpret(rows.find(r => String(r.id) === btn.dataset.read))));
-  // video upgrade for the case photo
-  if (!m.video) return;
-  const v = document.createElement("video");
-  Object.assign(v, { muted: true, loop: true, autoplay: true, playsInline: true, controls: false, src: `assets/materials/${m.id}.mp4` });
-  v.addEventListener("loadeddata", () => { const p = $(".case-photo"); if (p) p.prepend(v); });
-  v.load();
 }
 
 // ---------- REINTERPRETATION ----------
@@ -413,7 +412,7 @@ function reinterpret(entry) {
   if (!entry) return;
   const m = byId(entry.material_id) || { id: "", name: "" };
   modal(`
-    <p class="eyebrow">Experiment ${esc(m.id)} / Reinterpretation</p>
+    <p class="eyebrow">Specimen ${esc(m.id)} / Reinterpretation</p>
     <h2 style="font-size:clamp(28px,4vw,42px)">What do you think this body is trying to say?</h2>
     <p class="muted" style="margin-top:8px">Specimen ${esc(m.id)} / ${esc(m.name)}. Watch first. The original meaning stays sealed until you answer.</p>
     <div class="grid-2" style="margin-top:18px;align-items:start">
@@ -440,10 +439,10 @@ function reinterpret(entry) {
       $("#ri-reveal", box).innerHTML = `
         <div class="reveal">
           <div class="card unfold" style="animation-delay:.05s"><span class="mono muted">Your reading</span><p class="serif" style="font-size:32px;margin:8px 0 0">${esc(text)}</p></div>
-          <div class="card unfold" style="animation-delay:.35s;background:var(--pink)">
+          <div class="card unfold sealed" style="animation-delay:.35s">
             <span class="stamp confidential">Unsealed</span>
             <span class="mono muted">${esc(entry.alias || "The translator")} meant</span>
-            <p class="serif" style="font-size:32px;margin:8px 0 6px">${esc(latestMeaning(entry))}</p>
+            <p class="serif" style="font-size:34px;margin:8px 0 6px;font-style:italic;color:var(--rose-ink)">${esc(latestMeaning(entry))}</p>
             ${entry.meaning_note ? `<p>${esc(entry.meaning_note)}</p>` : ""}
             ${entry.voice ? `<p class="hand">“${esc(entry.voice)}”</p>` : ""}
           </div>
@@ -463,6 +462,7 @@ async function lab(id) {
   let d = store.draft();
   if (!d || (id && d.material_id !== id)) d = freshDraft(id || "");
   if (id && d.step === 0) d.step = 1;
+  if (d.material_id) d.material_id = canonical(d.material_id);
   let editor = null;
   const save = () => store.setDraft(d);
   leaving = () => { editor && editor.stop(); };
@@ -473,7 +473,7 @@ async function lab(id) {
   }
   function specimenStrip() {
     const m = byId(d.material_id); if (!m) return "";
-    return `<div class="lab-specimen">${specimenArt(m.id)}<div><span class="spec-no">SPECIMEN ${m.id}</span><div class="serif" style="font-size:24px">${esc(m.name)}</div></div><button class="link" data-act="change" style="margin-left:auto">Change</button></div>`;
+    return `<div class="lab-specimen">${specimenArt(m)}<div><span class="spec-no">SPECIMEN ${m.id}</span><div class="serif" style="font-size:24px">${esc(m.name)}</div></div><button class="link" data-act="change" style="margin-left:auto">Change</button></div>`;
   }
   const chip = (group, v, on) => `<button type="button" class="chip" data-chip="${group}" data-v="${esc(v)}" aria-pressed="${on}">${esc(v)}</button>`;
 
@@ -484,11 +484,11 @@ async function lab(id) {
       body = `<p class="mono muted">Experiment ${pad(store.mine().length + 1)} / Choose a specimen</p>
         <h2>Which material will you translate?</h2>
         <p class="instruction">Pick one. If you have the real thing nearby, press it with your palm while you work.</p>
-        <div class="pick-grid">${MATERIALS.map(x => `<button class="card pick" data-pick="${x.id}"><span class="spec-no">${x.id}</span>${specimenArt(x.id)}<div class="spec-name">${esc(x.name)}</div></button>`).join("")}</div>`;
+        ${COLLECTIONS.map(c => `<div class="pick-group"><span class="mono">Collection ${c.id} · ${esc(c.name)}</span><div class="pick-grid">${specimensIn(c.id).map(x => `<button type="button" class="pick" data-pick="${x.id}">${specimenArt(x)}<span class="spec-no">${x.id}</span><div class="spec-name">${esc(x.name)}</div></button>`).join("")}</div></div>`).join("")}`;
     } else if (d.step === 1) {
       body = `${specimenStrip()}<p class="mono muted">Experiment ${m.id} / Observation</p>
         <h2>What did you see change?</h2>
-        <p class="instruction">Only what you can see or feel. Meanings come next. ${m.does ? `<br><span class="hand">lab note: ${esc(m.does.toLowerCase())}</span>` : ""}</p>
+        <p class="instruction">Only what you can see or feel. Meanings come next. ${mainRecord(m) ? `<br><span class="hand">institute note: ${esc(mainRecord(m).response.toLowerCase())}</span>` : ""}</p>
         <div class="field"><span class="flabel">The material…</span><div class="chips">${CHANGE_WORDS.map(w => chip("changes", w, d.observe.changes.includes(w))).join("")}</div>
           <input class="input" data-k="observe.other" placeholder="Something else? Describe it" maxlength="80" value="${esc(d.observe.other)}"></div>
         <div class="field"><span class="flabel">When did you first notice the change?</span><div class="chips">${WHEN_WORDS.map(w => chip("when", w, d.observe.when === w)).join("")}</div></div>
@@ -599,7 +599,7 @@ async function lab(id) {
       }
       save();
     }));
-    $$("[data-pick]", form).forEach(b => b.addEventListener("click", () => { d.material_id = b.dataset.pick; d.step = 1; save(); history.replaceState(null, "", `#lab-${d.material_id}`); view(); }));
+    $$("[data-pick]", form).forEach(b => b.addEventListener("click", () => { d.material_id = b.dataset.pick; d.step = 1; save(); history.replaceState(null, "", `#lab-${slug(d.material_id)}`); view(); }));
     $$("[data-embody]", form).forEach(b => b.addEventListener("click", () => {
       d.embody = b.dataset.embody; save();
       $$("[data-embody]", form).forEach(x => x.setAttribute("aria-pressed", String(x === b)));
@@ -780,32 +780,32 @@ async function collective(viewName = "words", matParam = "") {
   <div class="wrap">
     ${offlineNotice()}
     <div class="view-tabs" style="margin-top:18px">
-      <a class="pill ${viewName === "words" ? "is-on" : ""}" href="#collective-words${mat ? "-" + mat : ""}">Words</a>
-      <a class="pill ${viewName === "bodies" ? "is-on" : ""}" href="#collective-bodies${mat ? "-" + mat : ""}">Bodies · Atlas</a>
-      <a class="pill ${viewName === "traces" ? "is-on" : ""}" href="#collective-traces${mat ? "-" + mat : ""}">Traces</a>
+      <a class="pill ${viewName === "words" ? "is-on" : ""}" href="#collective-words${mat ? "-" + slug(mat) : ""}">Words</a>
+      <a class="pill ${viewName === "bodies" ? "is-on" : ""}" href="#collective-bodies${mat ? "-" + slug(mat) : ""}">Bodies · Atlas</a>
+      <a class="pill ${viewName === "traces" ? "is-on" : ""}" href="#collective-traces${mat ? "-" + slug(mat) : ""}">Traces</a>
       <label class="visually-hidden" for="mat-filter">Filter by specimen</label>
       <select id="mat-filter" class="select" style="width:auto;margin-left:auto;padding:9px 14px;font-size:14px">
         <option value="">All specimens</option>
-        ${MATERIALS.map(m => `<option value="${m.id}" ${m.id === mat ? "selected" : ""}>${m.id} / ${esc(m.name)}</option>`).join("")}
+        ${SPECIMENS.map(m => `<option value="${m.id}" ${m.id === mat ? "selected" : ""}>${m.id} ${esc(m.name)}</option>`).join("")}
       </select>
     </div>
     <div id="cview"></div>
   </div>`;
-  $("#mat-filter").addEventListener("change", ev => { location.hash = `#collective-${viewName}${ev.target.value ? "-" + ev.target.value : ""}`; });
+  $("#mat-filter").addEventListener("change", ev => { location.hash = `#collective-${viewName}${ev.target.value ? "-" + slug(ev.target.value) : ""}`; });
   const box = $("#cview");
 
   if (viewName === "words") {
-    const groups = MATERIALS.map(m => [m, filtered.filter(r => r.material_id === m.id)]).filter(([, l]) => l.length);
+    const groups = SPECIMENS.map(m => [m, filtered.filter(r => r.material_id === m.id)]).filter(([, l]) => l.length);
     box.innerHTML = groups.length ? groups.map(([m, l]) => {
-      const tr = l.slice(0, 3).map((r, i) => `<div class="row"><span>Human translation ${"ABC"[i]}:</span><span>${esc(latestMeaning(r))}</span></div>`).join("");
+      const tr = l.slice(0, 3).map((r, i) => `<div class="row rose"><span>Human translation ${"ABC"[i]}:</span><span>${esc(latestMeaning(r))}</span></div>`).join("");
       return `<section class="material-group">
-        <header><h3>${m.id} / ${esc(m.name)}</h3><a class="pill" href="#materials-${m.id}">Case file →</a></header>
+        <header><div class="head-art">${specimenArt(m)}<h3>${m.id} ${esc(m.name)}</h3></div><a class="pill" href="#materials-${slug(m.id)}">Case file →</a></header>
         <div class="wall">
-          <div class="card summary-card" style="background:var(--${m.tag === "butter" ? "butter" : m.tag})">
+          <div class="card summary-card">
             <div class="row"><span>Specimen</span><span>${m.id} / ${esc(m.name)}</span></div>
-            <div class="row"><span>Observed physical change:</span><span>${esc(m.mode)}</span></div>
+            <div class="row"><span>Observed physical change:</span><span>${esc(behaviourOf(m) || "No experiment recorded yet")}</span></div>
             ${tr}
-            <div class="row"><span>Conclusion:</span><span>${new Set(l.map(r => latestMeaning(r).toLowerCase())).size > 1 ? "Multiple meanings recorded" : "One meaning recorded, so far"}</span></div>
+            <div class="row rose"><span>Conclusion:</span><span>${new Set(l.map(r => latestMeaning(r).toLowerCase())).size > 1 ? "Multiple meanings recorded" : "One meaning recorded, so far"}</span></div>
           </div>
           ${l.map(r => quoteCard(r, { showMaterial: false })).join("")}
         </div>
@@ -833,7 +833,7 @@ async function collective(viewName = "words", matParam = "") {
   }
 
   if (viewName === "traces") {
-    const groups = MATERIALS.map(m => [m, filtered.filter(r => r.material_id === m.id && r.body && r.body.frames && r.body.frames.length > 1)]).filter(([, l]) => l.length);
+    const groups = SPECIMENS.map(m => [m, filtered.filter(r => r.material_id === m.id && r.body && r.body.frames && r.body.frames.length > 1)]).filter(([, l]) => l.length);
     const revised = filtered.filter(r => r.revisions && r.revisions.length);
     box.innerHTML = `
       <p class="muted" style="max-width:62ch">Traces are what is left after a change. Here: the paths of every body's head, hands and feet overlaid per specimen, and meanings that people went back and revised.</p>

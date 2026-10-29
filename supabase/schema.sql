@@ -4,7 +4,7 @@ create table if not exists public.entries (
   id uuid primary key default gen_random_uuid(),
   owner uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
-  material_id text not null check (material_id ~ '^[0-9]{3}$'),
+  material_id text not null check (material_id ~ '^[0-9]{3}([.][0-9]{2})?$'),
   alias text check (char_length(alias) <= 40),
   observe jsonb not null default '{}'::jsonb,
   meaning text not null check (char_length(meaning) between 1 and 80),
