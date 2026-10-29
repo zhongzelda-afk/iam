@@ -33,16 +33,13 @@ function vessel(shape = "stand", strong = false) {
   </svg>`;
 }
 
-// the technical field drawn around every specimen: corner registration marks, a dotted centre guide, a ruled baseline
+// the technical field drawn around every specimen: corner registration marks and a dotted centre guide
 export function field() {
   const corner = (x, y, dx, dy) => `<path pathLength="1" d="M${x} ${y + dy * 10} V${y} H${x + dx * 10}"/>`;
-  let ticks = "";
-  for (let i = 0; i <= 20; i++) { const x = 30 + i * 7; ticks += `<path d="M${x} 168 V${i % 5 ? 171 : 174}"/>`; }
   return `<svg class="sfield" viewBox="0 0 200 200" preserveAspectRatio="none" aria-hidden="true">
     <g fill="none" stroke="${LINE}" stroke-width=".5" vector-effect="non-scaling-stroke">
       <g class="cal" stroke-opacity=".35">${corner(8, 8, 1, 1)}${corner(192, 8, -1, 1)}${corner(8, 192, 1, -1)}${corner(192, 192, -1, -1)}</g>
       <g class="cal-fade" stroke-opacity=".14" stroke-dasharray="1 3"><path d="M100 14 V186"/><path d="M14 100 H186"/></g>
-      <g class="cal" stroke-opacity=".3"><path pathLength="1" d="M30 168 H170"/></g><g class="cal-fade" stroke-opacity=".3">${ticks}</g>
     </g>
   </svg>`;
 }
@@ -70,40 +67,12 @@ export function guilloche({ size = 240, color = LINE } = {}) {
   return `<svg class="guilloche" viewBox="0 0 ${size} ${size}" aria-hidden="true"><g fill="none" stroke="${color}" stroke-width=".5" vector-effect="non-scaling-stroke">${out}</g><text x="${c}" y="${c + 3.5}" text-anchor="middle" font-size="${f(size * .045)}" letter-spacing=".12em" fill="${color}" fill-opacity=".8">I.A.M.</text></svg>`;
 }
 
-// ---------- homepage report composition ----------
-// a measured plate around the specimens: grid, concentric survey circles, a schematic press and return curve, crosshairs, a few annotations
-export function report() {
-  // plate is 600 x 440; the four specimens stand in the lower band (centres at x 93, 231, 369, 507)
-  const circles = [34, 54, 76, 100].map((r, i) => `<circle class="draw" pathLength="1" style="--d:${120 + i * 90}ms" cx="369" cy="318" r="${r}"/>`).join("");
-  const cross = (x, y, i) => `<g class="draw-fade" style="--d:${500 + i * 80}ms"><path d="M${x - 9} ${y} H${x + 9} M${x} ${y - 9} V${y + 9}"/><circle cx="${x}" cy="${y}" r="3.5"/></g>`;
-  // schematic only: pressed down quickly, then returning
-  const curve = `M40 96 H128 C138 96 140 158 150 158 C176 158 192 102 262 98 H330`;
-  return `<svg class="report" viewBox="0 0 600 440" aria-hidden="true">
-    <g fill="none" stroke="${LINE}" stroke-width=".6" vector-effect="non-scaling-stroke">
-      <g stroke-opacity=".22">${circles}</g>
-      <g stroke-opacity=".2" class="draw-fade" style="--d:80ms" stroke-dasharray="2 4"><path d="M369 196 V436"/><path d="M8 232 H592"/></g>
-      <g stroke-opacity=".6"><path class="draw" pathLength="1" style="--d:420ms" d="${curve}"/></g>
-      <g stroke-opacity=".3" class="draw-fade" style="--d:300ms"><path d="M40 70 V176 H330"/>${Array.from({ length: 12 }, (_, i) => `<path d="M${40 + i * 26} 176 v4"/>`).join("")}</g>
-      <g stroke-opacity=".5">${cross(150, 158, 0)}${cross(560, 232, 1)}${cross(24, 420, 2)}</g>
-      <path class="draw" pathLength="1" style="--d:700ms" stroke="${ROSE}" stroke-opacity=".8" d="M150 158 L178 196 H232"/>
-    </g>
-    <g class="draw-fade" style="--d:900ms" fill="${LINE}" font-size="8.5" letter-spacing=".1em">
-      <text x="40" y="58">FIG. 01 · PRESS AND RETURN · SCHEMATIC</text>
-      <text x="238" y="199" fill="${ROSE}">POINT OF CONTACT</text>
-      <text x="336" y="179">TIME</text>
-      <text x="476" y="226" opacity=".7">SURVEY 003</text>
-    </g>
-  </svg>`;
-}
-
 // ---------- public ----------
 export function specimenArt(m, { large = false } = {}) {
   if (!m) return "";
   // a cutout shows the object alone, without the photograph's background
   if (m.photo) return `<img class="photo${m.cutout ? " cutout" : ""}" src="assets/materials/${m.id}${m.cutout ? "-cut.png" : ".jpg"}" alt="${m.name}" loading="lazy" decoding="async">`;
-  return `<div class="pending">${vessel(m.shape, large)}<span class="pending-label">Photograph pending</span></div>`;
+  return `<div class="pending">${vessel(m.shape, large)}<span class="pending-label">No photograph yet</span></div>`;
 }
-
-export const emptySlot = () => `<div class="pending empty-vessel">${vessel("vial")}</div>`;
 
 export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#050505"/>${mark().replace(/<\/?svg[^>]*>/g, "")}</svg>`;

@@ -12,7 +12,7 @@ export const LEGAL = {
       <h2 class="sub">Using the site</h2>
       <ul>
         <li>You can browse the archive without an account.</li>
-        <li>A contributor account lets you keep a private collection of your meanings.</li>
+        <li>A contributor account lets you keep a private dictionary of your entries.</li>
         <li>You must be 18 or over to create an account.</li>
         <li>Keep your password to yourself. You are responsible for what is posted from your account.</li>
       </ul>
@@ -35,12 +35,12 @@ export const LEGAL = {
       <ul>
         <li><strong>Account:</strong> your email address and a securely hashed password, held by the authentication service (Supabase). The project never sees your password.</li>
         <li><strong>Consent choices:</strong> whether you agreed to research use and to publishing, and when.</li>
-        <li><strong>Your collection:</strong> the meanings, notes, imagined voices and body movements you save.</li>
+        <li><strong>Your dictionary:</strong> the meanings, notes, imagined voices and body movements you save.</li>
         <li><strong>Shared entries:</strong> only the entries you choose to share, with the name you sign with (optional) and the date.</li>
       </ul>
       <p>No tracking cookies, no advertising, no location. Your browser keeps a sign-in token so you stay signed in.</p>
       <h2 class="sub">Why</h2>
-      <p>To run your account and your collection, to show shared entries in the archive, and, only if you agree separately, to use your entries in the research.</p>
+      <p>To run your account and your dictionary, to show shared entries in the archive, and, only if you agree separately, to use your entries in the research.</p>
       <h2 class="sub">Who can see it</h2>
       <ul>
         <li><strong>Private entries:</strong> only you. The database refuses anyone else's request for them.</li>
@@ -53,8 +53,8 @@ export const LEGAL = {
       <ul>
         <li>Make any entry private again at any time. It leaves the public archive straight away.</li>
         <li>Withdraw research consent or publishing consent at any time from your account.</li>
-        <li>Download a copy of your collection.</li>
-        <li>Delete your account. This deletes your profile, your collection, your shared entries and your sign-in.</li>
+        <li>Download a copy of your dictionary.</li>
+        <li>Delete your account. This deletes your profile, your dictionary, your shared entries and your sign-in.</li>
       </ul>
       <h2 class="sub">Contact</h2>
       <p>To be added.</p>`

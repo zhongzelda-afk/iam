@@ -11,6 +11,9 @@
 // photo    true when assets/materials/<id>.jpg exists (square, real photograph)
 // photo/refImage  refImage marks a reference image from Lynn's exhibition board, shown for layout, not a specimen photograph
 // details  close-ups { label, src }; size  height from the board
+// structure  physical structure (from earlier records and the identity card traits); botanical  plant group, fruits only
+//          composition lives in specimen.composition; collection membership is worked out from founding / community / retired
+// media.sequence  three stills taken from that real video: before pressure, during, after release (t = seconds into the video)
 // media    documented observations, e.g. { type: "video" | "image", src: "assets/materials/004-during.mp4", caption: "During" }
 
 const NR = "Not recorded";
@@ -26,7 +29,7 @@ export const LANGUAGE = {
 };
 
 export const FOUNDING = [
-  { id: "001", photo: true, cutout: true, refImage: true, no: "001", name: "Sponge", type: "Cleaning sponge", group: "Porous Solids", shape: "cube", tex: "sponge",
+  { id: "001", photo: true, cutout: true, refImage: true, no: "001", name: "Sponge", type: "Cleaning sponge", structure: "Porous solid", shape: "cube", tex: "sponge",
     response: "Compresses under pressure and returns towards its original shape after release. Recovery speed varies.",
     traits: "Porous · Compressible · Flexible · Elastic",
     identity: { name: "The Adapter", note: "Flexible and resilient, able to adjust and recover after pressure.", card: "I05" },
@@ -35,7 +38,7 @@ export const FOUNDING = [
     note: "Pressed in bodystorming phase 1 (Sept 2026).",
     specimen: { name: "Kitchen Sponge", variety: "Household cleaning sponge (type not recorded)", composition: "Open-cell foam with connected air pores", part: "Block", condition: "Dry, new", preparation: "Used as bought" },
     experiments: [press({ date: NR, context: "Bodystorming phase 1" })], media: [] },
-  { id: "002", photo: true, cutout: true, refImage: true, no: "002", name: "Ice", type: "Frozen tap water", group: "Water", shape: "cube", tex: "ice",
+  { id: "002", photo: true, cutout: true, refImage: true, no: "002", name: "Ice", type: "Frozen tap water", structure: "Rigid solid", shape: "cube", tex: "ice",
     response: "Gradually melts when exposed to warmth. May crack or fracture under sufficient force.", responseExpected: true,
     traits: "Cold · Solid · Rigid · Temperature-sensitive",
     identity: { name: "The Slow Transformer", note: "Appears still and unchanging, but gradually transforms in response to its environment.", card: "I06" },
@@ -44,8 +47,8 @@ export const FOUNDING = [
     note: "Not yet filmed by the Institute.",
     specimen: { name: "Ice", variety: "Frozen tap water", composition: "Water in solid phase", part: "Cube", condition: "Frozen", preparation: "Household freezer tray" },
     experiments: [{ id: "E01", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B 05" }],
-    media: [{ type: "video", src: "assets/materials/002-workshop-b-05.mp4", poster: "assets/materials/002-workshop-b-05.jpg", caption: "Workshop B 05", chapters: [["Pinch",  1],  ["Press",  21],  ["Squeeze",  35]] }] },
-  { id: "003", photo: true, cutout: true, refImage: true, no: "003", name: "Aluminium Foil", type: "Household kitchen foil", group: "Metal Foils", shape: "stand", tex: "foil",
+    media: [{ type: "video", src: "assets/materials/002-workshop-b-05.mp4", poster: "assets/materials/002-workshop-b-05.jpg", sequence: [{ src: "assets/materials/002-workshop-b-05-s1.jpg", t: 0.5, label: "Before pressure" }, { src: "assets/materials/002-workshop-b-05-s2.jpg", t: 41, label: "During · squeeze" }, { src: "assets/materials/002-workshop-b-05-s3.jpg", t: 53.5, label: "After release" }], caption: "Workshop B 05", chapters: [["Pinch",  1],  ["Press",  21],  ["Squeeze",  35]] }] },
+  { id: "003", photo: true, cutout: true, refImage: true, no: "003", name: "Aluminium Foil", type: "Household kitchen foil", structure: "Thin sheet", shape: "stand", tex: "foil",
     response: "Creases and deforms under pressure, retaining its altered shape after release.",
     traits: "Thin · Flexible · Foldable · Metallic",
     identity: { name: "The One Who Remembers", note: "Holds on to experiences and carries traces of past interactions.", card: "I02" },
@@ -55,7 +58,7 @@ export const FOUNDING = [
     specimen: { name: "Aluminium Foil", variety: "Household kitchen foil", composition: "Rolled aluminium sheet", part: "Sheet, folded", condition: "New", preparation: "Folded into a block for the archive" },
     experiments: [press({ date: NR, context: "Bodystorming phase 1" })], media: [] },
   { id: "004", photo: true, cutout: true, refImage: true, size: "85 mm", details: [{ label: "Surface", src: "assets/materials/004-d1.jpg" }, { label: "Peel", src: "assets/materials/004-d2.jpg" }, { label: "Juice", src: "assets/materials/004-d3.jpg" }],
-    no: "004", name: "Orange", type: "Sweet orange, cultivar not recorded", group: "Citrus", shape: "vial", tex: "orange",
+    no: "004", name: "Orange", type: "Sweet orange, cultivar not recorded", botanical: "Citrus", shape: "vial", tex: "orange",
     response: "Develops dents or pressure marks when squeezed. Changes beneath the surface may not be immediately visible.",
     traits: "Firm, textured peel · Rounded shape · Soft interior",
     identity: { name: "The Quiet Endurer", note: "Appears strong and composed, but may be affected beneath the surface.", card: "I01" },
@@ -64,9 +67,9 @@ export const FOUNDING = [
     note: "Pressed 1 Oct 2026 and in bodystorming phase 1.",
     specimen: { name: "Orange", variety: "Sweet orange, cultivar not recorded", composition: "Oily peel over juice-filled segments", part: "Whole fruit", condition: "Fresh", preparation: "Unpeeled, room temperature" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment, also pressed in bodystorming phase 1" }), { id: "E02", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B" }],
-    media: [{ type: "video", src: "assets/materials/004-workshop-b.mp4", poster: "assets/materials/004-workshop-b.jpg", caption: "Workshop B", chapters: [["Pinch",  4],  ["Press",  18],  ["Squeeze",  27]] }] },
+    media: [{ type: "video", src: "assets/materials/004-workshop-b.mp4", poster: "assets/materials/004-workshop-b.jpg", sequence: [{ src: "assets/materials/004-workshop-b-s1.jpg", t: 2, label: "Before pressure" }, { src: "assets/materials/004-workshop-b-s2.jpg", t: 20, label: "During · palm press" }, { src: "assets/materials/004-workshop-b-s3.jpg", t: 37, label: "After release" }], caption: "Workshop B", chapters: [["Pinch",  4],  ["Press",  18],  ["Squeeze",  27]] }] },
   { id: "006", photo: true, cutout: true, refImage: true, size: "70 mm", details: [{ label: "Surface", src: "assets/materials/006-d1.jpg" }, { label: "Texture", src: "assets/materials/006-d2.jpg" }, { label: "Interior", src: "assets/materials/006-d3.jpg" }],
-    no: "005", name: "Tomato", type: "Round tomato, cultivar not recorded", group: "Nightshade Fruits", shape: "vial", tex: "tomato",
+    no: "005", name: "Tomato", type: "Round tomato, cultivar not recorded", botanical: "Nightshade fruit", shape: "vial", tex: "tomato",
     response: "Deforms under pressure. Stronger force may cause lasting damage to its skin or internal structure.",
     traits: "Thin skin · Soft flesh · Fluid-filled interior",
     identity: { name: "The Sensitive One", note: "Easily affected by external pressure, even when the damage is not immediately visible.", card: "I04" },
@@ -75,16 +78,16 @@ export const FOUNDING = [
     note: "Pressed 1 Oct 2026.",
     specimen: { name: "Tomato", variety: "Round tomato, cultivar not recorded", composition: "Thin skin over gel and seeds", part: "Whole fruit", condition: "Ripe", preparation: "Room temperature" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment" }), { id: "E02", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B, video 02" }],
-    media: [{ type: "video", src: "assets/materials/006-workshop-b-02.mp4", poster: "assets/materials/006-workshop-b-02.jpg", caption: "Workshop B 02", chapters: [["Pinch", 0], ["Press", 12], ["Squeeze", 28]] }] },
+    media: [{ type: "video", src: "assets/materials/006-workshop-b-02.mp4", poster: "assets/materials/006-workshop-b-02.jpg", sequence: [{ src: "assets/materials/006-workshop-b-02-s1.jpg", t: 0.5, label: "Before pressure" }, { src: "assets/materials/006-workshop-b-02-s2.jpg", t: 45, label: "During · squeeze" }, { src: "assets/materials/006-workshop-b-02-s3.jpg", t: 50, label: "After release" }], caption: "Workshop B 02", chapters: [["Pinch", 0], ["Press", 12], ["Squeeze", 28]] }] },
   { id: "007", photo: true, cutout: true, refImage: true, size: "110 mm", details: [{ label: "Stem", src: "assets/materials/007-d1.jpg" }, { label: "Skin", src: "assets/materials/007-d2.jpg" }, { label: "Flesh", src: "assets/materials/007-d3.jpg" }],
-    no: "006", name: "Pear", type: "Cultivar not recorded", group: "Pome Fruits", shape: "vial", tex: "pear",
+    no: "006", name: "Pear", type: "Cultivar not recorded", botanical: "Pome fruit", shape: "vial", tex: "pear",
     response: "Looks unchanged right after a press. Over the next hours the pressed area softens and turns brown.",
     words: [], speed: "delayed", after: "keeps", mode: "Bruises, browns over time",
     def: "Looks unchanged right after a press. Over the next hours the pressed area softens and turns brown.",
     note: "Pressed 1 Oct 2026.",
     specimen: { name: "Pear", variety: "Cultivar not recorded", composition: "Thin skin over granular flesh", part: "Whole fruit", condition: "Ripe", preparation: "Room temperature" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment" })], media: [] },
-  { id: "008", no: "007", name: "Shaving Foam", type: "Aerosol shaving foam", group: "Foams", shape: "vial", tex: "foam",
+  { id: "008", no: "007", name: "Shaving Foam", type: "Aerosol shaving foam", structure: "Foam", shape: "vial", tex: "foam",
     response: "Collapses under pressure, sticks to the hand and resists separation.",
     traits: "Soft · Airy · Lightweight · Sticky",
     identity: { name: "The Clingy One", note: "Becomes attached easily and struggles to let go.", card: "I03" },
@@ -94,20 +97,20 @@ export const FOUNDING = [
     specimen: { name: "Shaving Foam", variety: "Aerosol shaving foam (brand not recorded)", composition: "Soap film around gas bubbles", part: "Dispensed mound", condition: "Freshly dispensed", preparation: "Sprayed onto a flat surface" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment" })], media: [] },
   { id: "009", photo: true, cutout: true, refImage: true, size: "40 mm", details: [{ label: "Foam", src: "assets/materials/009-d1.jpg" }, { label: "Texture", src: "assets/materials/009-d2.jpg" }, { label: "Surface", src: "assets/materials/009-d3.jpg" }],
-    no: "008", name: "Cream", type: "Whipped dairy cream", group: "Foams", shape: "vial", tex: "cream",
+    no: "008", name: "Cream", type: "Whipped dairy cream", structure: "Foam", shape: "vial", tex: "cream",
     response: "Holds soft peaks, takes a print easily, then sinks and turns liquid at room temperature.",
     words: [], speed: "delayed", after: "keeps", mode: "Deflates and melts",
     def: "Holds soft peaks, takes a print easily, then sinks and turns liquid at room temperature.",
     note: "Pressed 1 Oct 2026.",
     specimen: { name: "Whipped Cream", variety: "Dairy cream, whipped", composition: "Fat-stabilised air bubbles in cream", part: "Dispensed mound", condition: "Fresh, chilled", preparation: "Whipped or dispensed" },
     experiments: [press({ date: "1 Oct 2026", context: "Studio experiment" }), { id: "E02", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B 03" }],
-    media: [{ type: "video", src: "assets/materials/009-workshop-b-03.mp4", poster: "assets/materials/009-workshop-b-03.jpg", caption: "Workshop B 03", chapters: [["Dispense",  0],  ["Pinch",  16],  ["Press",  39],  ["Squeeze",  51],  ["Final",  67]] }] },
+    media: [{ type: "video", src: "assets/materials/009-workshop-b-03.mp4", poster: "assets/materials/009-workshop-b-03.jpg", sequence: [{ src: "assets/materials/009-workshop-b-03-s1.jpg", t: 12, label: "Before pressure" }, { src: "assets/materials/009-workshop-b-03-s2.jpg", t: 44, label: "During · palm press" }, { src: "assets/materials/009-workshop-b-03-s3.jpg", t: 66.3, label: "After release" }], caption: "Workshop B 03", chapters: [["Dispense",  0],  ["Pinch",  16],  ["Press",  39],  ["Squeeze",  51],  ["Final",  67]] }] },
   { id: "012", no: "009", name: "Rose", shape: "stand", tex: "rose", words: [],
     note: "Pressed on camera in the trace experiments (midterm presentation, 23 Oct 2026). Observation not yet written.",
     experiments: [{ id: "E01", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B 06" }],
-    media: [{ type: "video", src: "assets/materials/012-workshop-b-06.mp4", poster: "assets/materials/012-workshop-b-06.jpg", caption: "Workshop B 06", chapters: [["Pinch",  0],  ["Press",  18],  ["Squeeze",  42]] }] },
+    media: [{ type: "video", src: "assets/materials/012-workshop-b-06.mp4", poster: "assets/materials/012-workshop-b-06.jpg", sequence: [{ src: "assets/materials/012-workshop-b-06-s1.jpg", t: 0.5, label: "Before pressure" }, { src: "assets/materials/012-workshop-b-06-s2.jpg", t: 52, label: "During · squeeze" }, { src: "assets/materials/012-workshop-b-06-s3.jpg", t: 62, label: "After release" }], caption: "Workshop B 06", chapters: [["Pinch",  0],  ["Press",  18],  ["Squeeze",  42]] }] },
   { id: "013", no: "010", name: "Cabbage Leaf", shape: "stand", tex: "cabbage", words: [], experiments: [{ id: "E01", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B 03 (改), vegetable leaf" }],
-    media: [{ type: "video", src: "assets/materials/013-workshop-b-03-leaf.mp4", poster: "assets/materials/013-workshop-b-03-leaf.jpg", caption: "Workshop B 03 (改), vegetable leaf", chapters: [["Pinch",  2],  ["Press",  13],  ["Squeeze",  35]] }] },
+    media: [{ type: "video", src: "assets/materials/013-workshop-b-03-leaf.mp4", poster: "assets/materials/013-workshop-b-03-leaf.jpg", sequence: [{ src: "assets/materials/013-workshop-b-03-leaf-s1.jpg", t: 0.5, label: "Before pressure" }, { src: "assets/materials/013-workshop-b-03-leaf-s2.jpg", t: 45, label: "During · squeeze" }, { src: "assets/materials/013-workshop-b-03-leaf-s3.jpg", t: 54, label: "After release" }], caption: "Workshop B 03 (改), vegetable leaf", chapters: [["Pinch",  2],  ["Press",  13],  ["Squeeze",  35]] }] },
   { id: "014", photo: true, cutout: true, refImage: true, no: "011", name: "Madeleine", shape: "stand", tex: "madeleine", words: [], experiments: [], media: [] }
 ];
 
@@ -120,8 +123,12 @@ export const RETIRED = [
   { id: "011", no: "—", name: "Gel", retired: true, shape: "cube", words: [], experiments: [], media: [] }
 ];
 
-export const SPEEDS = { instant: "Instant", delayed: "Delayed" };
-export const AFTERS = { returns: "Returns toward first shape", keeps: "Keeps the change" };
+// the two behaviour dimensions used to file materials
+// response time: how soon the visible change happens (the Institute's observation, not a timed measurement)
+export const SPEEDS = { instant: "Immediate", delayed: "Delayed" };
+// return behaviour: what is left after the hand lets go
+export const AFTERS = { returns: "Returns towards its original form", keeps: "Retains the change" };
+export const AFTERS_SHORT = { returns: "Returns", keeps: "Retains" };
 
 // community materials are added at runtime (see store.js)
 let community = [];

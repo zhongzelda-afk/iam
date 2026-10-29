@@ -1,5 +1,5 @@
-import { allMaterials, setCommunity, byId, canonical, SPEEDS, AFTERS, LANGUAGE, DEMOS } from "./data.js";
-import { mark, specimenArt, emptySlot, field, guilloche } from "./art.js";
+import { allMaterials, setCommunity, byId, canonical, SPEEDS, AFTERS, AFTERS_SHORT, LANGUAGE, DEMOS } from "./data.js";
+import { mark, specimenArt, field, guilloche } from "./art.js";
 import { mountEditor, mountPlayer, defaultPose } from "./body.js";
 import * as store from "./store.js";
 import { LEGAL } from "./legal.js";
@@ -16,7 +16,7 @@ const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
 const transition = fn => (document.startViewTransition && !calm()) ? document.startViewTransition(fn) : (fn(), null);
 const missing = (t = "Not yet recorded.") => `<p class="missing">${t}</p>`;
 const hasBody = e => !!(e && e.body && e.body.frames && e.body.frames.length > 1);
-const kindLabel = m => m.community ? `Community submission · not verified` : m.retired ? "Earlier archive entry" : `Founding collection${m.group ? " · " + esc(m.group) : ""}`;
+const kindLabel = m => m.community ? `Community submission · not verified` : m.retired ? "Earlier archive entry" : "Founding collection";
 
 // a specimen inside its technical field
 const stage = (m, { large = false } = {}) => `${field()}${specimenArt(m, { large })}`;
@@ -133,7 +133,7 @@ const routes = [
   [/^$/, home],
   [/^archive$/, archive],
   [new RegExp(`^archive-${ID}$`), detail],
-  [/^collection$/, collection],
+  [/^dictionary$/, collection],
   [/^about$/, about],
   [/^(terms|privacy|research|consent)$/, legalPage]
 ];
@@ -143,13 +143,13 @@ const legacy = path => {
   if ((m = path.match(/^materials-(\d{3}-\d{2})$/))) return "archive-" + canonical(m[1].replace("-", "."));
   if ((m = path.match(new RegExp(`^play-${ID}$`)))) return "archive-" + m[1];
   if (/^(materials|collective|lab|play)/.test(path)) return "archive";
-  if (path === "me") return "collection";
+  if (path === "me" || path === "collection") return "dictionary";
   return null;
 };
-const navKey = path => path.startsWith("archive") ? "archive" : path.startsWith("collection") ? "collection" : path === "" ? "home" : "";
+const navKey = path => path.startsWith("archive") ? "archive" : path === "dictionary" ? "dictionary" : path === "" ? "home" : "";
 const currentPath = () => location.hash.replace(/^#\/?/, "").replace(/\//g, "-");
 
-let leaving = null;
+let leaving = null, renderSeq = 0;
 async function render() {
   const path = currentPath();
   if (path === "main") { history.replaceState(null, "", "#" + (render.last || "")); main.focus(); return; }
@@ -162,8 +162,21 @@ async function render() {
   $$(".nav [data-nav]").forEach(a => a.dataset.nav === navKey(path) ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   const route = routes.find(([re]) => re.test(path));
   const y = window.scrollY;
-  if (!route) main.innerHTML = notFound();
-  else await route[1](...path.match(route[0]).slice(1));
+  // a slow page dims the old content and shows a progress line; a failed one offers a retry
+  const seq = ++renderSeq;
+  const slow = setTimeout(() => { if (seq === renderSeq) { main.setAttribute("aria-busy", "true"); document.body.classList.add("is-loading"); } }, 160);
+  try {
+    if (!route) main.innerHTML = notFound();
+    else await route[1](...path.match(route[0]).slice(1));
+  } catch (err) {
+    console.error(err);
+    main.innerHTML = `<div class="wrap page empty-state" role="alert"><h1>This page could not be opened.</h1><p>The archive may be unreachable for a moment. Your drafts in this browser are safe.</p><div class="row" style="justify-content:center"><button class="btn btn-primary" type="button" data-retry>Try again</button><a class="btn" href="#">Home</a></div></div>`;
+    $("[data-retry]", main).addEventListener("click", () => { render.last = null; render(); });
+  } finally {
+    clearTimeout(slow);
+    if (seq === renderSeq) { main.removeAttribute("aria-busy"); document.body.classList.remove("is-loading", "booting"); }
+  }
+  if (seq !== renderSeq) return;
   window.scrollTo({ top: sameRoute ? y : 0, behavior: "instant" in window ? "instant" : "auto" });
   if (!sameRoute) main.focus({ preventScroll: true });
   const h1 = main.querySelector("h1")?.textContent.trim();
@@ -203,118 +216,158 @@ main.addEventListener("pointermove", e => {
 });
 
 // ---------- fragments ----------
+// behaviour, written the same way everywhere
+const behaviour = m => m.speed && m.after ? `${AFTERS[m.after]} · ${SPEEDS[m.speed]}` : "";
+const behaviourShort = m => m.speed && m.after ? `${AFTERS_SHORT[m.after]} · ${SPEEDS[m.speed]}` : "";
+// what a founding record still lacks; an empty list means the record is complete
+const recordGaps = m => {
+  if (m.community) return [];
+  const g = [];
+  if (!m.photo) g.push("Photograph");
+  if (!m.response) g.push("Physical observation");
+  if (!m.speed || !m.after) g.push("Behaviour");
+  return g;
+};
+const isComplete = m => !m.community && !m.retired && !recordGaps(m).length;
+const collectionOf = m => m.community ? "Community submission, not verified" : m.retired ? "Earlier archive entry" : "Founding collection";
+
 const specLink = m => `<a class="spec" href="#archive-${m.id}" data-id="${m.id}" data-speed="${m.speed || ""}" data-after="${m.after || ""}" ${m.community ? "data-community" : ""}>
-  <div class="img">${stage(m)}<span class="anno" aria-hidden="true">${esc(m.community ? "Community" : m.group || "Founding")}</span></div>
+  <div class="img">${stage(m)}${m.refImage ? `<span class="ref-dot" title="Reference image, not a specimen photograph">Ref.</span>` : ""}</div>
   <div class="meta"><span class="no">${m.no}</span><span class="name">${esc(m.name)}</span>${m.community ? `<span class="tag-community">Community</span>` : ""}</div>
+  <div class="spec-sub">${esc(behaviourShort(m) || (m.community ? "Not verified" : "Behaviour not recorded"))}</div>
 </a>`;
 
 const matrix = m => `<span class="matrix" role="img" aria-label="${SPEEDS[m.speed]}, ${AFTERS[m.after]}">${["instant", "delayed"].map(sp => ["returns", "keeps"].map(af =>
-  `<span class="${sp === m.speed && af === m.after ? "on" : ""}">${SPEEDS[sp]} · ${af === "returns" ? "Comes back" : "Keeps the change"}</span>`).join("")).join("")}</span>`;
+  `<span class="${sp === m.speed && af === m.after ? "on" : ""}">${AFTERS_SHORT[af]} · ${SPEEDS[sp]}</span>`).join("")).join("")}</span>`;
 
 const savedMark = `<svg class="saved-mark" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="25" fill="none" stroke-width="1.5"/><path d="M18 29 l7 7 l13 -15" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-// ---------- HOME ----------
-// a specimen under observation: protocol and parameters read from the record, viewfinders, an exhibition board, then the catalogue
-const DETAILS = ["Surface", "Texture", "Interior"];
-const words = m => (m.words || []).map(w => LANGUAGE[w].word).join(", ");
-const codeLines = (start, rows) => rows.map((r, i) => `<span class="cl ${r[0]}"><span class="ln">${start + i}</span><span class="ct" ${r[1] ? `data-type="${esc(r[1])}"` : ""}>${esc(r[1] || "")}</span></span>`).join("");
-const protocol = m => {
-  const x = (m.experiments || [])[0];
-  return codeLines(31, [
-    ["c", "// observation protocol [观察指令]"], ["rule", "----------------------------------"], ["", ""],
-    ["h", "Input steps"], ["", ""],
-    ["k", "01_specimen"], ["v", m.specimen ? `${m.name} · ${m.specimen.condition}` : m.name],
-    ["k", "02_action"], ["v", x ? x.type : "Not yet tested"],
-    ["k", "03_response"], ["v", m.speed ? `${SPEEDS[m.speed]} · ${m.after === "keeps" ? "keeps the change" : "returns"}` : "Not yet recorded"],
-    ["k", "04_language"], ["v", words(m) || "Unassigned"],
-    ["", ""], ["x", "Execute_press()->read_response;"]
-  ]);
-};
-const params = m => codeLines(19, [
-  ["c", "// basic parameters"], ["rule", "------------------------"], ["", ""],
-  ["k", "Institute identifier"], ["v", "I.A.M."], ["", ""],
-  ["k", "Object id"], ["v", `Specimen_${m.no}`], ["", ""],
-  ["k", "Family"], ["v", m.group || "Not recorded"], ["", ""],
-  ["k", "I.A.M. reading"], ["v", m.identity ? m.identity.name : "None yet"], ["", ""],
-  ["k", "Status"], ["v", m.refImage ? "Reference image [~]" : m.photo ? "Documented [√]" : "Photograph pending [ ]"]
-]);
-const detailSlots = m => (m.details || DETAILS.map(label => ({ label }))).map((d, i) => `<li class="${d.src ? "has" : ""}" style="--i:${i}"><span class="dimg">${d.src ? `<img src="${esc(d.src)}" alt="${esc(m.name)}, ${esc(d.label)}" loading="lazy">` : `${field()}<span class="pending-label">Pending</span>`}</span><span class="dlabel"><span>0${i + 1}</span>${esc(d.label)}</span></li>`).join("");
-const FINDERS = [[[54, 30, 9], [44, 56, 14]], [[40, 26, 10], [56, 60, 12]], [[58, 40, 8], [38, 62, 15]], [[46, 22, 11], [60, 52, 13]]];
+// how a personal entry relates to the Institute's own
+const RELATIONS = { adopt: ["Adopt it", "Adopts"], adapt: ["Adapt or extend it", "Adapts"], different: ["Something different", "A different reading from"] };
+const relationLine = (rel, m) => rel && RELATIONS[rel] && m && m.identity ? `${RELATIONS[rel][1]} the Institute's “${esc(m.identity.name)}”` : "";
 
+// a personal dictionary entry: material, the visitor's name for it, and why
+function dictEntry(e, { sample = false, m = byId(e.material_id) || unknown(e.material_id) } = {}) {
+  const o = e.observe || {};
+  const noticed = [...(o.noticed || []), o.note].filter(Boolean).join(" · ");
+  const rel = relationLine(o.relation, m);
+  return `<article class="dict-entry${sample ? " sample" : ""}">
+    ${sample ? `<span class="label sample-label">Example entry · written by the Institute to show the format, not a visitor's response</span>` : ""}
+    <div class="de-head"><span class="de-word">${esc(latestMeaning(e))}</span><span class="de-mat">No. ${m.no} · ${esc(m.name)}</span></div>
+    ${e.meaning_note ? `<p class="de-def">${esc(e.meaning_note)}</p>` : ""}
+    <dl class="de-meta">
+      ${noticed ? `<div><dt>Noticed</dt><dd>${esc(noticed)}</dd></div>` : ""}
+      ${e.voice ? `<div><dt>Imagined voice</dt><dd><span class="voice">${esc(e.voice)}</span></dd></div>` : ""}
+      ${rel ? `<div><dt>Relation</dt><dd>${rel}</dd></div>` : ""}
+    </dl>
+  </article>`;
+}
+const SAMPLE = () => ({ ...DEMOS[0], observe: { relation: "adapt" } });
+
+// ---------- HOME ----------
+// what it is, how to take part, then a specimen under observation and the catalogue
 async function home() {
   const all = allMaterials().filter(m => !m.community && !m.retired);
+  const seen = all.filter(isComplete);
+  const ex = byId("001");
   let cur = 0, timer = null;
-  const feat = all.find(m => m.photo) || all[0];
+  const m0 = seen[0];
+  const vrec = m => {
+    const x = (m.experiments || [])[0];
+    return [["Specimen", m.specimen ? `${m.name}, ${m.specimen.condition.toLowerCase()}` : m.name], ["Action", x ? x.type : "Not yet tested"],
+      ["Behaviour", behaviour(m) || "Not yet recorded"], ["Institute's entry", m.identity ? m.identity.name : "Not yet written"]]
+      .map(([k, v]) => `<div><dt>${k}</dt><dd data-type="${esc(v)}">${esc(v)}</dd></div>`).join("");
+  };
+  const detailSlots = m => (m.details || []).map((d, i) => `<li style="--i:${i}"><span class="dimg"><img src="${esc(d.src)}" alt="${esc(m.name)}, ${esc(d.label)}" loading="lazy"></span><span class="dlabel">${esc(d.label)}</span></li>`).join("");
+  const progress = all.filter(m => !isComplete(m)).length;
   main.innerHTML = `
   <section class="wrap home-top">
     <div class="home-title">
       <span class="label">I.A.M. · Institute of Animate Matter</span>
       <h1>One Material. Many Meanings.</h1>
-      <p>An evolving archive of materials and the meanings we give them.</p>
+      <p class="lede">Every material answers pressure in its own way. A sponge springs back, foil keeps every crease, ice slowly gives itself away. The Institute reads that behaviour and writes an entry in its dictionary. Then you read the same behaviour, and write an entry in yours.</p>
+      <div class="row hero-actions"><a class="btn btn-primary" href="#archive">Explore a material</a><a class="btn" href="#how" data-jump="how">How it works</a></div>
     </div>
-    <a class="btn btn-primary" href="#archive">Explore Archive</a>
   </section>
 
-  <section class="wrap">
-    <div class="viewer" aria-label="Specimen under observation">
+  <section class="wrap how" id="how" aria-labelledby="how-h">
+    <div class="how-head">
+      <span class="label">Two dictionaries</span>
+      <h2 id="how-h">The Institute keeps one. You begin your own.</h2>
+      <p>Both start from the same physical behaviour. The Institute's entry is one authored interpretation, not the answer. Yours can agree with it, extend it, or say something else entirely.</p>
+    </div>
+    <ol class="journey">
+      <li>
+        <span class="step-no">01</span><h3>Explore a material</h3>
+        <p>Watch how it changes under a hand: before pressure, during, and after release.</p>
+        <div class="eg"><span class="kind kind-obs">Physical behaviour · ${esc(ex.name)}</span><p>${esc(ex.response)}</p></div>
+      </li>
+      <li>
+        <span class="step-no">02</span><h3>Read the Institute's interpretation</h3>
+        <p>An authored reading of that behaviour. Adopt it, adapt it, reinterpret it or disagree.</p>
+        <div class="eg"><span class="kind kind-int">The Institute's Dictionary</span><p class="word">${esc(ex.identity.name)}</p><p class="muted">${esc(ex.identity.note)}</p></div>
+      </li>
+      <li>
+        <span class="step-no">03</span><h3>Create your own entry</h3>
+        <p>Four short steps: notice, associate, imagine, name. The result is a page in your own material dictionary.</p>
+        ${dictEntry(SAMPLE(), { sample: true })}
+      </li>
+    </ol>
+    <div class="why">
+      <p><strong>What you leave with.</strong> A personal dictionary of materials: your name for each one, and why. It stays private, and you can come back to it and revise it as your reading changes. If you choose to share an entry, it sits in the archive beside the Institute's, as an equally valid reading.</p>
+      <a class="btn btn-primary" href="#archive">Choose a material</a>
+    </div>
+  </section>
+
+  ${m0 ? `<section class="wrap" aria-labelledby="viewer-h">
+    <h2 class="visually-hidden" id="viewer-h">Specimens under observation</h2>
+    <div class="viewer">
       <div class="board">
-        <div class="board-id"><span class="board-no" data-v-no>${all[0].no}</span><span class="board-name" data-v-name>${esc(all[0].name)}</span></div>
+        <div class="board-id"><span class="board-no" data-v-no>${m0.no}</span><span class="board-name" data-v-name>${esc(m0.name)}</span></div>
         <div class="board-stage">
           <svg class="board-guides" viewBox="0 0 400 400" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6" vector-effect="non-scaling-stroke">
             <circle class="draw" pathLength="1" cx="200" cy="200" r="150" stroke-dasharray="3 5" style="--d:200ms"/>
-            <g class="draw-fade" style="--d:500ms"><path d="M200 20 V60 M200 340 V380 M20 200 H60 M340 200 H380"/>${[[70, 70], [330, 70], [70, 330], [330, 330]].map(([x, y]) => `<path d="M${x - 8} ${y} H${x + 8} M${x} ${y - 8} V${y + 8}"/>`).join("")}</g>
+            <g class="draw-fade" style="--d:500ms"><path d="M200 20 V60 M200 340 V380 M20 200 H60 M340 200 H380"/></g>
           </g></svg>
-          <div class="scale" aria-hidden="true"><span></span><em data-v-size>${all[0].size || "— mm"}</em></div>
-          <a class="board-spec xray" href="#archive-${all[0].id}" data-v-link>${specimenArt(all[0], { large: true })}</a>
-          ${FINDERS[0].map(([x, y, w], i) => `<span class="vf" data-vf="${i}" style="--x:${x}%;--y:${y}%;--w:${w}%"></span>`).join("")}
+          <div class="scale" data-v-scale aria-hidden="true" ${m0.size ? "" : "hidden"}><span></span><em data-v-size>${m0.size || ""}</em></div>
+          <a class="board-spec xray" href="#archive-${m0.id}" data-v-link aria-label="Open ${esc(m0.name)}">${specimenArt(m0, { large: true })}</a>
         </div>
-        <ol class="details" data-v-details>${detailSlots(all[0])}</ol>
+        <ol class="details" data-v-details ${m0.details ? "" : "hidden"}>${detailSlots(m0)}</ol>
       </div>
-      <pre class="code code-l" data-v-proto>${protocol(all[0])}</pre>
-      <pre class="code code-r" data-v-params>${params(all[0])}</pre>
+      <div class="vpanel">
+        <span class="label">Observation record</span>
+        <dl class="vrec" data-v-rec>${vrec(m0)}</dl>
+      </div>
       <div class="viewer-foot">
         <span class="viewer-mark">${guilloche({ size: 120 })}</span>
-        <span class="viewer-count label"><span data-v-i>01</span> / ${String(all.length).padStart(2, "0")}<span class="ref-note" data-v-ref ${all[0].refImage ? "" : "hidden"}> · Reference image, not a specimen photograph</span></span>
+        <span class="viewer-count label"><span data-v-i>01</span> / ${String(seen.length).padStart(2, "0")}<span class="ref-note" data-v-ref ${m0.refImage ? "" : "hidden"}> · Reference image, not a specimen photograph</span></span>
         <div class="viewer-btns">
           <button class="vbtn" type="button" data-v-step="-1" aria-label="Previous specimen">←</button>
           <button class="vbtn" type="button" data-v-step="1" aria-label="Next specimen">→</button>
-          <a class="vbtn" href="#archive-${all[0].id}" data-v-open aria-label="Open case file"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+          <a class="vbtn" href="#archive-${m0.id}" data-v-open aria-label="Open the record for ${esc(m0.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
         </div>
       </div>
     </div>
-  </section>
+  </section>` : ""}
 
-  <section class="wrap catalogue-wrap">
-    <div class="catalogue-side" aria-hidden="true"><span>FOUNDING COLLECTION_001–${String(all.length).padStart(3, "0")}</span></div>
-    <div class="catalogue">
-      ${all.map((m, i) => `<a class="cat" href="#archive-${m.id}" style="--i:${i}">
-        <div class="cat-img xray">${specimenArt(m)}<span class="cat-vf" aria-hidden="true"></span></div>
-        <div class="cat-cap"><span class="cat-no">${m.no}</span><span class="cat-text"><strong>${esc(m.name.toUpperCase())}</strong><span>${esc(m.group || "Family not recorded")}</span></span></div>
-      </a>`).join("")}
-    </div>
-  </section>
-
-  <section class="wrap spec-wrap">
-    <div class="spec-card">
-      <span class="spec-side">Specimen</span>
-      <div class="spec-card-img xray">${specimenArt(feat, { large: true })}</div>
-      <div class="spec-card-info">
-        <h2>${esc(feat.name)}</h2>
-        <dl class="spec-table">
-          ${[["Item", feat.type], ["Family", feat.group], ["Response", feat.speed ? `${SPEEDS[feat.speed]}, ${feat.after === "keeps" ? "keeps the change" : "returns"}` : ""], ["Language", words(feat)], ["Reading", feat.identity && feat.identity.name], ["ID", feat.no]].filter(([, v]) => v).map(([k, v]) => `<div><dt>${k}:</dt><dd>${esc(v)}</dd></div>`).join("")}
-        </dl>
-        <a class="btn btn-small" href="#archive-${feat.id}">Open case file</a>
+  <section class="wrap catalogue-wrap" aria-labelledby="cat-h">
+    <div class="catalogue-side" aria-hidden="true"><span>FOUNDING COLLECTION</span></div>
+    <div>
+      <h2 class="visually-hidden" id="cat-h">Founding collection</h2>
+      <div class="catalogue">
+        ${seen.map((m, i) => `<a class="cat" href="#archive-${m.id}" style="--i:${i}">
+          <div class="cat-img xray">${specimenArt(m)}<span class="cat-vf" aria-hidden="true"></span></div>
+          <div class="cat-cap"><span class="cat-no">${m.no}</span><span class="cat-text"><strong>${esc(m.name.toUpperCase())}</strong><span>${esc(behaviourShort(m) || "Behaviour not recorded")}</span></span></div>
+        </a>`).join("")}
       </div>
-    </div>
-    <div class="spec-card spec-card-foot">
-      <span>Add your meaning to any material.<br>Private by default.</span>
-      <span><a class="ulink" href="#archive">Archive</a><br><a class="ulink" href="#collection">My Collection</a><br><a class="ulink" href="#about">About &amp; privacy</a></span>
+      ${progress ? `<p class="cat-more"><a class="ulink" href="#archive">${progress} more ${progress === 1 ? "record is" : "records are"} in progress in the archive →</a></p>` : ""}
     </div>
   </section>`;
 
-  // typed update of each line, a quick settle rather than a slow effect
-  const type = (root, html) => {
-    root.innerHTML = html;
+  $("[data-jump]", main)?.addEventListener("click", e => { e.preventDefault(); $("#how", main).scrollIntoView({ behavior: calm() ? "auto" : "smooth" }); $("#how-h", main).setAttribute("tabindex", "-1"); $("#how-h", main).focus({ preventScroll: true }); });
+  if (!m0) return;
+  // a quick typed settle on each value, not a slow effect
+  const type = root => {
     if (calm()) return;
     $$("[data-type]", root).forEach(el => {
       const full = el.dataset.type, t0 = performance.now(), glyphs = "▮▯/_01";
@@ -327,98 +380,122 @@ async function home() {
     });
   };
   const show = i => {
-    cur = (i + all.length) % all.length;
-    const m = all[cur], v = $(".viewer", main); if (!v) return;
+    cur = (i + seen.length) % seen.length;
+    const m = seen[cur], v = $(".viewer", main); if (!v) return;
     $("[data-v-no]", v).textContent = m.no; $("[data-v-name]", v).textContent = m.name;
     $("[data-v-i]", v).textContent = String(cur + 1).padStart(2, "0");
-    const link = $("[data-v-link]", v); link.href = "#archive-" + m.id;
+    const link = $("[data-v-link]", v); link.href = "#archive-" + m.id; link.setAttribute("aria-label", "Open " + m.name);
     link.classList.remove("swap"); void link.offsetWidth; link.classList.add("swap");
     link.innerHTML = specimenArt(m, { large: true });
-    $("[data-v-open]", v).href = "#archive-" + m.id;
-    $("[data-v-size]", v).textContent = m.size || "— mm";
-    $("[data-v-details]", v).innerHTML = detailSlots(m);
+    const open = $("[data-v-open]", v); open.href = "#archive-" + m.id; open.setAttribute("aria-label", "Open the record for " + m.name);
+    $("[data-v-scale]", v).hidden = !m.size; $("[data-v-size]", v).textContent = m.size || "";
+    const det = $("[data-v-details]", v); det.hidden = !m.details; det.innerHTML = detailSlots(m);
     $("[data-v-ref]", v).hidden = !m.refImage;
-    FINDERS[cur % FINDERS.length].forEach(([x, y, w], k) => { const f = $(`[data-vf="${k}"]`, v); f.style.setProperty("--x", x + "%"); f.style.setProperty("--y", y + "%"); f.style.setProperty("--w", w + "%"); });
-    type($("[data-v-proto]", v), protocol(m));
-    type($("[data-v-params]", v), params(m));
+    const rec = $("[data-v-rec]", v); rec.innerHTML = vrec(m); type(rec);
   };
-  const auto = () => { clearInterval(timer); if (!calm()) timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 6000); };
+  const auto = () => { clearInterval(timer); if (!calm()) timer = setInterval(() => { if (!document.hidden && !$(".viewer:hover, .viewer:focus-within", main)) show(cur + 1); }, 6000); };
   $$("[data-v-step]", main).forEach(b => b.addEventListener("click", () => { show(cur + Number(b.dataset.vStep)); auto(); }));
-  const start = all.findIndex(m => m.photo);
-  if (start > 0) show(start);
   auto();
   leaving = () => clearInterval(timer);
 }
 
 // ---------- ARCHIVE ----------
-const FILTERS = [["all", "All"], ["returns", "Comes back"], ["keeps", "Keeps the change"], ["instant", "Instant"], ["delayed", "Delayed"], ["community", "Community"]];
-const SORTS = [["no", "Number"], ["name", "Name"], ["family", "Family"]];
-let archiveFilter = "all", archiveView = "grid", archiveSort = "no";
+// two independent dimensions that combine; "any" leaves a dimension open
+const RETURNS = [["any", "Any"], ["returns", AFTERS.returns], ["keeps", AFTERS.keeps]];
+const TIMES = [["any", "Any"], ["instant", SPEEDS.instant], ["delayed", SPEEDS.delayed]];
+const SORTS = [["no", "Number"], ["name", "Name"], ["behaviour", "Behaviour"]];
+let fReturn = "any", fTime = "any", archiveView = "grid", archiveSort = "no";
 try { archiveView = localStorage.getItem("iam.view") === "index" ? "index" : "grid"; } catch { }
-const NOFAM = "Family not recorded";
-const familyOf = m => m.group || (m.parent && byId(m.parent) ? byId(m.parent).group : "") || (m.community ? "Community" : NOFAM);
-const matches = (m, f) => f === "all" || (f === "community" ? !!m.community : m.speed === f || m.after === f);
+const matches = m => (fReturn === "any" || m.after === fReturn) && (fTime === "any" || m.speed === fTime);
 
-// the index: compact cards, varieties filed under their parent
 function indexList(list) {
   const roots = list.filter(m => !m.parent || !list.some(p => p.id === m.parent));
   const kids = id => list.filter(m => m.parent === id);
-  const by = { no: (a, b) => String(a.no).localeCompare(String(b.no), undefined, { numeric: true }), name: (a, b) => a.name.localeCompare(b.name), family: (a, b) => (familyOf(a) === NOFAM) - (familyOf(b) === NOFAM) || familyOf(a).localeCompare(familyOf(b)) || a.name.localeCompare(b.name) }[archiveSort];
+  const bk = m => behaviour(m) || "~";
+  const by = { no: (a, b) => String(a.no).localeCompare(String(b.no), undefined, { numeric: true }), name: (a, b) => a.name.localeCompare(b.name), behaviour: (a, b) => bk(a).localeCompare(bk(b)) || String(a.no).localeCompare(String(b.no), undefined, { numeric: true }) }[archiveSort];
   roots.sort(by);
-  const row = (m, sub = false) => `<a class="ix ${sub ? "ix-sub" : ""}" href="#archive-${m.id}" data-id="${m.id}" data-speed="${m.speed || ""}" data-after="${m.after || ""}" ${m.community ? "data-community" : ""}>
+  const row = (m, sub = false) => {
+    const gaps = recordGaps(m);
+    return `<a class="ix ${sub ? "ix-sub" : ""}" href="#archive-${m.id}" data-id="${m.id}">
       <span class="ix-no">${m.no}</span>
       <span class="ix-name">${sub ? `<span class="ix-branch" aria-hidden="true"></span>` : ""}${esc(m.name)}${m.community ? ` <span class="tag-community">Community</span>` : ""}</span>
-      <span class="ix-fam">${esc(familyOf(m))}</span>
-      <span class="ix-lang">${(m.words || []).map(w => LANGUAGE[w].word).join(", ") || (m.speed ? `${SPEEDS[m.speed]} · ${AFTERS[m.after]}` : "")}</span>
-      <span class="ix-id">${m.identity ? esc(m.identity.name) : ""}</span>
+      <span class="ix-lang">${esc(behaviour(m) || "Not recorded")}</span>
+      <span class="ix-id">${m.identity ? esc(m.identity.name) : `<span class="muted">Not written</span>`}</span>
+      <span class="ix-st">${m.community ? "Not verified" : gaps.length ? `In progress` : "Complete"}</span>
     </a>`;
+  };
   let html = "", lastHead = null;
   roots.forEach((m, i) => {
-    const head = archiveSort === "name" ? m.name[0].toUpperCase() : archiveSort === "family" ? familyOf(m) : null;
+    const head = archiveSort === "name" ? m.name[0].toUpperCase() : archiveSort === "behaviour" ? (behaviour(m) || "Behaviour not recorded") : null;
     if (head !== null && head !== lastHead) { html += `<div class="ix-head">${esc(head)}</div>`; lastHead = head; }
     html += `<div class="ix-group" style="--i:${Math.min(i, 14)}">${row(m)}${kids(m.id).sort(by).map(k => row(k, true)).join("")}</div>`;
   });
-  return `<div class="ix-cols label" aria-hidden="true"><span>No.</span><span>Name</span><span>Family</span><span>Material language</span><span>I.A.M. reading</span></div>${html}`;
+  return `<div class="ix-cols label" aria-hidden="true"><span>No.</span><span>Name</span><span>Behaviour</span><span>Institute's entry</span><span>Record</span></div>${html}`;
 }
+
+const progressRow = m => `<a class="prog" href="#archive-${m.id}" data-id="${m.id}">
+  <span class="prog-img">${m.photo ? specimenArt(m) : ""}</span>
+  <span class="prog-no">${m.no}</span><span class="prog-name">${esc(m.name)}</span>
+  <span class="prog-gaps">Missing: ${esc(recordGaps(m).join(", ").toLowerCase())}</span>
+</a>`;
 
 async function archive() {
   await loadMaterials();
   const list = allMaterials();
-  const filters = FILTERS.filter(([k]) => k !== "community" || list.some(m => m.community));
-  if (!filters.some(([k]) => k === archiveFilter)) archiveFilter = "all";
+  const done = list.filter(isComplete), wip = list.filter(m => !m.community && !isComplete(m)), comm = list.filter(m => m.community);
+  const facet = (name, opts, cur, labelId, label) => `<div class="facet" role="group" aria-labelledby="${labelId}"><span class="label facet-label" id="${labelId}">${label}</span>${opts.map(([k, l]) => `<button class="chip" type="button" data-f="${name}" data-v="${k}" aria-pressed="${k === cur}">${l}</button>`).join("")}</div>`;
   main.innerHTML = `
   <div class="wrap page">
     <div class="page-head">
-      <div><span class="report-head small"><span>Archive</span><span>${list.length} records</span></span><h1>Archive</h1><p>Eleven founding materials. Room for more.</p></div>
+      <div><h1>Archive</h1><p>The founding collection: ${done.length} complete records and ${wip.length} still in progress.${comm.length ? ` ${comm.length} community ${comm.length === 1 ? "submission" : "submissions"}.` : ""}</p></div>
       <div class="seg view-seg" role="group" aria-label="View">${[["grid", "Specimens"], ["index", "Index"]].map(([k, l]) => `<button type="button" data-view="${k}" aria-pressed="${k === archiveView}">${l}</button>`).join("")}</div>
     </div>
-    <div class="tools">
-      <div class="filter-row" role="group" aria-label="Filter materials">${filters.map(([k, l]) => `<button class="chip" type="button" data-filter="${k}" aria-pressed="${k === archiveFilter}">${l}</button>`).join("")}</div>
-      ${archiveView === "index" ? `<div class="filter-row sort-row" role="group" aria-label="Sort by"><span class="label">Sort</span>${SORTS.map(([k, l]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${k === archiveSort}">${l}</button>`).join("")}</div>` : ""}
+    <div class="facets">
+      ${facet("return", RETURNS, fReturn, "f-ret", "Return behaviour")}
+      ${facet("time", TIMES, fTime, "f-time", "Response time")}
+      <details class="facet-help"><summary>What does response time measure?</summary>
+        <p>How soon the visible change happens: straight away under the hand (immediate), or slowly, over seconds to hours (delayed). It is the Institute's observation from the experiments, not a timed measurement. Records with no recorded behaviour only appear when both filters are set to Any.</p></details>
+      <p class="facet-count label" aria-live="polite" data-count></p>
+      ${archiveView === "index" ? `<div class="facet sort-row" role="group" aria-labelledby="f-sort"><span class="label facet-label" id="f-sort">Sort</span>${SORTS.map(([k, l]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${k === archiveSort}">${l}</button>`).join("")}</div>` : ""}
     </div>
-    ${archiveView === "grid" ? `<div class="grid">
-      ${list.map(specLink).join("")}
-      ${Array.from({ length: 4 }, () => `<button class="spec empty" data-add type="button" aria-label="Register a material"><div class="img">${field()}${emptySlot()}<span class="add">+ Register a Material</span></div><div class="meta"><span class="no">&nbsp;</span></div></button>`).join("")}
-    </div>` : `<div class="index">${indexList(list)}</div>
-      <div class="row" style="margin-top:24px"><button class="btn btn-small" type="button" data-add>+ Register a Material</button></div>`}
+    ${archiveView === "grid" ? `
+      <section aria-labelledby="h-done"><h2 class="sub arch-h" id="h-done">Complete records</h2>
+        <div class="grid">${done.map(specLink).join("")}</div>
+        <p class="muted none" hidden>No complete record matches both filters.</p></section>
+      ${wip.length ? `<section class="arch-sec" aria-labelledby="h-wip"><h2 class="sub arch-h" id="h-wip">In progress</h2><p class="hint arch-note">Open for reading and for your own entries. Still waiting for the parts listed.</p>
+        <div class="progs">${wip.map(progressRow).join("")}</div><p class="muted none" hidden>No record in progress matches both filters.</p></section>` : ""}
+      ${comm.length ? `<section class="arch-sec" aria-labelledby="h-comm"><h2 class="sub arch-h" id="h-comm">Community submissions</h2><p class="hint arch-note">Registered by contributors. Not verified by the Institute.</p>
+        <div class="grid">${comm.map(specLink).join("")}</div><p class="muted none" hidden>No community submission matches both filters.</p></section>` : ""}`
+    : `<div class="index">${indexList(list)}</div>`}
+    <div class="contribute">
+      <div><h2 class="sub">Know a material that should be here?</h2><p class="muted">Register it as a community submission. It is labelled as not verified until the Institute documents it.</p></div>
+      <button class="btn" type="button" data-add>Register a material</button>
+    </div>
   </div>`;
   const apply = () => {
-    $$(".spec[data-id], .ix[data-id]", main).forEach(s => s.classList.toggle("hide", !matches(byId(s.dataset.id) || {}, archiveFilter)));
+    let shown = 0;
+    $$(".spec[data-id], .ix[data-id], .prog[data-id]", main).forEach(s => { const ok = matches(byId(s.dataset.id) || {}); s.classList.toggle("hide", !ok); if (ok) shown++; });
     $$(".ix-group", main).forEach(g => g.classList.toggle("hide", !$(".ix:not(.hide)", g)));
     $$(".ix-head", main).forEach(h => { let n = h.nextElementSibling, any = false; while (n && !n.classList.contains("ix-head")) { if (!n.classList.contains("hide")) any = true; n = n.nextElementSibling; } h.classList.toggle("hide", !any); });
+    $$("section", main).forEach(sec => { const none = $(".none", sec); if (none) none.hidden = !!$("[data-id]:not(.hide)", sec); });
+    const filtering = fReturn !== "any" || fTime !== "any";
+    const unrec = list.filter(m => !m.speed || !m.after).length;
+    $("[data-count]", main).innerHTML = filtering ? `Showing ${shown} of ${list.length}${unrec ? ` · ${unrec} without recorded behaviour hidden` : ""} · <button class="link" type="button" data-clear>Clear filters</button>` : `${list.length} records`;
+    $("[data-clear]", main)?.addEventListener("click", () => { fReturn = fTime = "any"; $$("[data-f]", main).forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === "any"))); reorder(apply); });
   };
-  apply();
   // indexing: items glide to their new places
   const reorder = fn => {
-    const items = $$(".grid > .spec, .ix-group", main);
+    const items = $$(".grid > .spec, .ix-group, .progs > .prog", main);
     items.forEach((s, i) => { s.style.viewTransitionName = "s" + i; });
     const t = transition(fn);
     const clear = () => items.forEach(s => { s.style.viewTransitionName = ""; });
     t ? t.finished.finally(clear) : clear();
   };
-  $$("[data-filter]", main).forEach(b => b.addEventListener("click", () => {
-    if (b.dataset.filter === archiveFilter) return;
-    reorder(() => { archiveFilter = b.dataset.filter; $$("[data-filter]", main).forEach(x => x.setAttribute("aria-pressed", String(x === b))); apply(); });
+  apply();
+  $$("[data-f]", main).forEach(b => b.addEventListener("click", () => {
+    const dim = b.dataset.f, v = b.dataset.v;
+    if ((dim === "return" ? fReturn : fTime) === v) return;
+    reorder(() => { if (dim === "return") fReturn = v; else fTime = v; $$(`[data-f="${dim}"]`, main).forEach(x => x.setAttribute("aria-pressed", String(x === b))); apply(); });
   }));
   $$("[data-sort]", main).forEach(b => b.addEventListener("click", () => {
     if (b.dataset.sort === archiveSort) return;
@@ -500,6 +577,7 @@ function registerMaterial() {
 // ---------- MATERIAL CASE FILE ----------
 const dl = rows => `<dl class="dict">${rows.filter(([, v]) => v).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
 
+// the research record, behind a disclosure: observation, classification, specimen, experiments, the Institute's sources
 function fullRecord(m) {
   const sp = m.specimen;
   const words = (m.words || []).map(w => LANGUAGE[w]);
@@ -509,61 +587,80 @@ function fullRecord(m) {
       ${m.def ? `<p>${esc(m.def)}</p>` : m.community && m.note ? `<p>${esc(m.note)}</p>` : missing("No observation written yet.")}
       ${dl([
         ["Physical characteristics", esc(m.traits)],
-        ["Material response", m.response && m.response !== m.def ? `${esc(m.response)}${m.responseExpected ? ` <span class="label">Expected, not yet observed</span>` : ""}` : ""],
         ["Material language", words.length ? words.map(w => `<span class="mword">${w.word}</span> <span class="muted">${esc(w.physical)}</span>`).join("<br>") : ""],
-        ["Speed and return", m.speed ? `${SPEEDS[m.speed]} · ${AFTERS[m.after]}${matrix(m)}` : ""],
+        ["Behaviour", m.speed ? `${esc(behaviour(m))}${matrix(m)}` : ""],
         ["Mode of change", esc(m.mode)],
         ["Record", m.community ? "" : esc(m.note)],
         ["Registered varieties", children.length ? children.map(c => `<a class="ulink" href="#archive-${c.id}">${esc(c.name)}</a>`).join(", ") : ""],
         ["Variety of", m.parent && byId(m.parent) ? `<a class="ulink" href="#archive-${m.parent}">${esc(byId(m.parent).name)}</a>` : ""]
       ])}
     </div>`;
-  if (m.community) return obs;
+  const cls = `<div class="rec-block">
+      <span class="kind kind-obs">Classification</span>
+      ${dl([["Collection", esc(collectionOf(m))], ["Physical structure", esc(m.structure) || `<span class="muted">Not recorded</span>`], ["Composition", sp ? esc(sp.composition) : `<span class="muted">Not recorded</span>`], ["Botanical group", esc(m.botanical)]])}
+    </div>`;
+  if (m.community) return obs + cls;
   const spec = `<div class="rec-block">
       <span class="kind kind-obs">Specimen${sp ? " · " + esc(sp.name) : ""}</span>
-      ${sp ? dl([["Variety", esc(sp.variety)], ["Composition", esc(sp.composition)], ["Specimen part", esc(sp.part)], ["Condition", esc(sp.condition)], ["Preparation", esc(sp.preparation)]]) : missing()}
+      ${sp ? dl([["Variety", esc(sp.variety)], ["Specimen part", esc(sp.part)], ["Condition", esc(sp.condition)], ["Preparation", esc(sp.preparation)]]) : missing()}
     </div>`;
   const exps = `<div class="rec-block">
       <span class="kind kind-obs">Experiment records</span>
-      ${m.experiments.length ? m.experiments.map(x => dl([["Experiment", `${m.no} / ${x.id} · ${esc(x.type)}`], ["Date", esc(x.date)], ["Context", esc(x.context)], ["Documentation", m.media.length ? `${m.media.length} file${m.media.length > 1 ? "s" : ""}` : "Not yet filed"]])).join("")
+      ${m.experiments.length ? m.experiments.map(x => dl([["Experiment", `${m.no} / ${x.id} · ${esc(x.type)}`], ["Date", esc(x.date)], ["Context", esc(x.context)]])).join("") + dl([["Documentation", m.media.length ? `${m.media.length} video${m.media.length > 1 ? "s" : ""}` : "None filed yet"]])
         : missing("No experiment record yet.")}
     </div>`;
   const ints = `<div class="rec-block">
-      <span class="kind kind-int">I.A.M. interpretation · authored, subjective</span>
+      <span class="kind kind-int">The Institute's Dictionary · sources</span>
       ${m.identity || words.length ? dl([
-        ["Possible identity", m.identity ? `<span class="accent">${esc(m.identity.name)}</span><br><span class="muted">${esc(m.identity.note)}</span>` : ""],
+        ["Entry", m.identity ? `<span class="accent">${esc(m.identity.name)}</span>` : ""],
         ...words.map(w => [`${w.word}, in human terms`, esc(w.human)]),
         ...words.map(w => [`${w.word}, imagined voice`, `<span class="voice">${esc(w.voice)}</span>`]),
         ["Source", m.identity ? `Identity card ${m.identity.card}` : ""]
-      ]) : missing("No Institute interpretation yet.")}
+      ]) : missing("No Institute entry yet.")}
     </div>`;
-  return obs + spec + exps + ints;
+  return obs + cls + spec + exps + ints;
 }
 
-// documented observation: real media only
+// how it changes: three stills from a real video, then the video itself; a short status line when nothing is filmed
 function documentation(m) {
-  if (!m.media.length) return `<div class="doc-empty">${field()}<p>No documented experiment media yet.</p></div>`;
+  if (!m.media.length) {
+    const x = (m.experiments || []).find(e => e.date && e.date !== "Not recorded") || (m.experiments || [])[0];
+    return `<p class="status-line"><span class="dot" aria-hidden="true"></span>No experiment footage filed yet.${x ? ` Recorded: ${esc(x.type.toLowerCase())}, ${esc(x.context.toLowerCase())}${x.date && x.date !== "Not recorded" ? `, ${esc(x.date)}` : ""}.` : ""}</p>`;
+  }
   return `<div class="doc">
+    <div data-seq></div>
     <div class="doc-view" id="doc-view"></div>
-    ${m.media.length > 1 ? `<div class="doc-tabs" role="tablist">${m.media.map((x, i) => `<button class="chip" type="button" role="tab" data-doc="${i}" aria-pressed="${i === 0}">${esc(x.caption || (x.type === "video" ? "Video" : "Photo") + " " + (i + 1))}</button>`).join("")}</div>` : ""}
+    ${m.media.length > 1 ? `<div class="doc-tabs" role="tablist">${m.media.map((x, i) => `<button class="chip" type="button" role="tab" data-doc="${i}" aria-pressed="${i === 0}">${esc(x.caption || "Video " + (i + 1))}</button>`).join("")}</div>` : ""}
   </div>`;
 }
+const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 function showDoc(m, i) {
   const x = m.media[i], view = $("#doc-view", main); if (!x || !view) return;
-  view.innerHTML = x.type === "video"
-    ? `<div class="doc-video"><video src="${esc(x.src)}" ${x.poster ? `poster="${esc(x.poster)}"` : ""} controls loop muted playsinline preload="metadata"></video>
-        ${x.chapters ? `<div class="doc-chapters" role="group" aria-label="Jump to action">${x.chapters.map(([l, t], i) => `<button type="button" class="chip" data-seek="${t}" data-i="${i}">${String(i + 1).padStart(2, "0")} ${esc(l)}</button>`).join("")}<span class="label doc-cap">${esc(x.caption || "")}</span></div>` : ""}</div>`
-    : `<button class="doc-img" type="button" aria-label="Inspect photograph"><img src="${esc(x.src)}" alt="${esc(x.caption || m.name)}"></button>`;
-  $(".doc-img", view)?.addEventListener("click", () => inspect(x.src, x.caption || m.name));
+  const seq = $("[data-seq]", main);
+  if (seq) seq.innerHTML = x.sequence ? `<ol class="seq" aria-label="Before, during and after pressure">${x.sequence.map((s, k) => `<li style="--i:${k}">
+      <button type="button" class="seq-img" data-seek="${s.t}" aria-label="${esc(s.label)}, play from ${clock(s.t)}"><img src="${esc(s.src)}" alt="${esc(m.name)}, ${esc(s.label.toLowerCase())}" loading="lazy"></button>
+      <span class="seq-cap"><strong>${esc(s.label)}</strong><span>${clock(s.t)}</span></span></li>`).join("")}</ol>
+    <p class="hint seq-note">Stills from the ${esc(x.caption)} video. Hand and camera position can differ between frames.</p>` : "";
+  view.innerHTML = `<div class="doc-video"><video src="${esc(x.src)}" ${x.poster ? `poster="${esc(x.poster)}"` : ""} controls loop muted playsinline preload="metadata" aria-label="${esc(m.name)}, ${esc(x.caption)}"></video>
+      ${x.chapters ? `<div class="doc-chapters" role="group" aria-label="Jump to action">${x.chapters.map(([l, t], i) => `<button type="button" class="chip" data-seek="${t}" data-ch="${i}">${String(i + 1).padStart(2, "0")} ${esc(l)}</button>`).join("")}<span class="label doc-cap">${esc(x.caption || "")}</span></div>` : ""}</div>`;
   const vid = $("video", view);
-  if (vid && x.chapters) {
-    const chips = $$("[data-seek]", view);
-    chips.forEach(b => b.addEventListener("click", () => { vid.currentTime = Number(b.dataset.seek); vid.play().catch(() => { }); }));
+  $$("[data-seek]", main).forEach(b => b.addEventListener("click", () => { vid.currentTime = Number(b.dataset.seek); vid.play().catch(() => { }); if (b.closest(".seq")) vid.scrollIntoView({ block: "nearest", behavior: calm() ? "auto" : "smooth" }); }));
+  if (x.chapters) {
+    const chips = $$("[data-ch]", view);
     // the action being shown is marked as the video plays
     vid.addEventListener("timeupdate", () => { let k = 0; x.chapters.forEach(([, t], i) => { if (vid.currentTime >= t) k = i; }); chips.forEach((b, i) => b.setAttribute("aria-pressed", String(i === k))); });
   }
   $$("[data-doc]", main).forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.doc) === i)));
 }
+
+const institute = m => m.identity
+  ? `<section class="dict-entry inst" aria-labelledby="inst-h">
+      <span class="kind kind-int" id="inst-h">The Institute's Dictionary</span>
+      <div class="de-head"><span class="de-word">${esc(m.identity.name)}</span><span class="de-mat">No. ${m.no} · ${esc(m.name)}</span></div>
+      <dl class="de-meta"><div><dt>Interpretive connection</dt><dd>${esc(m.identity.note)}</dd></div></dl>
+      <p class="de-foot">An authored interpretation, not a fact about the material. Yours may adopt it, extend it, reinterpret it, or disagree.</p>
+    </section>`
+  : `<section class="dict-entry inst empty" aria-labelledby="inst-h"><span class="kind kind-int" id="inst-h">The Institute's Dictionary</span><p>The Institute has not written an entry for ${esc(m.name)} yet. Yours can be the first reading.</p></section>`;
 
 async function detail(id) {
   if (!byId(id)) await loadMaterials();
@@ -572,42 +669,53 @@ async function detail(id) {
   const others = await othersOf(m.id);
   const mine = myEntriesFor(m.id);
   const open = mine.length > 0 || isRevealed(m.id);
+  const gaps = recordGaps(m);
+  const draft = loadDraft(m.id);
+  const obsText = m.response || (m.community && m.note) || "";
   main.innerHTML = `
   <div class="wrap page">
     <a class="back" href="#archive" data-from="${m.id}">← Archive</a>
     <div class="detail">
       <div class="stage-col">
-        <div class="img stage">${stage(m, { large: true })}<span class="stage-id">No. ${m.no}${m.refImage ? " · Reference image, not a specimen photograph" : ""}</span>${m.photo ? `<button class="zoom" type="button" data-zoom aria-label="Inspect photograph">Inspect</button>` : ""}</div>
+        <div class="img stage">${stage(m, { large: true })}<span class="stage-id">No. ${m.no}</span>${m.photo ? `<button class="zoom" type="button" data-zoom aria-label="Inspect image">Inspect</button>` : ""}</div>
+        ${m.refImage ? `<p class="stage-note">Reference image, not a specimen photograph.</p>` : ""}
       </div>
       <div class="detail-info">
-        <span class="label">${kindLabel(m)}</span>
-        <div><h1>${esc(m.name)}</h1>${m.type ? `<p class="muted">${esc(m.type)}</p>` : ""}</div>
-        <div><span class="kind kind-obs">Physical response${m.responseExpected ? " · expected" : ""}</span>${m.response || (m.community && m.note) ? `<p>${esc(m.response || m.note)}</p>` : missing()}</div>
-        ${m.identity ? `<div class="featured"><span class="kind kind-int">I.A.M. interpretation · one reading among many</span><span class="word">${esc(m.identity.name)}</span></div>` : ""}
-        <div class="row"><button class="btn btn-primary" type="button" data-add-meaning>Add Your Meaning</button></div>
-        <button class="record-toggle" type="button" aria-expanded="false" aria-controls="record">View Full Record <span class="chev" aria-hidden="true">+</span></button>
+        <div><span class="label">${esc(collectionOf(m))}</span><h1>${esc(m.name)}</h1>${m.type ? `<p class="muted">${esc(m.type)}</p>` : ""}</div>
+        ${gaps.length ? `<p class="status-line"><span class="dot" aria-hidden="true"></span>Record in progress. Missing: ${esc(gaps.join(", ").toLowerCase())}.</p>` : ""}
+        <section class="obs-block" aria-labelledby="obs-h">
+          <span class="kind kind-obs" id="obs-h">Physical behaviour${m.responseExpected ? " · partly expected, not yet observed" : ""}${m.community ? " · not verified" : ""}</span>
+          ${obsText ? `<p>${esc(obsText)}</p>` : missing("No observation written yet.")}
+          ${m.speed && m.after ? `<p class="beh"><span>${esc(AFTERS[m.after])}</span><span>${esc(SPEEDS[m.speed])}</span></p>` : ""}
+        </section>
+        ${m.community ? "" : institute(m)}
+        <div class="cta">
+          <button class="btn btn-primary" type="button" data-add-meaning>${draft ? "Continue your entry" : "Write your own entry"}</button>
+          <p class="hint">${draft ? "Your unfinished draft is kept in this browser." : "Agree with the Institute, adapt it, or say something else. Every reading is equally valid."}</p>
+        </div>
+        <button class="record-toggle" type="button" aria-expanded="false" aria-controls="record">Research record <span class="chev" aria-hidden="true">+</span></button>
         <div class="record" id="record"><div><div class="record-inner">${fullRecord(m)}</div></div></div>
-        <section class="interview" id="interview" aria-label="A little material interview" hidden></section>
+        <section class="interview" id="interview" aria-label="Your dictionary entry" hidden></section>
       </div>
     </div>
 
-    <section class="section">
-      <div class="section-head"><h2 class="sub">Observation</h2><span class="kind kind-obs">What it physically does</span></div>
+    <section class="section" aria-labelledby="change-h">
+      <div class="section-head"><h2 class="sub" id="change-h">How it changes</h2><span class="kind kind-obs">Documented observation</span></div>
       ${documentation(m)}
     </section>
 
-    <section class="section" id="meanings">
+    <section class="section" id="meanings" aria-labelledby="meanings-h">
       <div class="carousel-head">
-        <div><h2 class="sub">Other meanings</h2><span class="kind kind-int">Personal, subjective</span></div>
+        <div><h2 class="sub" id="meanings-h">Visitors' entries</h2><span class="kind kind-int">Personal readings, shared by choice</span></div>
         ${open && others.length > 1 ? `<div class="carousel-nav"><button type="button" data-scroll="-1" aria-label="Previous">←</button><button type="button" data-scroll="1" aria-label="Next">→</button></div>` : ""}
       </div>
       ${open ? `
-        ${mine.length ? `<div class="compare"><span class="label">Yours</span>${mine.map(e => `<span class="your-word">${e.revisions && e.revisions.length ? `<s>${esc(e.meaning)}</s> ` : ""}${esc(latestMeaning(e))}</span>`).join("")}<button class="link" type="button" data-changed="${mine[0].id}">Has your meaning changed?</button></div>` : ""}
-        ${others.length ? `<div class="carousel" tabindex="0" aria-label="Other meanings">${others.map(icard).join("")}</div>` : `<p class="muted">Nobody else has shared a meaning yet.</p>`}`
+        ${mine.length ? `<div class="compare"><span class="label">Yours</span>${mine.map(e => `<span class="your-word">${e.revisions && e.revisions.length ? `<s>${esc(e.meaning)}</s> ` : ""}${esc(latestMeaning(e))}</span>`).join("")}<button class="link" type="button" data-changed="${mine[0].id}">Has your reading changed?</button></div>` : ""}
+        ${others.length ? `<div class="carousel" tabindex="0" aria-label="Visitors' entries">${others.map(icard).join("")}</div>` : `<p class="muted">Nobody else has shared an entry yet.</p>`}`
       : `<div class="locked">
-          <p>Form your own meaning first.</p>
-          <p class="label">${others.length ? `${others.length} other meaning${others.length > 1 ? "s" : ""} waiting` : "Nobody else has shared one yet"}</p>
-          <div class="row"><button class="btn btn-primary btn-small" type="button" data-add-meaning>Add Your Meaning</button><button class="btn btn-quiet btn-small" type="button" data-reveal>Reveal anyway</button></div>
+          <p>Write your own entry first, so other readings do not steer yours.</p>
+          <p class="label">${others.length ? `${others.length} other ${others.length > 1 ? "entries" : "entry"} waiting` : "Nobody else has shared one yet"}</p>
+          <div class="row"><button class="btn btn-primary btn-small" type="button" data-add-meaning>${draft ? "Continue your entry" : "Write your own entry"}</button><button class="btn btn-quiet btn-small" type="button" data-reveal>Show them anyway</button></div>
         </div>`}
     </section>
   </div>`;
@@ -618,7 +726,7 @@ async function detail(id) {
     rec.classList.toggle("open", o); toggle.setAttribute("aria-expanded", String(o));
   });
   if (m.media.length) { showDoc(m, 0); $$("[data-doc]", main).forEach(b => b.addEventListener("click", () => showDoc(m, Number(b.dataset.doc)))); }
-  $("[data-zoom]", main)?.addEventListener("click", () => inspect(`assets/materials/${m.id}.jpg`, m.name));
+  $("[data-zoom]", main)?.addEventListener("click", () => inspect(m.cutout ? `assets/materials/${m.id}-cut.png` : `assets/materials/${m.id}.jpg`, m.name));
   others.forEach(r => { const el = $(`[data-cardfig="${CSS.escape(String(r.id))}"]`, main); if (el) mountPlayer(el, r.body); });
   $$("[data-card]", main).forEach(c => c.addEventListener("click", () => {
     const r = others.find(x => String(x.id) === c.dataset.card);
@@ -629,9 +737,11 @@ async function detail(id) {
   }));
   $$("[data-add-meaning]", main).forEach(b => b.addEventListener("click", () => interview(m)));
   // continue straight into the comparison after signing in, or reopen an unfinished interview
-  let cmp = null; try { cmp = sessionStorage.getItem("iam.compare"); sessionStorage.removeItem("iam.compare"); } catch { }
+  let cmp = null, resume = null;
+  try { cmp = sessionStorage.getItem("iam.compare"); sessionStorage.removeItem("iam.compare"); resume = sessionStorage.getItem("iam.resume"); sessionStorage.removeItem("iam.resume"); } catch { }
   const filed = cmp && store.getMine(cmp);
   if (filed && canonical(filed.material_id) === m.id) interview(m, { compareWith: filed });
+  else if (resume === m.id) interview(m);
   $("[data-reveal]", main)?.addEventListener("click", () => { setRevealed(m.id); render().then(() => $("#meanings")?.scrollIntoView({ behavior: calm() ? "auto" : "smooth" })); });
   $("[data-changed]", main)?.addEventListener("click", e => { const en = store.getMine(e.currentTarget.dataset.changed); if (en) revise(en); });
 }
@@ -651,11 +761,12 @@ function icard(r) {
 function entryHTML(r) {
   const revs = r.revisions || [];
   return `
-    <span class="kind kind-int">${r.demo ? "Demo interpretation · not research evidence" : "Interpretation"} · ${esc(r.alias || "Anonymous")}${r.demo ? "" : " · " + fmtDate(r.created_at)}</span>
+    <span class="kind kind-int">${r.demo ? "Demo entry · not research evidence" : "Visitor's entry"} · ${esc(r.alias || "Anonymous")}${r.demo ? "" : " · " + fmtDate(r.created_at)}</span>
     ${revs.length ? `<div style="margin-top:14px"><span class="label">First meaning</span><p style="text-decoration:line-through;color:var(--muted)">${esc(r.meaning)}</p></div>
       ${revs.map(v => `<div style="margin-top:10px"><span class="label">Revised${r.demo ? "" : " · " + fmtDate(v.at)}</span><p class="word">${esc(v.meaning)}</p>${v.note ? `<p class="muted">${esc(v.note)}</p>` : ""}</div>`).join("")}`
       : `<p class="word" style="margin-top:12px">${esc(r.meaning)}</p>`}
     ${r.meaning_note ? `<p style="margin-top:12px">${esc(r.meaning_note)}</p>` : ""}
+    ${relationLine((r.observe || {}).relation, byId(r.material_id)) ? `<p class="muted" style="margin-top:12px">${relationLine(r.observe.relation, byId(r.material_id))}</p>` : ""}
     ${r.voice ? `<p style="margin-top:12px"><span class="label">Imagined voice</span><br><span class="voice">${esc(r.voice)}</span></p>` : ""}
     ${r.own_body_note ? `<p style="margin-top:12px"><span class="label">Became it</span><br>${esc(r.own_body_note)}</p>` : ""}`;
 }
@@ -702,75 +813,103 @@ function reinterpret(entry) {
   }, null, { wide: true });
 }
 
-// A Little Material Interview: notice, associate, imagine, name. Observe first, interpret later, compare last.
+// Your dictionary entry, as a little interview: notice, associate, imagine, name. Observe first, interpret later, compare last.
 const STAGES = [["notice", "Notice"], ["associate", "Associate"], ["imagine", "Imagine"], ["name", "Name"]];
 const draftKey = id => "iam.interview." + id;
 const loadDraft = id => { try { return JSON.parse(localStorage.getItem(draftKey(id))) || null; } catch { return null; } };
 const saveDraft = (id, d) => { try { localStorage.setItem(draftKey(id), JSON.stringify(d)); } catch { } };
 const dropDraft = id => { try { localStorage.removeItem(draftKey(id)); } catch { } };
-// what can be noticed comes only from the documented record
+// unfinished interviews kept in this browser
+const browserDrafts = () => allMaterials().map(m => [m, loadDraft(m.id)]).filter(([, d]) => d && d.started);
+// the Institute's recorded observation, one sentence per option, without restating it
 const noticeable = m => {
-  const out = [];
-  (m.response || (m.community ? m.note : "") || "").split(/(?<=\.)\s+/).map(t => t.trim()).filter(Boolean).forEach(t => out.push(t.replace(/\.$/, "")));
-  if (m.mode) out.push(m.mode);
-  if (m.speed) out.push(SPEEDS[m.speed] + " response");
-  if (m.after) out.push(AFTERS[m.after]);
+  const text = m.response || (m.community ? m.note : "") || "";
+  const out = text.split(/(?<=\.)\s+/).map(t => t.trim().replace(/\.$/, "")).filter(Boolean);
+  if (!out.length && m.mode) out.push(m.mode);
   return [...new Set(out)];
 };
 
 function interview(m, { compareWith = null } = {}) {
   const box = $("#interview", main), info = $(".detail-info", main);
   if (!box) return;
-  const fresh = { step: 0, far: 0, noticed: [], noticeNote: "", associate: "", voice: "", title: "", share: false };
-  let d = { ...fresh, ...(loadDraft(m.id) || {}) };
-  let saved = compareWith, view = compareWith ? "compare" : d.step >= 4 ? "preview" : "ask";
+  const fresh = { started: false, step: 0, far: 0, noticed: [], noticeNote: "", associate: "", voice: "", title: "", relation: "" };
+  const prior = loadDraft(m.id);
+  let d = { ...fresh, ...(prior || {}) };
+  if (prior && !("started" in prior)) d.started = true;
+  let saved = compareWith, view = compareWith ? "compare" : !d.started ? "intro" : d.step >= 4 ? "preview" : "ask";
   const keep = () => { d.far = Math.max(d.far || 0, Math.min(d.step, 3)); saveDraft(m.id, d); };
   const reg = `<svg class="iv-reg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6" vector-effect="non-scaling-stroke"><path class="draw" pathLength="1" d="M0 8 V0 H8"/><path class="draw" pathLength="1" d="M92 0 H100 V8"/><path class="draw" pathLength="1" d="M0 92 V100 H8"/><path class="draw" pathLength="1" d="M92 100 H100 V92"/></g></svg>`;
-  const track = () => `<ol class="iv-track" aria-label="Progress">${STAGES.map(([k, l], i) => `<li class="${i < d.step || (i <= (d.far || 0) && i !== d.step) || view !== "ask" ? "done" : ""} ${i === d.step && view === "ask" ? "now" : ""}"><button type="button" data-goto="${i}" ${i <= Math.max(d.step, d.far || 0) ? "" : "disabled"} aria-label="${l}"><span>0${i + 1}</span><em>${l}</em></button></li>`).join("")}</ol>`;
-  const head = `<div class="iv-head"><span class="iv-thumb" aria-hidden="true">${specimenArt(m)}</span><span class="label">A little material interview · No. ${m.no}</span><button class="link iv-close" type="button" data-iv-close>Close</button></div>`;
-  const entry = () => ({ material_id: m.id, alias: "", observe: { noticed: d.noticed, note: d.noticeNote.trim() }, meaning: d.title.trim(), meaning_note: d.associate.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: null, own_body_note: "" });
+  const track = () => `<ol class="iv-track" aria-label="Progress">${STAGES.map(([k, l], i) => `<li class="${i < d.step || (i <= (d.far || 0) && i !== d.step) || view !== "ask" ? "done" : ""} ${i === d.step && view === "ask" ? "now" : ""}"><button type="button" data-goto="${i}" ${i <= Math.max(d.step, d.far || 0) ? "" : "disabled"} ${i === d.step && view === "ask" ? `aria-current="step"` : ""}><span>0${i + 1}</span><em>${l}${k === "imagine" ? " (optional)" : ""}</em></button></li>`).join("")}</ol>`;
+  const head = `<div class="iv-head"><span class="iv-thumb" aria-hidden="true">${specimenArt(m)}</span><span class="label">Your dictionary entry · No. ${m.no} ${esc(m.name)}</span><button class="link iv-close" type="button" data-iv-close>Close</button></div>`;
+  const entry = () => ({ material_id: m.id, alias: "", observe: { noticed: d.noticed, note: d.noticeNote.trim(), relation: d.relation || "" }, meaning: d.title.trim(), meaning_note: d.associate.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: null, own_body_note: "" });
 
   const draw = (dir = 1) => {
     let html = "";
+    if (view === "intro") {
+      html = `${head}<div class="iv-q" data-dir="1">
+        <h2 id="iv-h">Write ${esc(m.name)} into your own dictionary</h2>
+        <p>You will create one entry: <strong>your name for this material</strong>, and a few words on why. Four short steps:</p>
+        <ol class="iv-steps">
+          <li><strong>Notice</strong> what it physically does.</li>
+          <li><strong>Associate</strong> it with a feeling, memory or situation.</li>
+          <li><strong>Imagine</strong> what it might say. Optional.</li>
+          <li><strong>Name</strong> it. You can adopt the Institute's reading, adapt it, or choose something different.</li>
+        </ol>
+        <p class="hint">Any step except the name can be skipped. Your answers are kept in this browser as you go. Nothing is shared unless you choose to share it later.</p>
+        <div class="iv-actions"><span></span><button class="btn btn-primary btn-small" type="button" data-begin>Begin</button></div>
+      </div>`;
+    }
     if (view === "ask") {
       const st = STAGES[d.step][0];
       let q = "";
       if (st === "notice") {
         const opts = noticeable(m);
-        q = `<h2>What catches your attention?</h2>
-          ${opts.length ? `<p class="hint">From the Institute's record. Choose any.</p>
-            <div class="iv-notes">${opts.map(o => `<button type="button" class="iv-note" aria-pressed="${d.noticed.includes(o)}" data-note="${esc(o)}">${esc(o)}</button>`).join("")}</div>`
-          : `<p class="hint">No observation is recorded for this material yet.</p>`}
-          <input class="answer small" id="q" maxlength="200" autocomplete="off" placeholder="${opts.length ? "Something else you noticed" : "What do you notice?"}" value="${esc(d.noticeNote)}">`;
+        q = `<h2 id="iv-h">What do you notice it doing?</h2>
+          ${opts.length ? `<fieldset class="iv-set"><legend class="label">Recorded by the Institute · choose any you also notice</legend>
+            <div class="iv-notes">${opts.map(o => `<button type="button" class="iv-note" aria-pressed="${d.noticed.includes(o)}" data-note="${esc(o)}">${esc(o)}</button>`).join("")}</div></fieldset>`
+          : `<p class="hint">The Institute has not recorded an observation for this material yet.</p>`}
+          <label class="label iv-own" for="q">Your own observation${opts.length ? ", in your words" : ""}</label>
+          <textarea class="answer area small" id="q" rows="2" maxlength="200" placeholder="What I see or feel">${esc(d.noticeNote)}</textarea>`;
       }
-      if (st === "associate") q = `<h2>What does that bring to mind?</h2><p class="hint">A feeling, a memory, a situation. Anything.</p>
-          <textarea class="answer area" id="q" rows="3" maxlength="400">${esc(d.associate)}</textarea>`;
-      if (st === "imagine") q = `<h2>If this material could speak, what might it say?</h2><p class="hint">An imagined voice, not a claim that materials think or feel. Optional.</p>
-          <input class="answer" id="q" maxlength="200" autocomplete="off" placeholder="“…”" value="${esc(d.voice)}">`;
-      if (st === "name") q = `<h2>What would you call your interpretation?</h2><p class="hint">A word or a short phrase. It becomes the title of your entry.</p>
-          <input class="answer" id="q" maxlength="80" autocomplete="off" value="${esc(d.title)}">`;
-      html = `${head}${track()}<form class="iv-q" data-dir="${dir}" novalidate>${q}
+      if (st === "associate") q = `<h2 id="iv-h">What does that bring to mind?</h2><p class="hint" id="iv-hint">A feeling, a memory, a situation. This becomes the explanation in your entry.</p>
+          <textarea class="answer area" id="q" rows="3" maxlength="400" aria-labelledby="iv-h" aria-describedby="iv-hint">${esc(d.associate)}</textarea>`;
+      if (st === "imagine") q = `<h2 id="iv-h">If this material could speak, what might it say?</h2><p class="hint" id="iv-hint">An imagined voice, not a claim that materials think or feel. Optional.</p>
+          <input class="answer" id="q" maxlength="200" autocomplete="off" placeholder="“…”" value="${esc(d.voice)}" aria-labelledby="iv-h" aria-describedby="iv-hint">`;
+      if (st === "name") q = `<h2 id="iv-h">What would you call it?</h2>
+          ${m.identity ? `<div class="iv-inst"><span class="label">The Institute's entry</span><span class="iv-inst-word">${esc(m.identity.name)}</span><span class="muted">${esc(m.identity.note)}</span></div>
+            <fieldset class="iv-set"><legend class="label">Your entry and the Institute's · optional</legend>
+              <div class="iv-rel">${Object.entries(RELATIONS).map(([k, [l]]) => `<button type="button" class="iv-note" data-rel="${k}" aria-pressed="${d.relation === k}">${l}</button>`).join("")}</div></fieldset>` : `<p class="hint">The Institute has no entry for this material yet, so yours starts fresh.</p>`}
+          <label class="label iv-own" for="q">Your name for ${esc(m.name)}</label>
+          <input class="answer" id="q" maxlength="80" autocomplete="off" value="${esc(d.title)}" aria-describedby="iv-hint">
+          <p class="hint" id="iv-hint">A word or a short phrase. It becomes the headword of your entry.</p>`;
+      html = `${head}${track()}<form class="iv-q" data-dir="${dir}" novalidate aria-labelledby="iv-h">${q}
         <div class="iv-actions">
           ${d.step > 0 ? `<button class="btn btn-quiet btn-small" type="button" data-back>← Back</button>` : `<span></span>`}
-          <span class="row">${st !== "name" ? `<button class="btn btn-quiet btn-small" type="button" data-skip>Skip</button>` : ""}<button class="btn btn-primary btn-small" type="submit" ${st === "name" && !d.title.trim() ? "disabled" : ""}>${st === "name" ? "See your entry" : "Next"}</button></span>
+          <span class="row">${st !== "name" ? `<button class="btn btn-quiet btn-small" type="button" data-skip>Skip</button>` : ""}<button class="btn btn-primary btn-small" type="submit" ${st === "name" && !d.title.trim() ? "disabled" : ""}>${st === "name" ? "Review your entry" : "Next"}</button></span>
         </div></form>`;
     }
     if (view === "preview") {
+      const edit = (step, what) => `<button class="link de-edit" type="button" data-goto="${step}" aria-label="Edit ${what}">Edit</button>`;
+      const noticed = [...d.noticed, d.noticeNote.trim()].filter(Boolean).join(" · ");
       html = `${head}${track()}<div class="iv-q" data-dir="${dir}">
-        <div class="iv-card">
-          <span class="label">Your entry · ${esc(m.name)} · draft</span>
-          <span class="iv-title">${esc(d.title)}</span>
-          ${d.noticed.length || d.noticeNote ? `<p><span class="label">Noticed</span><br>${esc([...d.noticed, d.noticeNote].filter(Boolean).join(" · "))}</p>` : ""}
-          ${d.associate ? `<p><span class="label">Brings to mind</span><br>${esc(d.associate)}</p>` : ""}
-          ${d.voice ? `<p><span class="label">Imagined voice</span><br><span class="voice">${esc(d.voice)}</span></p>` : ""}
-        </div>
-        <p class="hint">Saved privately to My Collection. You can make it public later.</p>
-        <div class="iv-actions"><button class="btn btn-quiet btn-small" type="button" data-edit>← Change answers</button>
-          <button class="btn btn-primary btn-small" type="button" data-save>${store.canSave() ? "Save to My Collection" : "Sign in to save"}</button></div>
+        <h2 id="iv-h">Review your entry</h2>
+        <article class="dict-entry draft">
+          <span class="label">Draft · not saved yet</span>
+          <div class="de-head"><span class="de-word">${esc(d.title)}</span><span class="de-mat">No. ${m.no} · ${esc(m.name)}</span>${edit(3, "name")}</div>
+          <dl class="de-meta">
+            <div><dt>Why ${edit(1, "explanation")}</dt><dd>${d.associate.trim() ? esc(d.associate) : `<span class="muted">Skipped</span>`}</dd></div>
+            <div><dt>Noticed ${edit(0, "what you noticed")}</dt><dd>${noticed ? esc(noticed) : `<span class="muted">Skipped</span>`}</dd></div>
+            <div><dt>Imagined voice ${edit(2, "imagined voice")}</dt><dd>${d.voice.trim() ? `<span class="voice">${esc(d.voice)}</span>` : `<span class="muted">Skipped</span>`}</dd></div>
+            ${relationLine(d.relation, m) ? `<div><dt>Relation ${edit(3, "relation")}</dt><dd>${relationLine(d.relation, m)}</dd></div>` : ""}
+          </dl>
+        </article>
+        <p class="hint">${store.canSave() ? "Saving files it privately in My Dictionary. Sharing it in the archive is a separate choice you can make later, entry by entry." : "Saving needs a free contributor account, so your entry has somewhere to live. Your draft stays in this browser until then. Entries are private unless you choose to share one."}</p>
+        <div class="iv-actions"><span></span>
+          <button class="btn btn-primary btn-small" type="button" data-save>${store.canSave() ? "Save to My Dictionary" : "Sign in to save"}</button></div>
       </div>`;
     }
     if (view === "compare") {
-      html = `${head}<div class="iv-q" data-dir="1"><span class="label">Filed privately in My Collection</span><h2>Your meaning, beside others</h2><div class="iv-compare" data-cmp><p class="hint">Loading…</p></div></div>`;
+      html = `${head}<div class="iv-q" data-dir="1"><span class="label">Filed privately in My Dictionary</span><h2>Your entry, beside others</h2><div class="iv-compare" data-cmp><p class="hint">Loading…</p></div></div>`;
     }
     box.innerHTML = reg + html;
     wire();
@@ -781,14 +920,15 @@ function interview(m, { compareWith = null } = {}) {
     let others = [];
     try { others = (await othersOf(m.id)).filter(r => !r.demo); } catch { }
     const latest = latestMeaning(saved);
+    const rel = relationLine((saved.observe || {}).relation, m);
     el.innerHTML = `
-      <div class="cmp-row mine"><span class="label">Yours</span><span class="iv-title">${saved.revisions && saved.revisions.length ? `<s>${esc(saved.meaning)}</s> ` : ""}${esc(latest)}</span></div>
-      <div class="cmp-row"><span class="label">The Institute</span>${m.identity ? `<span class="cmp-word">${esc(m.identity.name)}</span><span class="muted">${esc(m.identity.note)}</span>` : `<span class="muted">No Institute interpretation yet.</span>`}</div>
-      <div class="cmp-row"><span class="label">Other visitors</span>${others.length ? `<span class="cmp-words">${others.slice(0, 6).map(o => `<span>${esc(latestMeaning(o))}</span>`).join("")}</span>${others.length > 6 ? `<span class="muted">and ${others.length - 6} more</span>` : ""}` : `<span class="muted">No other visitors' meanings yet.</span>`}</div>
+      <div class="cmp-row mine"><span class="label">Yours</span><span class="iv-title">${saved.revisions && saved.revisions.length ? `<s>${esc(saved.meaning)}</s> ` : ""}${esc(latest)}</span>${rel ? `<span class="muted">${rel}</span>` : ""}</div>
+      <div class="cmp-row"><span class="label">The Institute's Dictionary</span>${m.identity ? `<span class="cmp-word">${esc(m.identity.name)}</span><span class="muted">${esc(m.identity.note)}</span>` : `<span class="muted">No Institute entry yet.</span>`}</div>
+      <div class="cmp-row"><span class="label">Other visitors</span>${others.length ? `<span class="cmp-words">${others.slice(0, 6).map(o => `<span>${esc(latestMeaning(o))}</span>`).join("")}</span>${others.length > 6 ? `<span class="muted">and ${others.length - 6} more</span>` : ""}` : `<span class="muted">No other visitors' entries yet.</span>`}</div>
       <div class="cmp-ask">
         <h3>Would you still describe it the same way?</h3>
-        <div class="row"><button class="btn btn-small" type="button" data-keep>Yes, keep it</button><button class="btn btn-small" type="button" data-revise>Add a revised interpretation</button><button class="btn btn-quiet btn-small" type="button" data-explore>Explore other meanings</button></div>
-        <form class="cmp-revise" hidden><input class="answer" id="rv" maxlength="80" autocomplete="off" placeholder="${esc(latest)}"><input class="input" id="rvn" maxlength="300" autocomplete="off" placeholder="What changed? (optional)"><div class="row"><button class="btn btn-primary btn-small" type="submit">Save revision</button></div><p class="hint">Your first interpretation is kept too.</p></form>
+        <div class="row"><button class="btn btn-small" type="button" data-keep>Yes, keep it</button><button class="btn btn-small" type="button" data-revise>Add a revised entry</button><button class="btn btn-quiet btn-small" type="button" data-explore>Read other entries</button></div>
+        <form class="cmp-revise" hidden><label class="label" for="rv">Your revised name</label><input class="answer" id="rv" maxlength="80" autocomplete="off" placeholder="${esc(latest)}"><label class="label" for="rvn">What changed? (optional)</label><input class="input" id="rvn" maxlength="300" autocomplete="off"><div class="row"><button class="btn btn-primary btn-small" type="submit">Save revision</button></div><p class="hint">Your first entry is kept too.</p></form>
       </div>`;
     $("[data-keep]", el).addEventListener("click", () => { toast("Kept as it is"); finish(true); });
     $("[data-explore]", el).addEventListener("click", () => finish(true));
@@ -810,7 +950,7 @@ function interview(m, { compareWith = null } = {}) {
     close();
     render().then(() => reveal && $("#meanings")?.scrollIntoView({ behavior: calm() ? "auto" : "smooth" }));
   };
-  const close = () => { info.classList.remove("interviewing"); box.hidden = true; box.innerHTML = ""; };
+  const close = () => { info.classList.remove("interviewing"); box.hidden = true; box.innerHTML = ""; $("[data-add-meaning]", info)?.focus({ preventScroll: true }); };
 
   const save = async btn => {
     if (!d.title.trim()) return;
@@ -818,7 +958,7 @@ function interview(m, { compareWith = null } = {}) {
     if (!store.canSave()) {
       // all answers travel with the draft through sign in
       store.setPending({ ...entry(), at: new Date().toISOString() });
-      return authPanel({ view: "signup", reason: "Your interview is kept. Create an account or sign in to file it, privately, in My Collection." });
+      return authPanel({ view: "signup", reason: "Your entry is kept. Create a free account or sign in, and it is filed privately in My Dictionary." });
     }
     try {
       saved = await store.addMine(entry());
@@ -829,6 +969,7 @@ function interview(m, { compareWith = null } = {}) {
 
   const wire = () => {
     $("[data-iv-close]", box).addEventListener("click", close);
+    $("[data-begin]", box)?.addEventListener("click", () => { d.started = true; d.step = 0; view = "ask"; keep(); draw(1); });
     $$("[data-goto]", box).forEach(b => b.addEventListener("click", () => { d.step = Number(b.dataset.goto); view = "ask"; keep(); draw(-1); }));
     const q = $("#q", box);
     if (q) {
@@ -839,11 +980,24 @@ function interview(m, { compareWith = null } = {}) {
         else { d.title = q.value; $("button[type=submit]", box).disabled = !d.title.trim(); }
         keep();
       });
+    } else {
+      const h = $("h2", box); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
     }
     $$("[data-note]", box).forEach(b => b.addEventListener("click", () => {
       const v = b.dataset.note, on = !d.noticed.includes(v);
       d.noticed = on ? [...d.noticed, v] : d.noticed.filter(x => x !== v);
       b.setAttribute("aria-pressed", String(on)); keep();
+    }));
+    // adopting fills in the Institute's name; a different reading clears it; the visitor can still edit either
+    $$("[data-rel]", box).forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.rel, on = d.relation !== k, inst = m.identity.name;
+      d.relation = on ? k : "";
+      if (on && (k === "adopt" || k === "adapt") && !d.title.trim()) d.title = inst;
+      if (on && k === "adopt") d.title = inst;
+      if (on && k === "different" && d.title.trim() === inst) d.title = "";
+      $$("[data-rel]", box).forEach(x => x.setAttribute("aria-pressed", String(x.dataset.rel === d.relation)));
+      if (q) { q.value = d.title; $("button[type=submit]", box).disabled = !d.title.trim(); if (k !== "adopt") q.focus(); }
+      keep();
     }));
     $("[data-back]", box)?.addEventListener("click", () => { d.step--; keep(); draw(-1); });
     $("[data-skip]", box)?.addEventListener("click", () => { d.step++; keep(); draw(1); });
@@ -853,7 +1007,6 @@ function interview(m, { compareWith = null } = {}) {
       if (!d.title.trim()) return;
       d.step = 4; view = "preview"; keep(); draw(1);
     });
-    $("[data-edit]", box)?.addEventListener("click", () => { d.step = 3; view = "ask"; keep(); draw(-1); });
     $("[data-save]", box)?.addEventListener("click", e => save(e.currentTarget));
   };
 
@@ -863,30 +1016,47 @@ function interview(m, { compareWith = null } = {}) {
   if (window.matchMedia("(max-width: 820px)").matches || box.getBoundingClientRect().top > innerHeight * .7) box.scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "start" });
 }
 
-// ---------- MY COLLECTION ----------
-// a filing cabinet: one drawer tab per material, one index card per meaning
+// ---------- MY DICTIONARY ----------
+// a filing cabinet: one drawer tab per material, one index card per entry
+const draftsList = () => {
+  const ds = browserDrafts();
+  return ds.length ? `<section class="drafts" aria-labelledby="drafts-h"><h2 class="sub" id="drafts-h">Unfinished entries in this browser</h2>
+    <ul>${ds.map(([m, d]) => `<li><span class="no">${m.no}</span><span>${esc(m.name)}${d.title ? ` · “${esc(d.title)}”` : ""}</span><span class="muted">${d.step >= 4 ? "Ready to save" : `Step ${Math.min(d.step, 3) + 1} of 4`}</span><a class="btn btn-small" href="#archive-${m.id}" data-resume="${m.id}">Continue</a></li>`).join("")}</ul></section>` : "";
+};
+const sampleBlock = () => `<div class="sample-wrap"><span class="label">What an entry looks like</span>${dictEntry(SAMPLE(), { sample: true })}</div>`;
+
 async function collection() {
   await loadMaterials();
   const mode = store.mode();
   const draft = store.pending();
+  const wireResume = () => $$("[data-resume]", main).forEach(a => a.addEventListener("click", () => { try { sessionStorage.setItem("iam.resume", a.dataset.resume); } catch { } }));
   if (mode === "guest") {
     main.innerHTML = `
     <div class="wrap page">
-      <div class="page-head"><div><h1>My Collection</h1><p>Your own record of material meanings. Private by default.</p></div></div>
+      <div class="page-head"><div><h1>My Dictionary</h1><p>Your own entries for materials: the name you give each one, and why.</p></div></div>
       ${draft ? draftNote(draft) : ""}
-      <div class="cabinet-empty calibrate">
-        ${field()}
-        <div>
-          <span class="label">Contributor access</span>
-          <h2>Become an I.A.M. Contributor</h2>
-          <p>Create your collection of material meanings.</p>
-          <div class="row"><button class="btn btn-primary" type="button" data-auth="signup">Create an account</button><button class="btn" type="button" data-auth="signin">Sign in</button></div>
-          <p class="hint">You can browse and write a draft without an account. Nothing is published unless you share it.</p>
+      ${draftsList()}
+      <div class="dict-start">
+        <div class="cabinet-empty calibrate">
+          ${field()}
+          <div>
+            <span class="label">No account needed to start</span>
+            <h2>Start your first entry</h2>
+            <ol class="how-steps">
+              <li>Choose a material in the archive.</li>
+              <li>Write your entry. Your answers are kept in this browser while you write.</li>
+              <li>To save it, create a free contributor account. Entries are private by default. Sharing one in the archive is a separate choice.</li>
+            </ol>
+            <div class="row"><a class="btn btn-primary" href="#archive">Choose a material</a><button class="btn" type="button" data-auth="signin">Sign in</button></div>
+            <p class="hint">New here? <button class="link" type="button" data-auth="signup">Create an account</button> when you are ready to save.</p>
+          </div>
         </div>
+        ${sampleBlock()}
       </div>
     </div>`;
     $$("[data-auth]", main).forEach(b => b.addEventListener("click", () => authPanel({ view: b.dataset.auth })));
     $("[data-discard]", main)?.addEventListener("click", async () => { if (await ask("Discard this draft?", "Discard")) { store.setPending(null); render(); } });
+    wireResume();
     return;
   }
 
@@ -908,26 +1078,28 @@ async function collection() {
   main.innerHTML = `
   <div class="wrap page">
     <div class="page-head">
-      <div><h1>My Collection</h1><p>${list.length} ${list.length === 1 ? "entry" : "entries"} · private unless you make one public</p></div>
-      <div class="row">${list.length ? `<button class="btn btn-small" type="button" data-export>Export</button>` : ""}<a class="btn btn-small" href="#archive">Explore Archive</a></div>
+      <div><h1>My Dictionary</h1><p>${list.length} ${list.length === 1 ? "entry" : "entries"} · private unless you share one</p></div>
+      <div class="row">${list.length ? `<button class="btn btn-small" type="button" data-export>Export</button>` : ""}<a class="btn btn-small" href="#archive">Choose a material</a></div>
     </div>
-    ${mode === "preview" ? `<p class="notice">Preview: this collection is kept in this browser only. Contributor accounts work on the live site.</p>` : ""}
-    ${local.length ? `<div class="notice row-notice"><span>${local.length} ${local.length === 1 ? "meaning was" : "meanings were"} saved in this browser before accounts. Add ${local.length === 1 ? "it" : "them"} to your collection? ${local.length === 1 ? "It stays" : "They stay"} private.</span><span class="row"><button class="btn btn-small btn-primary" type="button" data-import>Add to my collection</button><button class="btn btn-small btn-quiet" type="button" data-dismiss>Not now</button></span></div>` : ""}
+    ${mode === "preview" ? `<p class="notice">Preview: entries are kept in this browser only. Contributor accounts work on the live site.</p>` : ""}
+    ${local.length ? `<div class="notice row-notice"><span>${local.length} ${local.length === 1 ? "entry was" : "entries were"} saved in this browser before accounts. Add ${local.length === 1 ? "it" : "them"} to your dictionary? ${local.length === 1 ? "It stays" : "They stay"} private.</span><span class="row"><button class="btn btn-small btn-primary" type="button" data-import>Add to my dictionary</button><button class="btn btn-small btn-quiet" type="button" data-dismiss>Not now</button></span></div>` : ""}
+    ${draftsList()}
     ${list.length ? `<div class="cabinet">${groups.map((g, gi) => `
       <section class="drawer" style="--i:${gi}">
         <a class="drawer-tab" href="#archive-${g.m.id}"><span class="no">${g.m.no}</span><span>${esc(g.m.name)}</span><span class="count">${g.items.length}</span></a>
         <div class="cards">${g.items.map(e => indexCard(e, readings.filter(r => r.entry_id === e.remote_id), e.id === just)).join("")}</div>
       </section>`).join("")}</div>`
-      : `<div class="cabinet-empty calibrate">${field()}<div><span class="label">Empty drawer</span><h2>Nothing filed yet.</h2><p>Open a material and add your meaning.</p><a class="btn btn-primary" href="#archive">Explore Archive</a></div></div>`}
+      : `<div class="dict-start"><div class="cabinet-empty calibrate">${field()}<div><span class="label">Empty so far</span><h2>No entries filed yet.</h2><p>Open a material, read how it behaves and what the Institute makes of it, then write your own entry.</p><a class="btn btn-primary" href="#archive">Choose a material</a></div></div>${sampleBlock()}</div>`}
   </div>`;
+  wireResume();
 
   const onClick = async ev => {
-    if (ev.target.closest("[data-export]")) return download("iam-my-collection.json", store.exportAll());
+    if (ev.target.closest("[data-export]")) return download("iam-my-dictionary.json", store.exportAll());
     if (ev.target.closest("[data-import]")) {
-      try { await store.importLocal(); toast("Added to your collection"); } catch (err) { console.error(err); toast("Could not add them. Please try again."); }
+      try { await store.importLocal(); toast("Added to your dictionary"); } catch (err) { console.error(err); toast("Could not add them. Please try again."); }
       return render();
     }
-    if (ev.target.closest("[data-dismiss]")) { if (await ask("Remove those browser-only meanings from this device?", "Remove")) { store.dismissLocal(); render(); } return; }
+    if (ev.target.closest("[data-dismiss]")) { if (await ask("Remove those browser-only entries from this device?", "Remove")) { store.dismissLocal(); render(); } return; }
     const head = ev.target.closest("[data-open]");
     if (head) {
       const card = head.closest(".icard-file"), o = !card.classList.contains("open");
@@ -941,14 +1113,14 @@ async function collection() {
     const act = b.dataset.do;
     if (act === "revise") return revise(e);
     if (act === "body") return editBody(e);
-    if (act === "share") { b.disabled = true; if (await shareEntry(e)) toast("Public in the archive"); return render(); }
+    if (act === "share") { b.disabled = true; if (await shareEntry(e)) toast("Shared in the archive"); return render(); }
     if (act === "unshare") {
-      if (!(await ask("Make this private again? It leaves the public archive and stays in your collection.", "Make private"))) return;
+      if (!(await ask("Make this private again? It leaves the public archive and stays in your dictionary.", "Make private"))) return;
       if (await unshareEntry(e)) toast("Private again");
       return render();
     }
     if (act === "delete") {
-      if (!(await ask("Delete this meaning and all its versions?" + (e.shared ? " It will also leave the public archive." : ""), "Delete"))) return;
+      if (!(await ask("Delete this entry and all its versions?" + (e.shared ? " It will also leave the public archive." : ""), "Delete"))) return;
       if (e.shared && e.remote_id && !(await unshareEntry(e))) return;
       try { await store.deleteMine(e.id); toast("Deleted"); } catch (err) { console.error(err); toast("Could not delete it. Please try again."); }
       return render();
@@ -959,7 +1131,7 @@ async function collection() {
   if (just) { const c = $(`.icard-file[data-id="${CSS.escape(just)}"]`, main); c && c.scrollIntoView({ block: "center", behavior: "instant" in window ? "instant" : "auto" }); }
 }
 
-const draftNote = d => `<div class="notice row-notice"><span><strong>Unsaved draft:</strong> “${esc(d.meaning)}” for ${esc((byId(d.material_id) || unknown(d.material_id)).name)}. Sign in to file it privately.</span><span class="row"><button class="btn btn-small btn-quiet" type="button" data-discard>Discard</button></span></div>`;
+const draftNote = d => `<div class="notice row-notice"><span><strong>Entry waiting to be saved:</strong> “${esc(d.meaning)}” for ${esc((byId(d.material_id) || unknown(d.material_id)).name)}. Sign in or create an account to file it privately.</span><span class="row"><button class="btn btn-small btn-primary" type="button" data-auth="signin">Sign in</button><button class="btn btn-small btn-quiet" type="button" data-discard>Discard</button></span></div>`;
 
 function indexCard(e, readings = [], just = false) {
   const revs = e.revisions || [];
@@ -967,13 +1139,14 @@ function indexCard(e, readings = [], just = false) {
   return `<article class="icard-file ${just ? "filing" : ""}" data-id="${esc(e.id)}">
     <button class="icard-head" type="button" data-open aria-expanded="false">
       <span class="word">${esc(latestMeaning(e))}</span>
-      <span class="icard-meta"><span class="state ${e.shared ? "is-public" : ""}">${e.shared ? "Public" : "Private"}</span><span>${fmtDate(e.created_at)}</span>${revs.length ? `<span>${revs.length + 1} versions</span>` : ""}${hasBody(e) ? `<span>Body</span>` : ""}</span>
+      <span class="icard-meta"><span class="state ${e.shared ? "is-public" : ""}">${e.shared ? "Shared" : "Private"}</span><span>${fmtDate(e.created_at)}</span>${revs.length ? `<span>${revs.length + 1} versions</span>` : ""}${hasBody(e) ? `<span>Body</span>` : ""}</span>
       <span class="chev" aria-hidden="true">+</span>
     </button>
     <div class="icard-body"><div><div class="icard-inner">
       <ol class="versions">${versions.map((v, i) => `<li><span class="label">${v.first ? "Original" : "Revised"} · ${fmtDate(v.at)}</span><span class="${i < versions.length - 1 ? "old" : "word"}">${esc(v.meaning)}</span>${v.note && !v.first ? `<span class="muted">${esc(v.note)}</span>` : ""}</li>`).join("")}</ol>
       ${e.observe && ((e.observe.noticed || []).length || e.observe.note) ? `<p><span class="label">Noticed</span><br>${esc([...(e.observe.noticed || []), e.observe.note].filter(Boolean).join(" · "))}</p>` : ""}
-      ${e.meaning_note ? `<p><span class="label">Brings to mind</span><br>${esc(e.meaning_note)}</p>` : ""}
+      ${e.meaning_note ? `<p><span class="label">Why</span><br>${esc(e.meaning_note)}</p>` : ""}
+      ${relationLine((e.observe || {}).relation, byId(e.material_id)) ? `<p><span class="label">Relation</span><br>${relationLine(e.observe.relation, byId(e.material_id))}</p>` : ""}
       ${e.voice ? `<p><span class="label">Imagined voice</span><br><span class="voice">${esc(e.voice)}</span></p>` : ""}
       ${e.own_body_note ? `<p><span class="label">Became it</span><br>${esc(e.own_body_note)}</p>` : ""}
       ${e.body ? `<div class="fig" data-mine="${esc(e.id)}"></div>` : ""}
@@ -982,7 +1155,7 @@ function indexCard(e, readings = [], just = false) {
         <button data-e="${esc(e.id)}" data-do="revise" type="button">Revise</button>
         <button data-e="${esc(e.id)}" data-do="body" type="button">${e.body ? "Edit body" : "Add body"}</button>
         <a href="#archive-${canonical(e.material_id)}">Compare</a>
-        ${e.shared ? `<button data-e="${esc(e.id)}" data-do="unshare" type="button">Make private</button>` : `<button data-e="${esc(e.id)}" data-do="share" type="button">Make public</button>`}
+        ${e.shared ? `<button data-e="${esc(e.id)}" data-do="unshare" type="button">Make private</button>` : `<button data-e="${esc(e.id)}" data-do="share" type="button">Share in archive</button>`}
         <button data-e="${esc(e.id)}" data-do="delete" type="button">Delete</button>
       </div>
     </div></div></div>
@@ -996,7 +1169,7 @@ async function shareEntry(e, { quiet = false } = {}) {
     const rid = await store.share(e);
     await store.updateMine(e.id, { shared: true, remote_id: rid });
     store.invalidate(); return true;
-  } catch (err) { console.error(err); toast(quiet ? "Saved privately. Making it public failed, try again from My Collection." : "Could not make it public. Please try again."); return false; }
+  } catch (err) { console.error(err); toast(quiet ? "Saved privately. Making it public failed, try again from My Dictionary." : "Could not make it public. Please try again."); return false; }
 }
 async function unshareEntry(e) {
   try {
@@ -1040,7 +1213,7 @@ function authPanel({ view = "signin", reason = "", email = "" } = {}) {
   panel("Contributor access", (body, close) => {
     const draw = () => {
       if (store.mode() === "preview") {
-        body.innerHTML = `<div class="step"><span class="label">Contributor access</span><h2>Become an I.A.M. Contributor</h2><p>Create your collection of material meanings.</p>
+        body.innerHTML = `<div class="step"><span class="label">Contributor access</span><h2>Become an I.A.M. Contributor</h2><p>Keep your own dictionary of materials.</p>
           <p class="notice">This preview cannot reach the account service, so sign up and sign in are switched off here. They work on the live site. In the preview, meanings are kept in this browser only.</p>
           ${store.pending() ? `<div class="step-actions"><button class="btn btn-primary" type="button" data-keep>Keep my draft in this browser</button></div>` : ""}</div>`;
         $("[data-keep]", body)?.addEventListener("click", async () => { close(); await resumePending(); });
@@ -1048,13 +1221,13 @@ function authPanel({ view = "signin", reason = "", email = "" } = {}) {
       }
       const why = reason ? `<p class="notice">${esc(reason)}</p>` : "";
       if (v === "signup") body.innerHTML = `<form class="step auth" novalidate>
-          <span class="label">Contributor access</span><h2>Become an I.A.M. Contributor</h2><p>Create your collection of material meanings.</p>${why}
+          <span class="label">Contributor access</span><h2>Become an I.A.M. Contributor</h2><p>Keep your own dictionary of materials.</p>${why}
           <label class="field">Email<input class="input" type="email" name="email" autocomplete="email" required value="${esc(mail)}"></label>
           <label class="field">Password<input class="input" type="password" name="password" autocomplete="new-password" minlength="8" required><span class="hint">At least 8 characters.</span></label>
           <details class="plain"><summary>What happens to my data?</summary>
             <ul>
               <li><strong>Stored:</strong> your email, your consent choices, and the meanings you save. Your password is handled by the sign-in service and never seen by the project.</li>
-              <li><strong>Purpose:</strong> to keep your collection, and to show the entries you choose to share.</li>
+              <li><strong>Purpose:</strong> to keep your dictionary, and to show the entries you choose to share.</li>
               <li><strong>Access:</strong> private entries are visible only to you. Public entries are visible to everyone, without your email.</li>
               <li><strong>Research:</strong> your entries are used in the research only if you tick the research box.</li>
               <li><strong>Leaving:</strong> you can make entries private, withdraw consent, export, or delete your account at any time.</li>
@@ -1155,13 +1328,13 @@ function accountPanel() {
           <label class="check"><input type="checkbox" data-consent="publish" ${p.publish_consent ? "checked" : ""}> <span>Entries I choose to share may be shown publicly. ${legalLink("consent", "Details")}</span></label>
         </fieldset>
         <div class="acct-actions">
-          <a class="btn btn-small" href="#collection" data-close>My Collection</a>
+          <a class="btn btn-small" href="#dictionary" data-close>My Dictionary</a>
           <button class="btn btn-small" type="button" data-export>Export my data</button>
           <button class="btn btn-small" type="button" data-signout>Sign out</button>
         </div>
         <div class="danger">
           <span class="label">Delete account</span>
-          <p class="hint">Deletes your profile, collection, public entries and sign-in. This cannot be undone. Export first if you want a copy.</p>
+          <p class="hint">Deletes your profile, dictionary, shared entries and sign-in. This cannot be undone. Export first if you want a copy.</p>
           <button class="btn btn-small btn-danger" type="button" data-delete>Delete my account</button>
         </div>
         <p class="hint">${legalLink("terms")} · ${legalLink("privacy")}</p>
@@ -1180,7 +1353,7 @@ function accountPanel() {
         try { await store.setConsent({ [key]: on }); toast(on ? "Consent recorded" : "Consent withdrawn"); }
         catch (err) { console.error(err); toast("Could not update your choice. Please try again."); }
         if (!body.isConnected) accountPanel();
-        if (currentPath() === "collection") render();
+        if (currentPath() === "dictionary") render();
       }));
       $("[data-export]", body).addEventListener("click", () => download("iam-my-data.json", store.exportAll()));
       $("[data-signout]", body).addEventListener("click", async () => { await store.signOut(); close(); toast("Signed out"); });
@@ -1214,12 +1387,12 @@ async function resumePending() {
     const saved = await store.addMine(entry);
     store.setPending(null);
     try { sessionStorage.setItem("iam.justSaved", saved.id); } catch { }
-    toast(wantsShare ? "Your draft is filed privately. Make it public from My Collection if you still want to." : "Filed privately in My Collection");
+    toast(wantsShare ? "Your entry is filed privately. Share it from My Dictionary if you still want to." : "Filed privately in My Dictionary");
     const mid = canonical(entry.material_id);
     if (byId(mid)) {
       try { localStorage.removeItem("iam.interview." + mid); sessionStorage.setItem("iam.compare", saved.id); } catch { }
       if (currentPath() === "archive-" + mid) render(); else go("#archive-" + mid);
-    } else if (currentPath() === "collection") render(); else go("#collection");
+    } else if (currentPath() === "dictionary") render(); else go("#dictionary");
   } catch (err) { console.error(err); toast("Your draft could not be filed yet. It is still kept in this browser."); }
 }
 
@@ -1282,7 +1455,7 @@ async function about() {
       <p>Physical observations describe what a material did. Interpretations, including the Institute's own, are subjective. Materials are not claimed to think or feel. Demo content is marked as demo.</p>
       <h2 class="sub">Your data, in short</h2>
       <ul>
-        <li>Browsing needs no account. A contributor account keeps your collection.</li>
+        <li>Browsing needs no account. Writing an entry needs no account. A free contributor account saves your entries in My Dictionary.</li>
         <li>Everything you save is private unless you make a specific entry public.</li>
         <li>Research use and publishing are two separate, optional permissions. You can withdraw either.</li>
         <li>You can export your data or delete your account at any time.</li>
@@ -1304,7 +1477,8 @@ function notFound() {
 
 // ---------- boot ----------
 $("[data-mark]").innerHTML = mark();
-await Promise.all([store.ready(), loadMaterials()]);
+// accounts first (bounded, so a slow network never leaves a blank page); community materials load on the pages that list them
+await Promise.race([store.ready(), new Promise(r => setTimeout(r, 6000))]);
 updateAcct();
-render();
+await render();
 resumePending();
