@@ -579,6 +579,7 @@ async function detail(id) {
         <div class="row"><button class="btn btn-primary" type="button" data-add-meaning>Add Your Meaning</button></div>
         <button class="record-toggle" type="button" aria-expanded="false" aria-controls="record">View Full Record <span class="chev" aria-hidden="true">+</span></button>
         <div class="record" id="record"><div><div class="record-inner">${fullRecord(m)}</div></div></div>
+        <section class="interview" id="interview" aria-label="A little material interview" hidden></section>
       </div>
     </div>
 
@@ -618,7 +619,11 @@ async function detail(id) {
   $$("[data-scroll]", main).forEach(b => b.addEventListener("click", () => {
     const c = $(".carousel", main); c.scrollBy({ left: Number(b.dataset.scroll) * (c.clientWidth * .8), behavior: calm() ? "auto" : "smooth" });
   }));
-  $$("[data-add-meaning]", main).forEach(b => b.addEventListener("click", () => addMeaning(m)));
+  $$("[data-add-meaning]", main).forEach(b => b.addEventListener("click", () => interview(m)));
+  // continue straight into the comparison after signing in, or reopen an unfinished interview
+  let cmp = null; try { cmp = sessionStorage.getItem("iam.compare"); sessionStorage.removeItem("iam.compare"); } catch { }
+  const filed = cmp && store.getMine(cmp);
+  if (filed && canonical(filed.material_id) === m.id) interview(m, { compareWith: filed });
   $("[data-reveal]", main)?.addEventListener("click", () => { setRevealed(m.id); render().then(() => $("#meanings")?.scrollIntoView({ behavior: calm() ? "auto" : "smooth" })); });
   $("[data-changed]", main)?.addEventListener("click", e => { const en = store.getMine(e.currentTarget.dataset.changed); if (en) revise(en); });
 }
@@ -689,105 +694,165 @@ function reinterpret(entry) {
   }, null, { wide: true });
 }
 
-// Add Your Meaning: one question at a time, private by default
-function addMeaning(m) {
-  const d = { meaning: "", note: "", voice: "", body: null, own: "", share: false, alias: store.alias() };
-  let step = 0, editor = null;
-  const stopEditor = () => { if (editor) { d.body = editor.get(); editor.stop(); editor = null; } };
-  const close = panel(`Add your meaning to ${m.name}`, (body, close) => {
-    const view = () => {
-      stopEditor();
-      const back = step > 0 && step < 6 ? `<button class="btn btn-quiet btn-small" type="button" data-back style="justify-self:start">← Back</button>` : "";
-      const head = `<span class="label">No. ${m.no} ${esc(m.name)}</span>`;
-      let html = "";
-      if (step === 0) html = `${head}<h2>What does this material's response mean to you?</h2>
-        <input class="answer" id="q" maxlength="80" autocomplete="off" placeholder="A word or a short phrase" value="${esc(d.meaning)}">
-        <input class="input" id="why" maxlength="300" autocomplete="off" placeholder="Why? (optional)" value="${esc(d.note)}">
-        <div class="step-actions"><button class="btn btn-primary" type="submit" ${d.meaning.trim() ? "" : "disabled"}>Next</button></div>`;
-      if (step === 1) html = `${head}<h2>If this material could speak, what would it say?</h2>
-        <p class="hint">Optional. An imagined voice, kept apart from what it physically does.</p>
-        <input class="answer" id="q" maxlength="200" autocomplete="off" placeholder="“…”" value="${esc(d.voice)}">
-        <div class="step-actions"><button class="btn btn-primary" type="submit">Next</button><button class="btn btn-quiet" type="button" data-skip>Skip</button></div>`;
-      if (step === 2) html = `${head}<h2>Translate it with a body?</h2><p class="hint">Optional.</p>
-        <div class="choice">
-          <button type="button" data-embody="own">Become It<small>Use your own body. Note what you did.</small></button>
-          <button type="button" data-embody="borrow">Borrow a Body<small>Pose a figure in two or three key poses</small></button>
-          <button type="button" data-skip>Skip</button>
-        </div>`;
-      if (step === 3) html = `${head}<h2>Become It</h2><p class="hint">Stand up and try it. What did your body do?</p>
-        <input class="answer" id="q" maxlength="300" autocomplete="off" placeholder="I sank down, then rose slowly." value="${esc(d.own)}">
-        <div class="step-actions"><button class="btn btn-primary" type="submit">Next</button></div>`;
-      if (step === 4) html = `${head}<h2>Borrow a Body</h2><p class="hint">Drag the joints. Add a second pose, then play.</p>
-        <div id="ed"></div>
-        <div class="step-actions"><button class="btn btn-primary" type="submit">Next</button></div>`;
-      if (step === 5) html = `${head}<h2>Keep it, or share it?</h2>
-        <div class="choice">
-          <button type="button" data-share="0" aria-pressed="${!d.share}">Keep private<small>Only in your collection</small></button>
-          <button type="button" data-share="1" aria-pressed="${d.share}">Share with the archive<small>Others can read it here and in the research</small></button>
+// A Little Material Interview: notice, associate, imagine, name. Observe first, interpret later, compare last.
+const STAGES = [["notice", "Notice"], ["associate", "Associate"], ["imagine", "Imagine"], ["name", "Name"]];
+const draftKey = id => "iam.interview." + id;
+const loadDraft = id => { try { return JSON.parse(localStorage.getItem(draftKey(id))) || null; } catch { return null; } };
+const saveDraft = (id, d) => { try { localStorage.setItem(draftKey(id), JSON.stringify(d)); } catch { } };
+const dropDraft = id => { try { localStorage.removeItem(draftKey(id)); } catch { } };
+// what can be noticed comes only from the documented record
+const noticeable = m => {
+  const out = [];
+  (m.response || (m.community ? m.note : "") || "").split(/(?<=\.)\s+/).map(t => t.trim()).filter(Boolean).forEach(t => out.push(t.replace(/\.$/, "")));
+  if (m.mode) out.push(m.mode);
+  if (m.speed) out.push(SPEEDS[m.speed] + " response");
+  if (m.after) out.push(AFTERS[m.after]);
+  return [...new Set(out)];
+};
+
+function interview(m, { compareWith = null } = {}) {
+  const box = $("#interview", main), info = $(".detail-info", main);
+  if (!box) return;
+  const fresh = { step: 0, far: 0, noticed: [], noticeNote: "", associate: "", voice: "", title: "", share: false };
+  let d = { ...fresh, ...(loadDraft(m.id) || {}) };
+  let saved = compareWith, view = compareWith ? "compare" : d.step >= 4 ? "preview" : "ask";
+  const keep = () => { d.far = Math.max(d.far || 0, Math.min(d.step, 3)); saveDraft(m.id, d); };
+  const reg = `<svg class="iv-reg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6" vector-effect="non-scaling-stroke"><path class="draw" pathLength="1" d="M0 8 V0 H8"/><path class="draw" pathLength="1" d="M92 0 H100 V8"/><path class="draw" pathLength="1" d="M0 92 V100 H8"/><path class="draw" pathLength="1" d="M92 100 H100 V92"/></g></svg>`;
+  const track = () => `<ol class="iv-track" aria-label="Progress">${STAGES.map(([k, l], i) => `<li class="${i < d.step || (i <= (d.far || 0) && i !== d.step) || view !== "ask" ? "done" : ""} ${i === d.step && view === "ask" ? "now" : ""}"><button type="button" data-goto="${i}" ${i <= Math.max(d.step, d.far || 0) ? "" : "disabled"} aria-label="${l}"><span>0${i + 1}</span><em>${l}</em></button></li>`).join("")}</ol>`;
+  const head = `<div class="iv-head"><span class="iv-thumb" aria-hidden="true">${specimenArt(m)}</span><span class="label">A little material interview · No. ${m.no}</span><button class="link iv-close" type="button" data-iv-close>Close</button></div>`;
+  const entry = () => ({ material_id: m.id, alias: "", observe: { noticed: d.noticed, note: d.noticeNote.trim() }, meaning: d.title.trim(), meaning_note: d.associate.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: null, own_body_note: "" });
+
+  const draw = (dir = 1) => {
+    let html = "";
+    if (view === "ask") {
+      const st = STAGES[d.step][0];
+      let q = "";
+      if (st === "notice") {
+        const opts = noticeable(m);
+        q = `<h2>What catches your attention?</h2>
+          ${opts.length ? `<p class="hint">From the Institute's record. Choose any.</p>
+            <div class="iv-notes">${opts.map(o => `<button type="button" class="iv-note" aria-pressed="${d.noticed.includes(o)}" data-note="${esc(o)}">${esc(o)}</button>`).join("")}</div>`
+          : `<p class="hint">No observation is recorded for this material yet.</p>`}
+          <input class="answer small" id="q" maxlength="200" autocomplete="off" placeholder="${opts.length ? "Something else you noticed" : "What do you notice?"}" value="${esc(d.noticeNote)}">`;
+      }
+      if (st === "associate") q = `<h2>What does that bring to mind?</h2><p class="hint">A feeling, a memory, a situation. Anything.</p>
+          <textarea class="answer area" id="q" rows="3" maxlength="400">${esc(d.associate)}</textarea>`;
+      if (st === "imagine") q = `<h2>If this material could speak, what might it say?</h2><p class="hint">An imagined voice, not a claim that materials think or feel. Optional.</p>
+          <input class="answer" id="q" maxlength="200" autocomplete="off" placeholder="“…”" value="${esc(d.voice)}">`;
+      if (st === "name") q = `<h2>What would you call your interpretation?</h2><p class="hint">A word or a short phrase. It becomes the title of your entry.</p>
+          <input class="answer" id="q" maxlength="80" autocomplete="off" value="${esc(d.title)}">`;
+      html = `${head}${track()}<form class="iv-q" data-dir="${dir}" novalidate>${q}
+        <div class="iv-actions">
+          ${d.step > 0 ? `<button class="btn btn-quiet btn-small" type="button" data-back>← Back</button>` : `<span></span>`}
+          <span class="row">${st !== "name" ? `<button class="btn btn-quiet btn-small" type="button" data-skip>Skip</button>` : ""}<button class="btn btn-primary btn-small" type="submit" ${st === "name" && !d.title.trim() ? "disabled" : ""}>${st === "name" ? "See your entry" : "Next"}</button></span>
+        </div></form>`;
+    }
+    if (view === "preview") {
+      html = `${head}${track()}<div class="iv-q" data-dir="${dir}">
+        <div class="iv-card">
+          <span class="label">Your entry · ${esc(m.name)} · draft</span>
+          <span class="iv-title">${esc(d.title)}</span>
+          ${d.noticed.length || d.noticeNote ? `<p><span class="label">Noticed</span><br>${esc([...d.noticed, d.noticeNote].filter(Boolean).join(" · "))}</p>` : ""}
+          ${d.associate ? `<p><span class="label">Brings to mind</span><br>${esc(d.associate)}</p>` : ""}
+          ${d.voice ? `<p><span class="label">Imagined voice</span><br><span class="voice">${esc(d.voice)}</span></p>` : ""}
         </div>
-        <label class="field" id="al" ${d.share ? "" : "hidden"}>Sign as (optional)<input class="input" id="alias" maxlength="40" autocomplete="off" value="${esc(d.alias)}"></label>
-        <div class="step-actions"><button class="btn btn-primary" type="submit">Save</button></div>`;
-      if (step === 6) html = `${savedMark}<span class="label">Saved${d.shared ? " and shared" : " to My Collection"}</span><h2>${esc(d.meaning)}</h2>
-        <p class="hint">Now see how others read the same material.</p>
-        <div class="step-actions"><button class="btn btn-primary" type="button" data-reveal>Reveal other meanings</button><a class="btn" href="#collection" data-close>My Collection</a></div>`;
-      body.innerHTML = `<form class="step" novalidate>${back}${html}</form>`;
-      wire();
-    };
-    const wire = () => {
-      const form = $("form", body);
-      const q = $("#q", form);
-      if (q) {
-        q.focus({ preventScroll: true });
-        q.addEventListener("input", () => {
-          if (step === 0) { d.meaning = q.value; $("button[type=submit]", form).disabled = !d.meaning.trim(); }
-          else if (step === 1) d.voice = q.value; else if (step === 3) d.own = q.value;
-        });
-      }
-      $("#why", form)?.addEventListener("input", e => { d.note = e.target.value; });
-      if ($("#ed", form)) editor = mountEditor($("#ed", form), d.body);
-      $("[data-back]", form)?.addEventListener("click", () => { step = step === 5 ? (editor || hasBody(d) ? 4 : d.own ? 3 : 2) : step === 4 ? 2 : step - 1; view(); });
-      $$("[data-skip]", form).forEach(b => b.addEventListener("click", () => { if (step === 1) { d.voice = ""; step = 2; } else { d.body = null; d.own = ""; step = 5; } view(); }));
-      $$("[data-embody]", form).forEach(b => b.addEventListener("click", () => { step = b.dataset.embody === "own" ? 3 : 4; view(); }));
-      $$("[data-share]", form).forEach(b => b.addEventListener("click", () => {
-        d.share = b.dataset.share === "1";
-        $$("[data-share]", form).forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-        $("#al", form).hidden = !d.share;
-      }));
-      $("#alias", form)?.addEventListener("input", e => { d.alias = e.target.value; });
-      $("[data-reveal]", form)?.addEventListener("click", () => { setRevealed(m.id); close(); });
-      form.addEventListener("submit", async e => {
-        e.preventDefault();
-        if (step === 0 && !d.meaning.trim()) return;
-        if (step === 4) { const b = editor.get(); if (b.frames.length < 2) { toast("Add a second pose, or go back and skip."); return; } }
-        if (step === 3 || step === 4) { step = 5; return view(); }
-        if (step < 2) { step++; return view(); }
-        if (step === 5) await save($("button[type=submit]", form));
+        <p class="hint">Saved privately to My Collection. You can make it public later.</p>
+        <div class="iv-actions"><button class="btn btn-quiet btn-small" type="button" data-edit>← Change answers</button>
+          <button class="btn btn-primary btn-small" type="button" data-save>${store.canSave() ? "Save to My Collection" : "Sign in to save"}</button></div>
+      </div>`;
+    }
+    if (view === "compare") {
+      html = `${head}<div class="iv-q" data-dir="1"><span class="label">Filed privately in My Collection</span><h2>Your meaning, beside others</h2><div class="iv-compare" data-cmp><p class="hint">Loading…</p></div></div>`;
+    }
+    box.innerHTML = reg + html;
+    wire();
+  };
+
+  const fillCompare = async () => {
+    const el = $("[data-cmp]", box); if (!el) return;
+    let others = [];
+    try { others = (await othersOf(m.id)).filter(r => !r.demo); } catch { }
+    const latest = latestMeaning(saved);
+    el.innerHTML = `
+      <div class="cmp-row mine"><span class="label">Yours</span><span class="iv-title">${saved.revisions && saved.revisions.length ? `<s>${esc(saved.meaning)}</s> ` : ""}${esc(latest)}</span></div>
+      <div class="cmp-row"><span class="label">The Institute</span>${m.identity ? `<span class="cmp-word">${esc(m.identity.name)}</span><span class="muted">${esc(m.identity.note)}</span>` : `<span class="muted">No Institute interpretation yet.</span>`}</div>
+      <div class="cmp-row"><span class="label">Other visitors</span>${others.length ? `<span class="cmp-words">${others.slice(0, 6).map(o => `<span>${esc(latestMeaning(o))}</span>`).join("")}</span>${others.length > 6 ? `<span class="muted">and ${others.length - 6} more</span>` : ""}` : `<span class="muted">No other visitors' meanings yet.</span>`}</div>
+      <div class="cmp-ask">
+        <h3>Would you still describe it the same way?</h3>
+        <div class="row"><button class="btn btn-small" type="button" data-keep>Yes, keep it</button><button class="btn btn-small" type="button" data-revise>Add a revised interpretation</button><button class="btn btn-quiet btn-small" type="button" data-explore>Explore other meanings</button></div>
+        <form class="cmp-revise" hidden><input class="answer" id="rv" maxlength="80" autocomplete="off" placeholder="${esc(latest)}"><input class="input" id="rvn" maxlength="300" autocomplete="off" placeholder="What changed? (optional)"><div class="row"><button class="btn btn-primary btn-small" type="submit">Save revision</button></div><p class="hint">Your first interpretation is kept too.</p></form>
+      </div>`;
+    $("[data-keep]", el).addEventListener("click", () => { toast("Kept as it is"); finish(true); });
+    $("[data-explore]", el).addEventListener("click", () => finish(true));
+    $("[data-revise]", el).addEventListener("click", () => { const f = $(".cmp-revise", el); f.hidden = false; $("#rv", f).focus(); });
+    $(".cmp-revise", el).addEventListener("submit", async ev => {
+      ev.preventDefault();
+      const v = $("#rv", el).value.trim(); if (!v) return;
+      const revisions = [...(saved.revisions || []), { at: new Date().toISOString(), meaning: v, note: $("#rvn", el).value.trim() }];
+      try {
+        saved = await store.updateMine(saved.id, { revisions });
+        if (saved.shared && saved.remote_id) { try { await store.updateShared(saved.remote_id, saved); store.invalidate(); } catch (e) { console.error(e); } }
+        toast("Both versions kept"); fillCompare();
+      } catch (e) { console.error(e); toast("Could not save the revision. Please try again."); }
+    });
+  };
+
+  const finish = reveal => {
+    if (reveal) setRevealed(m.id);
+    close();
+    render().then(() => reveal && $("#meanings")?.scrollIntoView({ behavior: calm() ? "auto" : "smooth" }));
+  };
+  const close = () => { info.classList.remove("interviewing"); box.hidden = true; box.innerHTML = ""; };
+
+  const save = async btn => {
+    if (!d.title.trim()) return;
+    btn.disabled = true;
+    if (!store.canSave()) {
+      // all answers travel with the draft through sign in
+      store.setPending({ ...entry(), at: new Date().toISOString() });
+      return authPanel({ view: "signup", reason: "Your interview is kept. Create an account or sign in to file it, privately, in My Collection." });
+    }
+    try {
+      saved = await store.addMine(entry());
+      dropDraft(m.id);
+      view = "compare"; draw(); fillCompare();
+    } catch (e) { console.error(e); btn.disabled = false; toast("Could not save. Please try again."); }
+  };
+
+  const wire = () => {
+    $("[data-iv-close]", box).addEventListener("click", close);
+    $$("[data-goto]", box).forEach(b => b.addEventListener("click", () => { d.step = Number(b.dataset.goto); view = "ask"; keep(); draw(-1); }));
+    const q = $("#q", box);
+    if (q) {
+      q.focus({ preventScroll: true });
+      q.addEventListener("input", () => {
+        const st = STAGES[d.step][0];
+        if (st === "notice") d.noticeNote = q.value; else if (st === "associate") d.associate = q.value; else if (st === "imagine") d.voice = q.value;
+        else { d.title = q.value; $("button[type=submit]", box).disabled = !d.title.trim(); }
+        keep();
       });
-    };
-    const save = async btn => {
-      btn.disabled = true;
-      const alias = d.share ? d.alias.trim() : "";
-      if (alias) store.setAlias(alias);
-      const entry = { material_id: m.id, alias, observe: {}, meaning: d.meaning.trim(), meaning_note: d.note.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: hasBody(d) ? d.body : null, own_body_note: d.own.trim() };
-      // guests keep the draft through sign in; it is saved privately afterwards and never published automatically
-      if (!store.canSave()) {
-        store.setPending({ ...entry, wantsShare: d.share, at: new Date().toISOString() });
-        close();
-        return authPanel({ view: "signup", reason: "Your meaning is kept as a draft. Create an account or sign in to file it in your collection." });
-      }
-      let saved;
-      try { saved = await store.addMine(entry); }
-      catch (err) { console.error(err); btn.disabled = false; toast("Could not save. Please try again."); return; }
-      try { sessionStorage.setItem("iam.justSaved", saved.id); } catch { }
-      if (d.share) d.shared = await shareEntry(saved, { quiet: true });
-      step = 6; view();
-    };
-    view();
-  }, () => {
-    stopEditor();
-    if (step === 6 && currentPath() === "archive-" + m.id) render().then(() => { if (isRevealed(m.id)) $("#meanings")?.scrollIntoView({ behavior: calm() ? "auto" : "smooth" }); });
-  });
-  return close;
+    }
+    $$("[data-note]", box).forEach(b => b.addEventListener("click", () => {
+      const v = b.dataset.note, on = !d.noticed.includes(v);
+      d.noticed = on ? [...d.noticed, v] : d.noticed.filter(x => x !== v);
+      b.setAttribute("aria-pressed", String(on)); keep();
+    }));
+    $("[data-back]", box)?.addEventListener("click", () => { d.step--; keep(); draw(-1); });
+    $("[data-skip]", box)?.addEventListener("click", () => { d.step++; keep(); draw(1); });
+    $("form.iv-q", box)?.addEventListener("submit", e => {
+      e.preventDefault();
+      if (d.step < 3) { d.step++; keep(); return draw(1); }
+      if (!d.title.trim()) return;
+      d.step = 4; view = "preview"; keep(); draw(1);
+    });
+    $("[data-edit]", box)?.addEventListener("click", () => { d.step = 3; view = "ask"; keep(); draw(-1); });
+    $("[data-save]", box)?.addEventListener("click", e => save(e.currentTarget));
+  };
+
+  info.classList.add("interviewing"); box.hidden = false;
+  draw();
+  if (view === "compare") fillCompare();
+  if (window.matchMedia("(max-width: 820px)").matches || box.getBoundingClientRect().top > innerHeight * .7) box.scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "start" });
 }
 
 // ---------- MY COLLECTION ----------
@@ -899,7 +964,8 @@ function indexCard(e, readings = [], just = false) {
     </button>
     <div class="icard-body"><div><div class="icard-inner">
       <ol class="versions">${versions.map((v, i) => `<li><span class="label">${v.first ? "Original" : "Revised"} · ${fmtDate(v.at)}</span><span class="${i < versions.length - 1 ? "old" : "word"}">${esc(v.meaning)}</span>${v.note && !v.first ? `<span class="muted">${esc(v.note)}</span>` : ""}</li>`).join("")}</ol>
-      ${e.meaning_note ? `<p><span class="label">Why</span><br>${esc(e.meaning_note)}</p>` : ""}
+      ${e.observe && ((e.observe.noticed || []).length || e.observe.note) ? `<p><span class="label">Noticed</span><br>${esc([...(e.observe.noticed || []), e.observe.note].filter(Boolean).join(" · "))}</p>` : ""}
+      ${e.meaning_note ? `<p><span class="label">Brings to mind</span><br>${esc(e.meaning_note)}</p>` : ""}
       ${e.voice ? `<p><span class="label">Imagined voice</span><br><span class="voice">${esc(e.voice)}</span></p>` : ""}
       ${e.own_body_note ? `<p><span class="label">Became it</span><br>${esc(e.own_body_note)}</p>` : ""}
       ${e.body ? `<div class="fig" data-mine="${esc(e.id)}"></div>` : ""}
@@ -1139,8 +1205,12 @@ async function resumePending() {
     const saved = await store.addMine(entry);
     store.setPending(null);
     try { sessionStorage.setItem("iam.justSaved", saved.id); } catch { }
-    toast(wantsShare ? "Your draft is filed privately. Make it public from My Collection if you still want to." : "Your draft is filed in My Collection");
-    if (currentPath() === "collection") render(); else go("#collection");
+    toast(wantsShare ? "Your draft is filed privately. Make it public from My Collection if you still want to." : "Filed privately in My Collection");
+    const mid = canonical(entry.material_id);
+    if (byId(mid)) {
+      try { localStorage.removeItem("iam.interview." + mid); sessionStorage.setItem("iam.compare", saved.id); } catch { }
+      if (currentPath() === "archive-" + mid) render(); else go("#archive-" + mid);
+    } else if (currentPath() === "collection") render(); else go("#collection");
   } catch (err) { console.error(err); toast("Your draft could not be filed yet. It is still kept in this browser."); }
 }
 

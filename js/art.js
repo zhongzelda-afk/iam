@@ -99,7 +99,8 @@ export function report() {
 // ---------- public ----------
 export function specimenArt(m, { large = false } = {}) {
   if (!m) return "";
-  if (m.photo) return `<img class="photo" src="assets/materials/${m.id}.jpg" alt="${m.name}" loading="lazy" decoding="async">`;
+  // a cutout shows the object alone, without the photograph's background
+  if (m.photo) return `<img class="photo${m.cutout ? " cutout" : ""}" src="assets/materials/${m.id}${m.cutout ? "-cut.png" : ".jpg"}" alt="${m.name}" loading="lazy" decoding="async">`;
   return `<div class="pending">${vessel(m.shape, large)}<span class="pending-label">Photograph pending</span></div>`;
 }
 
