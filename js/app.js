@@ -159,6 +159,7 @@ async function render() {
   render.last = path;
   if (leaving) { leaving(); leaving = null; }
   if (!sameRoute) closeOverlay();
+  document.body.dataset.route = navKey(path) || "page";
   $$(".nav [data-nav]").forEach(a => a.dataset.nav === navKey(path) ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   const route = routes.find(([re]) => re.test(path));
   const y = window.scrollY;
@@ -265,109 +266,133 @@ function dictEntry(e, { sample = false, m = byId(e.material_id) || unknown(e.mat
 const SAMPLE = () => ({ ...DEMOS[0], observe: { relation: "adapt" } });
 
 // ---------- HOME ----------
-// what it is, how to take part, then a specimen under observation and the catalogue
+// the Institute's archive on the right: a specimen under observation, its protocol and parameters, the catalogue, a spec card
+// how to take part stays in a column on the left while the archive scrolls
+const DETAILS = ["Surface", "Texture", "Interior"];
+const words = m => (m.words || []).map(w => LANGUAGE[w].word).join(", ");
+const codeLines = (start, rows) => rows.map((r, i) => `<span class="cl ${r[0]}"><span class="ln" aria-hidden="true">${start + i}</span><span class="ct" ${r[1] ? `data-type="${esc(r[1])}"` : ""}>${esc(r[1] || "")}</span></span>`).join("");
+const protocol = m => {
+  const x = (m.experiments || [])[0];
+  return codeLines(31, [
+    ["c", "// observation protocol [观察指令]"], ["rule", "----------------------------------"], ["", ""],
+    ["h", "Input steps"], ["", ""],
+    ["k", "01_specimen"], ["v", m.specimen ? `${m.name} · ${m.specimen.condition}` : m.name],
+    ["k", "02_action"], ["v", x ? x.type : "Not yet tested"],
+    ["k", "03_response"], ["v", m.speed ? `${AFTERS_SHORT[m.after]} · ${SPEEDS[m.speed]}` : "Not yet recorded"],
+    ["k", "04_language"], ["v", words(m) || "Unassigned"],
+    ["", ""], ["x", "// observe first. interpret later."]
+  ]);
+};
+const params = m => codeLines(19, [
+  ["c", "// basic parameters"], ["rule", "------------------------"], ["", ""],
+  ["k", "Institute identifier"], ["v", "I.A.M."], ["", ""],
+  ["k", "Object id"], ["v", `Specimen_${m.no}`], ["", ""],
+  ["k", "Structure"], ["v", m.structure || m.botanical || "Not recorded"], ["", ""],
+  ["k", "Institute's entry"], ["v", m.identity ? m.identity.name : "Not yet written"], ["", ""],
+  ["k", "Status"], ["v", m.refImage ? "Reference image [~]" : m.photo ? "Documented [√]" : "No photograph yet [ ]"]
+]);
+// close-ups only where they exist; otherwise an empty labelled frame, never a "pending" claim
+const detailSlots = m => (m.details || DETAILS.map(label => ({ label }))).map((d, i) => `<li class="${d.src ? "has" : "none"}" style="--i:${i}"><span class="dimg">${d.src ? `<img src="${esc(d.src)}" alt="${esc(m.name)}, ${esc(d.label)}" loading="lazy">` : ""}</span><span class="dlabel"><span>0${i + 1}</span>${esc(d.label)}</span></li>`).join("");
+const FINDERS = [[[54, 30, 9], [44, 56, 14]], [[40, 26, 10], [56, 60, 12]], [[58, 40, 8], [38, 62, 15]], [[46, 22, 11], [60, 52, 13]]];
+
+const rail = () => {
+  const ex = byId("001");
+  return `<aside class="rail" aria-labelledby="rail-h">
+    <div class="rail-in">
+      <span class="label">How it works</span>
+      <h2 id="rail-h">Two dictionaries</h2>
+      <p>Every material answers pressure in its own way. The Institute reads that behaviour and writes an entry in its dictionary. You read the same behaviour, and write an entry in yours.</p>
+      <ol class="rail-steps">
+        <li><span class="step-no">01</span><div><strong>Explore a material</strong><p>Watch how it changes under a hand: before, during, after release.</p></div></li>
+        <li><span class="step-no">02</span><div><strong>Read the Institute's interpretation</strong><p>One authored reading, not the answer. For ${esc(ex.name)}: <span class="accent">${esc(ex.identity.name)}</span>.</p></div></li>
+        <li><span class="step-no">03</span><div><strong>Create your own entry</strong><p>Notice, associate, imagine, name. Adopt the Institute's reading, adapt it, or say something different.</p></div></li>
+      </ol>
+      <details class="rail-eg"><summary>See an example entry</summary>${dictEntry(SAMPLE(), { sample: true })}</details>
+      <p class="rail-why">You leave with a personal dictionary of materials, private by default, that you can revisit and revise. No account needed to start.</p>
+      <a class="btn btn-primary btn-small" href="#archive">Explore a material</a>
+    </div>
+  </aside>`;
+};
+
 async function home() {
   const all = allMaterials().filter(m => !m.community && !m.retired);
-  const seen = all.filter(isComplete);
-  const ex = byId("001");
   let cur = 0, timer = null;
-  const m0 = seen[0];
-  const vrec = m => {
-    const x = (m.experiments || [])[0];
-    return [["Specimen", m.specimen ? `${m.name}, ${m.specimen.condition.toLowerCase()}` : m.name], ["Action", x ? x.type : "Not yet tested"],
-      ["Behaviour", behaviour(m) || "Not yet recorded"], ["Institute's entry", m.identity ? m.identity.name : "Not yet written"]]
-      .map(([k, v]) => `<div><dt>${k}</dt><dd data-type="${esc(v)}">${esc(v)}</dd></div>`).join("");
-  };
-  const detailSlots = m => (m.details || []).map((d, i) => `<li style="--i:${i}"><span class="dimg"><img src="${esc(d.src)}" alt="${esc(m.name)}, ${esc(d.label)}" loading="lazy"></span><span class="dlabel">${esc(d.label)}</span></li>`).join("");
-  const progress = all.filter(m => !isComplete(m)).length;
+  const feat = all.find(m => m.photo && m.identity) || all[0];
   main.innerHTML = `
-  <section class="wrap home-top">
+  <div class="home-grid">
+  ${rail()}
+  <div class="home-main">
+  <section class="home-top">
     <div class="home-title">
       <span class="label">I.A.M. · Institute of Animate Matter</span>
       <h1>One Material. Many Meanings.</h1>
-      <p class="lede">Every material answers pressure in its own way. A sponge springs back, foil keeps every crease, ice slowly gives itself away. The Institute reads that behaviour and writes an entry in its dictionary. Then you read the same behaviour, and write an entry in yours.</p>
-      <div class="row hero-actions"><a class="btn btn-primary" href="#archive">Explore a material</a><a class="btn" href="#how" data-jump="how">How it works</a></div>
+      <p>An evolving archive of materials and the meanings we give them.</p>
     </div>
+    <a class="btn btn-primary" href="#archive">Explore Archive</a>
   </section>
 
-  <section class="wrap how" id="how" aria-labelledby="how-h">
-    <div class="how-head">
-      <span class="label">Two dictionaries</span>
-      <h2 id="how-h">The Institute keeps one. You begin your own.</h2>
-      <p>Both start from the same physical behaviour. The Institute's entry is one authored interpretation, not the answer. Yours can agree with it, extend it, or say something else entirely.</p>
-    </div>
-    <ol class="journey">
-      <li>
-        <span class="step-no">01</span><h3>Explore a material</h3>
-        <p>Watch how it changes under a hand: before pressure, during, and after release.</p>
-        <div class="eg"><span class="kind kind-obs">Physical behaviour · ${esc(ex.name)}</span><p>${esc(ex.response)}</p></div>
-      </li>
-      <li>
-        <span class="step-no">02</span><h3>Read the Institute's interpretation</h3>
-        <p>An authored reading of that behaviour. Adopt it, adapt it, reinterpret it or disagree.</p>
-        <div class="eg"><span class="kind kind-int">The Institute's Dictionary</span><p class="word">${esc(ex.identity.name)}</p><p class="muted">${esc(ex.identity.note)}</p></div>
-      </li>
-      <li>
-        <span class="step-no">03</span><h3>Create your own entry</h3>
-        <p>Four short steps: notice, associate, imagine, name. The result is a page in your own material dictionary.</p>
-        ${dictEntry(SAMPLE(), { sample: true })}
-      </li>
-    </ol>
-    <div class="why">
-      <p><strong>What you leave with.</strong> A personal dictionary of materials: your name for each one, and why. It stays private, and you can come back to it and revise it as your reading changes. If you choose to share an entry, it sits in the archive beside the Institute's, as an equally valid reading.</p>
-      <a class="btn btn-primary" href="#archive">Choose a material</a>
-    </div>
-  </section>
-
-  ${m0 ? `<section class="wrap" aria-labelledby="viewer-h">
-    <h2 class="visually-hidden" id="viewer-h">Specimens under observation</h2>
-    <div class="viewer">
+  <section>
+    <div class="viewer" aria-label="Specimen under observation">
       <div class="board">
-        <div class="board-id"><span class="board-no" data-v-no>${m0.no}</span><span class="board-name" data-v-name>${esc(m0.name)}</span></div>
+        <div class="board-id"><span class="board-no" data-v-no>${all[0].no}</span><span class="board-name" data-v-name>${esc(all[0].name)}</span></div>
         <div class="board-stage">
           <svg class="board-guides" viewBox="0 0 400 400" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6" vector-effect="non-scaling-stroke">
             <circle class="draw" pathLength="1" cx="200" cy="200" r="150" stroke-dasharray="3 5" style="--d:200ms"/>
-            <g class="draw-fade" style="--d:500ms"><path d="M200 20 V60 M200 340 V380 M20 200 H60 M340 200 H380"/></g>
+            <g class="draw-fade" style="--d:500ms"><path d="M200 20 V60 M200 340 V380 M20 200 H60 M340 200 H380"/>${[[70, 70], [330, 70], [70, 330], [330, 330]].map(([x, y]) => `<path d="M${x - 8} ${y} H${x + 8} M${x} ${y - 8} V${y + 8}"/>`).join("")}</g>
           </g></svg>
-          <div class="scale" data-v-scale aria-hidden="true" ${m0.size ? "" : "hidden"}><span></span><em data-v-size>${m0.size || ""}</em></div>
-          <a class="board-spec xray" href="#archive-${m0.id}" data-v-link aria-label="Open ${esc(m0.name)}">${specimenArt(m0, { large: true })}</a>
+          <div class="scale" data-v-scale aria-hidden="true" ${all[0].size ? "" : "hidden"}><span></span><em data-v-size>${all[0].size || ""}</em></div>
+          <a class="board-spec xray" href="#archive-${all[0].id}" data-v-link aria-label="Open ${esc(all[0].name)}">${specimenArt(all[0], { large: true })}</a>
+          ${FINDERS[0].map(([x, y, w], i) => `<span class="vf" data-vf="${i}" style="--x:${x}%;--y:${y}%;--w:${w}%"></span>`).join("")}
         </div>
-        <ol class="details" data-v-details ${m0.details ? "" : "hidden"}>${detailSlots(m0)}</ol>
+        <ol class="details" data-v-details>${detailSlots(all[0])}</ol>
       </div>
-      <div class="vpanel">
-        <span class="label">Observation record</span>
-        <dl class="vrec" data-v-rec>${vrec(m0)}</dl>
-      </div>
+      <pre class="code code-l" data-v-proto>${protocol(all[0])}</pre>
+      <pre class="code code-r" data-v-params>${params(all[0])}</pre>
       <div class="viewer-foot">
         <span class="viewer-mark">${guilloche({ size: 120 })}</span>
-        <span class="viewer-count label"><span data-v-i>01</span> / ${String(seen.length).padStart(2, "0")}<span class="ref-note" data-v-ref ${m0.refImage ? "" : "hidden"}> · Reference image, not a specimen photograph</span></span>
+        <span class="viewer-count label"><span data-v-i>01</span> / ${String(all.length).padStart(2, "0")}<span class="ref-note" data-v-ref ${all[0].refImage ? "" : "hidden"}> · Reference image, not a specimen photograph</span></span>
         <div class="viewer-btns">
           <button class="vbtn" type="button" data-v-step="-1" aria-label="Previous specimen">←</button>
           <button class="vbtn" type="button" data-v-step="1" aria-label="Next specimen">→</button>
-          <a class="vbtn" href="#archive-${m0.id}" data-v-open aria-label="Open the record for ${esc(m0.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+          <a class="vbtn" href="#archive-${all[0].id}" data-v-open aria-label="Open the record for ${esc(all[0].name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
         </div>
       </div>
     </div>
-  </section>` : ""}
+  </section>
 
-  <section class="wrap catalogue-wrap" aria-labelledby="cat-h">
-    <div class="catalogue-side" aria-hidden="true"><span>FOUNDING COLLECTION</span></div>
-    <div>
-      <h2 class="visually-hidden" id="cat-h">Founding collection</h2>
-      <div class="catalogue">
-        ${seen.map((m, i) => `<a class="cat" href="#archive-${m.id}" style="--i:${i}">
-          <div class="cat-img xray">${specimenArt(m)}<span class="cat-vf" aria-hidden="true"></span></div>
-          <div class="cat-cap"><span class="cat-no">${m.no}</span><span class="cat-text"><strong>${esc(m.name.toUpperCase())}</strong><span>${esc(behaviourShort(m) || "Behaviour not recorded")}</span></span></div>
-        </a>`).join("")}
-      </div>
-      ${progress ? `<p class="cat-more"><a class="ulink" href="#archive">${progress} more ${progress === 1 ? "record is" : "records are"} in progress in the archive →</a></p>` : ""}
+  <section class="catalogue-wrap" aria-label="Founding collection">
+    <div class="catalogue-side" aria-hidden="true"><span>FOUNDING COLLECTION_001–${String(all.length).padStart(3, "0")}</span></div>
+    <div class="catalogue">
+      ${all.map((m, i) => `<a class="cat" href="#archive-${m.id}" style="--i:${i}">
+        <div class="cat-img xray">${specimenArt(m)}<span class="cat-vf" aria-hidden="true"></span></div>
+        <div class="cat-cap"><span class="cat-no">${m.no}</span><span class="cat-text"><strong>${esc(m.name.toUpperCase())}</strong><span>${esc(behaviourShort(m) || "In progress")}</span></span></div>
+      </a>`).join("")}
     </div>
-  </section>`;
+  </section>
 
-  $("[data-jump]", main)?.addEventListener("click", e => { e.preventDefault(); $("#how", main).scrollIntoView({ behavior: calm() ? "auto" : "smooth" }); $("#how-h", main).setAttribute("tabindex", "-1"); $("#how-h", main).focus({ preventScroll: true }); });
-  if (!m0) return;
-  // a quick typed settle on each value, not a slow effect
-  const type = root => {
+  <section class="spec-wrap">
+    <div class="spec-card">
+      <span class="spec-side">Specimen</span>
+      <div class="spec-card-img xray">${specimenArt(feat, { large: true })}</div>
+      <div class="spec-card-info">
+        <h2>${esc(feat.name)}</h2>
+        <dl class="spec-table">
+          ${[["Item", feat.type], ["Structure", feat.structure || feat.botanical], ["Behaviour", behaviourShort(feat)], ["Language", words(feat)], ["Institute's entry", feat.identity && feat.identity.name], ["ID", feat.no]].filter(([, v]) => v).map(([k, v]) => `<div><dt>${k}:</dt><dd>${esc(v)}</dd></div>`).join("")}
+        </dl>
+        <a class="btn btn-small" href="#archive-${feat.id}">Open case file</a>
+      </div>
+    </div>
+    <div class="spec-card spec-card-foot">
+      <span>Write your own entry for any material.<br>Private by default.</span>
+      <span><a class="ulink" href="#archive">Archive</a><br><a class="ulink" href="#dictionary">My Dictionary</a><br><a class="ulink" href="#about">About &amp; privacy</a></span>
+    </div>
+  </section>
+  </div>
+  </div>`;
+
+  // typed update of each line, a quick settle rather than a slow effect
+  const type = (root, html) => {
+    root.innerHTML = html;
     if (calm()) return;
     $$("[data-type]", root).forEach(el => {
       const full = el.dataset.type, t0 = performance.now(), glyphs = "▮▯/_01";
@@ -380,8 +405,8 @@ async function home() {
     });
   };
   const show = i => {
-    cur = (i + seen.length) % seen.length;
-    const m = seen[cur], v = $(".viewer", main); if (!v) return;
+    cur = (i + all.length) % all.length;
+    const m = all[cur], v = $(".viewer", main); if (!v) return;
     $("[data-v-no]", v).textContent = m.no; $("[data-v-name]", v).textContent = m.name;
     $("[data-v-i]", v).textContent = String(cur + 1).padStart(2, "0");
     const link = $("[data-v-link]", v); link.href = "#archive-" + m.id; link.setAttribute("aria-label", "Open " + m.name);
@@ -389,12 +414,16 @@ async function home() {
     link.innerHTML = specimenArt(m, { large: true });
     const open = $("[data-v-open]", v); open.href = "#archive-" + m.id; open.setAttribute("aria-label", "Open the record for " + m.name);
     $("[data-v-scale]", v).hidden = !m.size; $("[data-v-size]", v).textContent = m.size || "";
-    const det = $("[data-v-details]", v); det.hidden = !m.details; det.innerHTML = detailSlots(m);
+    $("[data-v-details]", v).innerHTML = detailSlots(m);
     $("[data-v-ref]", v).hidden = !m.refImage;
-    const rec = $("[data-v-rec]", v); rec.innerHTML = vrec(m); type(rec);
+    FINDERS[cur % FINDERS.length].forEach(([x, y, w], k) => { const f = $(`[data-vf="${k}"]`, v); f.style.setProperty("--x", x + "%"); f.style.setProperty("--y", y + "%"); f.style.setProperty("--w", w + "%"); });
+    type($("[data-v-proto]", v), protocol(m));
+    type($("[data-v-params]", v), params(m));
   };
   const auto = () => { clearInterval(timer); if (!calm()) timer = setInterval(() => { if (!document.hidden && !$(".viewer:hover, .viewer:focus-within", main)) show(cur + 1); }, 6000); };
   $$("[data-v-step]", main).forEach(b => b.addEventListener("click", () => { show(cur + Number(b.dataset.vStep)); auto(); }));
+  const start = all.findIndex(m => m.photo);
+  if (start > 0) show(start);
   auto();
   leaving = () => clearInterval(timer);
 }
