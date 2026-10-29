@@ -168,23 +168,27 @@ export const MATS = {
     },
     tilt: -0.1 },
 
-  "013": { name: "Cabbage Leaf", trait: "pale heart cupped in ruffled leaves, raised veins", pal: ["#d8eaa6", "#acd176", "#79a84c"],
-    shape(n) { const rim = smooth(0.35, 0.9, n.y), wave = 1 + 0.06 * Math.sin(9 * theta(n) + 0.5) * rim; return V(n.x * 0.98 * wave, n.y * 0.95, n.z * 0.88 * wave); },
-    feature(n) { // inner leaf edges folding over the crown
-      const a = theta(n); let d = 0;
-      for (const [c, k] of [[0.6, 1], [2.4, 0.8], [-1.9, 0.9]]) { const e = Math.abs(Math.sin((a - c) * 0.5)); d += 0.04 * k * Math.exp(-Math.pow(n.y - 0.55 - 0.35 * e, 2) / 0.004) * smooth(1, 0.5, e); }
-      return d;
+  "013": { name: "Cabbage Leaf", trait: "one cupped leaf, ruffled rim, white midrib and veins", pal: ["#c2df86", "#8fbf58", "#5d8f3a"],
+    shape(n) { // a single thick leaf: broad top, narrower base, ruffled rim, edges bending back
+      const phi = Math.atan2(n.y, n.x), rim = 1 - Math.abs(n.z);
+      const w = (0.78 + 0.32 * smooth(-1, 0.2, n.y)) * (1 + 0.05 * Math.sin(11 * phi) * rim);
+      const x = n.x * w * 1.08, y = n.y * 1.1 * (1 + 0.04 * Math.sin(11 * phi) * rim);
+      const z = n.z * 0.42 - 0.32 * x * x + 0.2 * Math.sin(9 * phi + 0.6) * Math.pow(rim, 3);
+      return V(x, y, z);
     },
-    paint: (n, p) => mix(mix(p[0], p[1], 0.4 - n.y * 0.5), p[2], smooth(0.1, -1, n.y) * 0.5),
-    extras(mat) {
-      const leaf = (az, span, e1, r, curl, tone) => sheet(mat, { az, span, e0: -1.45, e1, r, curl, ruffle: 0.07, freq: 4.5, sx: 0.98, sy: 0.95, sz: 0.88, vein: true,
-        color: (u, v) => mix(col("#9cc46a"), col(tone), smooth(0.1, 0.8, v)) });
-      return [
-        leaf(1.5, 2.1, 0.35, 1.05, 0.38, "#6f9e45"), leaf(-1.5, 2.1, 0.35, 1.05, 0.38, "#6f9e45"),
-        leaf(2.7, 2.2, 0.55, 1.08, 0.42, "#5f8c3b"), leaf(-2.7, 2.2, 0.55, 1.08, 0.42, "#5f8c3b"),
-        leaf(0, 2.0, -0.62, 1.08, 0.3, "#7aa84d"),
-      ];
+    vein(n) { // midrib up the middle (thinning out under the face) and side veins rising from it
+      const front = smooth(-0.2, 0.3, n.z), x = n.x, y = n.y;
+      const faceZone = Math.exp(-(x * x) / 0.16 - Math.pow(y + 0.05, 2) / 0.14);
+      const mid = Math.exp(-(x * x) / (0.0025 + 0.004 * smooth(0.6, -1, y))) * (1 - faceZone);
+      const t = (y - Math.abs(x) * 0.9) * 2.6, side = Math.exp(-Math.pow(t - Math.round(t), 2) / 0.012) * smooth(0.04, 0.12, Math.abs(x)) * smooth(0.95, 0.6, Math.abs(x)) * (1 - faceZone);
+      return Math.min(1, mid + 0.75 * side) * front;
     },
+    feature(n) { return 0.035 * this.vein(n); },
+    paint(n, p) {
+      const rim = smooth(0.5, 0.1, Math.abs(n.z));
+      return mix(mix(mix(p[0], p[1], 0.35 - n.y * 0.4), p[2], rim * 0.7 + smooth(-0.1, -1, n.z) * 0.4), col("#f1f8dc"), this.vein(n) * 0.9);
+    },
+    extras(mat) { const g = new THREE.CylinderGeometry(0.07, 0.12, 0.42, 16); const m = new THREE.Mesh(g, mat("#e4f0c4")); m.position.set(0, -1.18, 0.05); m.rotation.z = 0.08; return [m]; },
     tilt: 0.13 },
 
   "014": { name: "Madeleine", trait: "scallop shell body, fanned ridges, browned rim", pal: ["#f2c77c", "#dc9d4c", "#9a5a25"],
