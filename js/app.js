@@ -1,4 +1,4 @@
-import { FOUNDING, allMaterials, setCommunity, byId, canonical, ACTIONS, RESPONSE_WORDS, EXAMPLES } from "./data.js";
+import { allMaterials, setCommunity, byId, canonical, SPEEDS, AFTERS, EXAMPLES } from "./data.js";
 import { mark, specimenArt, emptyJar } from "./art.js";
 import { mountEditor, mountPlayer, defaultPose } from "./body.js";
 import * as store from "./store.js";
@@ -80,8 +80,6 @@ const routes = [
   [/^$/, home],
   [/^archive$/, archive],
   [new RegExp(`^archive-${ID}$`), detail],
-  [/^play$/, () => play()],
-  [new RegExp(`^play-${ID}$`), id => play(id)],
   [/^collection$/, collection],
   [/^about$/, about]
 ];
@@ -89,13 +87,12 @@ const routes = [
 const legacy = path => {
   let m;
   if ((m = path.match(/^materials-(\d{3}-\d{2})$/))) return "archive-" + canonical(m[1].replace("-", "."));
-  if ((m = path.match(/^lab-(\d{3}-\d{2})$/))) return "play-" + canonical(m[1].replace("-", "."));
-  if (/^materials/.test(path) || /^collective/.test(path)) return "archive";
-  if (/^lab/.test(path)) return "play";
+  if ((m = path.match(new RegExp(`^play-${ID}$`)))) return "archive-" + m[1];
+  if (/^(materials|collective|lab|play)/.test(path)) return "archive";
   if (path === "me") return "collection";
   return null;
 };
-const navKey = path => path.startsWith("archive") ? "archive" : path.startsWith("play") ? "play" : path.startsWith("collection") ? "collection" : path === "" ? "home" : "";
+const navKey = path => path.startsWith("archive") ? "archive" : path.startsWith("collection") ? "collection" : path === "" ? "home" : "";
 
 let leaving = null;
 async function render() {
@@ -143,7 +140,7 @@ async function home() {
     <div>
       <h1>One Material. Many Meanings.</h1>
       <p>An evolving archive of materials and the meanings we give them.</p>
-      <div class="row"><a class="btn btn-primary" href="#archive">Explore Archive</a><a class="btn" href="#play">Start Playing</a></div>
+      <div class="row"><a class="btn btn-primary" href="#archive">Explore Archive</a></div>
     </div>
     <div class="shelf" aria-hidden="true">${shelf.map(m => `<a href="#archive-${m.id}" tabindex="-1">${art(m)}</a>`).join("")}</div>
   </section>`;
@@ -201,10 +198,17 @@ async function detail(id) {
     <div class="detail">
       <div class="img">${art(m)}</div>
       <div class="detail-info">
-        <span class="label">${no(m)}${m.community ? " · Community submission" : ""}</span>
+        <span class="label">${no(m)} · ${esc(m.kind || "Material")}</span>
         <h1>${esc(m.name)}</h1>
-        ${m.behaviour ? `<p class="behaviour">${esc(m.behaviour)}</p>` : ""}
-        <div class="row"><a class="btn btn-primary" href="#play-${m.id}">Add Your Meaning</a></div>
+        ${m.def ? `<p class="def">${esc(m.def)}</p>` : `<p class="def muted">Not yet described.</p>`}
+        ${m.word ? `<dl class="dict">
+          <div><dt>Material language</dt><dd><span class="mword">${esc(m.word)}</span>
+            <span class="matrix" role="img" aria-label="${SPEEDS[m.speed]}, ${AFTERS[m.after]}">${["instant", "slow"].map(sp => ["returns", "stays"].map(af => `<span class="${sp === m.speed && af === m.after ? "on" : ""}">${SPEEDS[sp]} · ${AFTERS[af]}</span>`).join("")).join("")}</span></dd></div>
+          <div><dt>In the body</dt><dd>${esc(m.body)}</dd></div>
+          <div><dt>Made of</dt><dd>${esc(m.madeOf)}</dd></div>
+          <div><dt>Record</dt><dd>${esc(m.record)}</dd></div>
+        </dl>` : ""}
+        <div class="row"><button class="btn btn-primary" type="button" data-add-meaning>Add Your Meaning</button></div>
       </div>
     </div>
 
@@ -224,7 +228,46 @@ async function detail(id) {
     </section>` : ""}
   </div>`;
   bodies.forEach(b => mountPlayer($(`[data-fig="${CSS.escape(String(b.id))}"]`, main), b.body, { trails: true }));
+  $("[data-add-meaning]", main).addEventListener("click", () => addMeaning(m));
   $$("[data-read]", main).forEach(btn => btn.addEventListener("click", () => reinterpret(bodies.find(b => String(b.id) === btn.dataset.read))));
+}
+
+function addMeaning(m) {
+  let editor = null;
+  modal(`
+    <h2>What does ${esc(m.name.toLowerCase())} mean to you?</h2>
+    <p class="muted">${m.word ? `It ${esc(m.word)}. ` : ""}One word is enough.</p>
+    <form id="am-form">
+      <label class="field">Meaning<input id="am-m" class="input" maxlength="80" required autocomplete="off" placeholder="A word or a feeling"></label>
+      <label class="field">Why? (optional)<input id="am-n" class="input" maxlength="300" autocomplete="off"></label>
+      <div id="am-body-wrap" style="margin-top:16px"><button class="link" type="button" data-body>+ Show it with a body (optional)</button></div>
+      <label class="toggle"><input type="checkbox" id="am-share"> Share with the archive</label>
+      <label class="field" id="am-alias-f" hidden>Sign as (optional)<input id="am-alias" class="input" maxlength="40" autocomplete="off" value="${esc(store.alias())}"></label>
+      <div class="row" style="margin-top:24px"><button class="btn btn-primary" type="submit">Save</button></div>
+    </form>`, (box, close) => {
+    const share = $("#am-share", box);
+    share.addEventListener("change", () => { $("#am-alias-f", box).hidden = !share.checked; });
+    $("[data-body]", box).addEventListener("click", () => {
+      $("#am-body-wrap", box).innerHTML = `<p class="label" style="margin-bottom:8px">Drag the joints. Add a second pose, then play.</p><div id="am-body"></div>`;
+      editor = mountEditor($("#am-body", box), null);
+    });
+    $("#am-form", box).addEventListener("submit", async ev => {
+      ev.preventDefault();
+      const meaning = $("#am-m", box).value.trim(); if (!meaning) return;
+      const btn = $("button[type=submit]", box); btn.disabled = true;
+      const body = editor ? editor.get() : null;
+      if (editor) editor.stop();
+      const alias = share.checked ? $("#am-alias", box).value.trim() : "";
+      if (alias) store.setAlias(alias);
+      const saved = store.addMine({ material_id: m.id, alias, observe: {}, meaning, meaning_note: $("#am-n", box).value.trim(), voice: "", body: body && body.frames.length > 1 ? body : null, own_body_note: "" });
+      let msg = "Saved to My Collection";
+      if (share.checked) {
+        try { const rid = await store.share(saved); store.updateMine(saved.id, { shared: true, remote_id: rid }); store.invalidate(); msg = "Saved and shared"; }
+        catch (err) { console.error(err); msg = "Saved. Sharing failed, try again from My Collection."; }
+      }
+      close(); toast(msg); render();
+    });
+  }, () => { if (editor) editor.stop(); }, { wide: true });
 }
 
 function reinterpret(entry) {
@@ -259,175 +302,6 @@ function reinterpret(entry) {
   }, null, { wide: true });
 }
 
-// ---------- PLAY ----------
-const fresh = (material_id = "") => ({ v: 3, step: material_id ? 1 : 0, material_id, action: "", response: "", meaning: "", meaning_note: "", body: null, wantBody: false, share: false, alias: store.alias() });
-
-async function play(id) {
-  if (id && !byId(id)) await loadMaterials();
-  let d = store.draft();
-  if (!d || d.v !== 3) d = fresh();
-  d.material_id = canonical(d.material_id || "");
-  if (id && byId(id) && d.material_id !== id) d = fresh(id);
-  if (d.material_id && !byId(d.material_id)) d = fresh();
-  let editor = null;
-  const save = () => store.setDraft(d);
-  const go = n => { if (editor) { d.body = editor.get(); editor.stop(); editor = null; } d.step = n; save(); view(); };
-
-  function view() {
-    const m = byId(d.material_id);
-    const top = `<div class="play-top">
-      ${d.step > 0 ? `<button class="btn btn-quiet btn-small" data-back type="button">← Back</button>` : "<span></span>"}
-      ${d.step > 0 ? `<button class="btn btn-quiet btn-small" data-restart type="button">Start over</button>` : ""}
-    </div>`;
-    const chosen = m ? `<div class="chosen"><div class="img">${art(m)}</div><p class="label" style="margin-top:8px">${no(m)} ${esc(m.name)}</p></div>` : "";
-    const next = (label = "Next", off = false) => `<div class="play-actions"><button class="btn btn-primary" type="submit" ${off ? "disabled" : ""}>${label}</button></div>`;
-    let body = "";
-
-    if (d.step === 0) body = `
-      <h2>Choose a material</h2>
-      <p class="hint">Or let the deck choose.</p>
-      <div class="pick-grid">${allMaterials().map(x => `<button class="spec" type="button" data-pick="${x.id}"><div class="img">${art(x)}</div><div class="meta"><span class="name">${esc(x.name)}</span></div></button>`).join("")}</div>
-      <button class="btn" type="button" data-random>Draw at random</button>`;
-
-    if (d.step === 1) {
-      const a = ACTIONS.find(x => x.verb === d.action);
-      body = `${chosen}
-      <h2>${a ? "Do this" : "Draw an action"}</h2>
-      <p class="hint">${a ? "With the material, or in your mind." : "Tap the deck."}</p>
-      <button class="deck ${a ? "flipped" : ""}" type="button" data-deck aria-label="${a ? `Action: ${a.verb}. Tap to draw again.` : "Draw an action card"}">
-        <span class="stack"></span><span class="stack"></span>
-        <span class="card3d">
-          <span class="face back">${mark("#F2E7E5")}</span>
-          <span class="face front"><span class="corner label">Action</span><span class="verb">${a ? esc(a.verb) : ""}</span><span class="line">${a ? esc(a.line) : ""}</span></span>
-        </span>
-      </button>
-      ${a ? next() : ""}`;
-    }
-
-    if (d.step === 2) body = `${chosen}
-      <h2>What does it do?</h2>
-      <p class="hint">Watch it, or imagine it.</p>
-      <label class="visually-hidden" for="p-resp">What it does</label>
-      <input id="p-resp" class="answer" maxlength="80" autocomplete="off" placeholder="It…" value="${esc(d.response)}">
-      <div class="quick">${RESPONSE_WORDS.map(w => `<button class="chip" type="button" data-word="${esc(w)}" aria-pressed="${d.response === w}">${esc(w)}</button>`).join("")}</div>
-      ${next("Next", !d.response.trim())}`;
-
-    if (d.step === 3) body = `${chosen}
-      <h2>What does that mean to you?</h2>
-      <p class="hint">One word is enough.</p>
-      <label class="visually-hidden" for="p-mean">Meaning</label>
-      <input id="p-mean" class="answer" maxlength="80" autocomplete="off" placeholder="A word or a feeling" value="${esc(d.meaning)}">
-      <label class="visually-hidden" for="p-note">Why (optional)</label>
-      <input id="p-note" class="answer-note" maxlength="300" autocomplete="off" placeholder="Why? (optional)" value="${esc(d.meaning_note)}">
-      ${next("Next", !d.meaning.trim())}`;
-
-    if (d.step === 4) body = d.wantBody ? `
-      <h2>Show it with a body</h2>
-      <p class="hint">Drag the joints. Add a second pose, then play.</p>
-      <div id="p-body"></div>
-      ${next("Next")}` : `${chosen}
-      <h2>Borrow a body?</h2>
-      <p class="hint">Optional. Show the change with a figure.</p>
-      <div class="play-actions"><button class="btn btn-primary" type="button" data-body>Yes, add a body</button><button class="btn" type="button" data-skip>Skip</button></div>`;
-
-    if (d.step === 5) body = `
-      <div class="result-card">
-        ${m ? `<div class="img">${art(m)}</div><span class="label">${no(m)} ${esc(m.name)}</span>` : ""}
-        <span class="word">${esc(d.meaning)}</span>
-        ${d.action ? `<span class="label">${esc(d.action)} · ${esc(d.response)}</span>` : ""}
-        ${d.body && d.body.frames.length > 1 ? `<div class="figure-mini" id="p-fig" style="width:140px"></div>` : ""}
-      </div>
-      <h2>Save it</h2>
-      <label class="toggle"><input type="checkbox" id="p-share" ${d.share ? "checked" : ""}> Share with the archive</label>
-      <div id="p-alias" ${d.share ? "" : "hidden"} style="max-width:280px;margin:14px auto 0">
-        <label class="visually-hidden" for="p-alias-in">Sign as (optional)</label>
-        <input id="p-alias-in" class="input" maxlength="40" placeholder="Sign as (optional)" value="${esc(d.alias)}" autocomplete="off">
-      </div>
-      ${next("Save to my collection")}`;
-
-    main.innerHTML = `<div class="wrap page"><form class="play" id="play-form" novalidate>${top}<div class="play-step">${body}</div></form></div>`;
-    wire();
-  }
-
-  function wire() {
-    const form = $("#play-form");
-    const submit = $("button[type=submit]", form);
-    const enable = ok => submit && (submit.disabled = !ok);
-    $("[data-back]", form)?.addEventListener("click", () => {
-      if (d.step === 4 && d.wantBody) { d.wantBody = false; if (editor) { d.body = editor.get(); editor.stop(); editor = null; } save(); return view(); }
-      go(Math.max(0, d.step - 1));
-    });
-    $("[data-restart]", form)?.addEventListener("click", async () => {
-      if (await ask("Start over? This answer will be cleared.", "Start over")) { if (editor) { editor.stop(); editor = null; } d = fresh(); save(); history.replaceState(null, "", "#play"); view(); }
-    });
-    $$("[data-pick]", form).forEach(b => b.addEventListener("click", () => { d.material_id = b.dataset.pick; d.action = ""; go(1); }));
-    $("[data-random]", form)?.addEventListener("click", () => { const l = allMaterials(); d.material_id = l[Math.floor(Math.random() * l.length)].id; d.action = ""; go(1); });
-    $("[data-deck]", form)?.addEventListener("click", () => {
-      const deck = $("[data-deck]", form);
-      const pool = ACTIONS.filter(a => a.verb !== d.action);
-      const a = pool[Math.floor(Math.random() * pool.length)];
-      if (deck.classList.contains("flipped")) { deck.classList.remove("flipped"); setTimeout(() => { d.action = a.verb; save(); view(); }, 380); }
-      else { d.action = a.verb; save(); $(".verb", deck).textContent = a.verb; $(".line", deck).textContent = a.line; deck.classList.add("flipped"); setTimeout(view, 750); }
-    });
-    const resp = $("#p-resp", form);
-    if (resp) {
-      resp.addEventListener("input", () => { d.response = resp.value; save(); enable(!!d.response.trim()); $$("[data-word]", form).forEach(c => c.setAttribute("aria-pressed", String(c.dataset.word === d.response))); });
-      $$("[data-word]", form).forEach(c => c.addEventListener("click", () => { resp.value = c.dataset.word; resp.dispatchEvent(new Event("input")); }));
-    }
-    const mean = $("#p-mean", form);
-    if (mean) {
-      mean.addEventListener("input", () => { d.meaning = mean.value; save(); enable(!!d.meaning.trim()); });
-      $("#p-note", form).addEventListener("input", e => { d.meaning_note = e.target.value; save(); });
-    }
-    $("[data-body]", form)?.addEventListener("click", () => { d.wantBody = true; save(); view(); });
-    $("[data-skip]", form)?.addEventListener("click", () => { d.body = null; d.wantBody = false; go(5); });
-    if ($("#p-body", form)) editor = mountEditor($("#p-body", form), d.body, b => { d.body = b; save(); });
-    if ($("#p-fig", form)) mountPlayer($("#p-fig", form), d.body);
-    $("#p-share", form)?.addEventListener("change", e => { d.share = e.target.checked; $("#p-alias", form).hidden = !d.share; save(); });
-    $("#p-alias-in", form)?.addEventListener("input", e => { d.alias = e.target.value; save(); });
-    const first = $("#p-resp, #p-mean", form); first && !first.value && first.focus({ preventScroll: true });
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
-      if (submit?.disabled) return;
-      if (d.step === 4 && !(d.body && d.body.frames.length > 1) && editor && editor.get().frames.length < 2) { toast("Add a second pose, or go back and skip."); return; }
-      if (d.step < 5) return go(d.step + 1);
-      await saveEntry(submit);
-    });
-  }
-
-  async function saveEntry(btn) {
-    btn.disabled = true; btn.textContent = "Saving…";
-    store.setAlias(d.alias.trim());
-    const entry = {
-      material_id: d.material_id, alias: d.share ? d.alias.trim() : "",
-      observe: { action: d.action, response: d.response.trim() },
-      meaning: d.meaning.trim(), meaning_note: d.meaning_note.trim(), voice: "",
-      body: d.body && d.body.frames.length > 1 ? d.body : null, own_body_note: ""
-    };
-    const saved = store.addMine(entry);
-    let sharedOk = false;
-    if (d.share) {
-      try { const rid = await store.share(saved); store.updateMine(saved.id, { shared: true, remote_id: rid }); sharedOk = true; store.invalidate(); }
-      catch (err) { console.error(err); toast("Saved, but sharing failed. Try again from My Collection."); }
-    }
-    store.setDraft(null);
-    const m = byId(saved.material_id);
-    main.innerHTML = `<div class="wrap page"><div class="play play-step">
-      <div class="result-card">
-        <div class="img">${art(m)}</div><span class="label">${no(m)} ${esc(m.name)}</span>
-        <span class="word">${esc(saved.meaning)}</span>
-        <span class="label">${fmtDate(saved.created_at)}</span>
-      </div>
-      <h2>Saved${sharedOk ? " and shared" : ""}.</h2>
-      <p class="hint">Come back in a few days. See if it still means the same.</p>
-      <div class="play-actions"><a class="btn btn-primary" href="#collection">My Collection</a><a class="btn" href="#archive-${m.id}">Compare meanings</a><a class="btn btn-quiet" href="#play">Play again</a></div>
-    </div></div>`;
-  }
-
-  leaving = () => { if (editor) { d.body = editor.get(); editor.stop(); editor = null; save(); } };
-  view();
-}
-
 // ---------- MY COLLECTION ----------
 async function collection() {
   await loadMaterials();
@@ -440,11 +314,11 @@ async function collection() {
   <div class="wrap page">
     <div class="page-head">
       <div><h1>My Collection</h1><p>Your meanings, kept in this browser.</p></div>
-      <a class="btn btn-primary" href="#play">Add a meaning</a>
+      <a class="btn" href="#archive">Explore Archive</a>
     </div>
     ${list.length ? `<div class="entries">${list.map(e => entryCard(e, readings.filter(r => r.entry_id === e.remote_id))).join("")}</div>
       <p class="notice">Only this browser keeps your collection. <button class="link" data-export type="button">Download a copy</button></p>`
-      : `<div class="empty-state"><h2>Nothing here yet.</h2><p>Play once and your first meaning will appear here.</p><a class="btn btn-primary" href="#play">Start Playing</a></div>`}
+      : `<div class="empty-state"><h2>Nothing here yet.</h2><p>Open a material and add your meaning. It will appear here.</p><a class="btn btn-primary" href="#archive">Explore Archive</a></div>`}
   </div>`;
 
   list.forEach(e => e.body && mountPlayer($(`[data-mine="${e.id}"]`, main), e.body));
