@@ -578,6 +578,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .board-spec:has(.photo) { inset: 4%; }
 .details li.has { animation: rise var(--slow) var(--ease) both; animation-delay: calc(var(--i) * 60ms); }
 .dimg img { width: 100%; height: 100%; object-fit: cover; }
+.cat-img .photo { inset: 50% auto auto 50%; width: 58%; height: auto; aspect-ratio: 1; transform: translate(-50%, -50%); transition: transform var(--mid) var(--ease); }
+.cat:hover .cat-img .photo { transform: translate(-50%, -50%) scale(1.04); }
 .ref-note { color: var(--muted); opacity: .8; }
 .xray .pending-label { color: var(--accent); opacity: .5; }
 
