@@ -364,7 +364,7 @@ async function home() {
     <div class="catalogue">
       ${all.map((m, i) => `<a class="cat" href="#archive-${m.id}" style="--i:${i}">
         <div class="cat-img xray">${specimenArt(m)}<span class="cat-vf" aria-hidden="true"></span></div>
-        <div class="cat-cap"><span class="cat-no">${m.no}</span><span class="cat-text"><strong>${esc(m.name.toUpperCase())}</strong><span>${esc(behaviourShort(m) || "In progress")}</span></span></div>
+        <div class="cat-cap"><span class="cat-no">${m.no}</span><span class="cat-text"><strong>${esc(m.name.toUpperCase())}</strong><span>${esc(behaviourShort(m) || "Awaiting documentation")}</span></span></div>
       </a>`).join("")}
     </div>
   </section>
@@ -449,7 +449,7 @@ function indexList(list) {
       <span class="ix-name">${sub ? `<span class="ix-branch" aria-hidden="true"></span>` : ""}${esc(m.name)}${m.community ? ` <span class="tag-community">Community</span>` : ""}</span>
       <span class="ix-lang">${esc(behaviour(m) || "Not recorded")}</span>
       <span class="ix-id">${m.identity ? esc(m.identity.name) : `<span class="muted">Not written</span>`}</span>
-      <span class="ix-st">${m.community ? "Not verified" : gaps.length ? `In progress` : "Complete"}</span>
+      <span class="ix-st">${m.community ? "Not verified" : gaps.length ? "Awaiting documentation" : "Complete"}</span>
     </a>`;
   };
   let html = "", lastHead = null;
@@ -475,7 +475,7 @@ async function archive() {
   main.innerHTML = `
   <div class="wrap page">
     <div class="page-head">
-      <div><h1>Archive</h1><p>The founding collection: ${done.length} complete records and ${wip.length} still in progress.${comm.length ? ` ${comm.length} community ${comm.length === 1 ? "submission" : "submissions"}.` : ""}</p></div>
+      <div><h1>Archive</h1><p>The founding collection: ${done.length} complete records and ${wip.length} awaiting documentation.${comm.length ? ` ${comm.length} community ${comm.length === 1 ? "submission" : "submissions"}.` : ""}</p></div>
       <div class="seg view-seg" role="group" aria-label="View">${[["grid", "Specimens"], ["index", "Index"]].map(([k, l]) => `<button type="button" data-view="${k}" aria-pressed="${k === archiveView}">${l}</button>`).join("")}</div>
     </div>
     <div class="facets">
@@ -490,8 +490,8 @@ async function archive() {
       <section aria-labelledby="h-done"><h2 class="sub arch-h" id="h-done">Complete records</h2>
         <div class="grid">${done.map(specLink).join("")}</div>
         <p class="muted none" hidden>No complete record matches both filters.</p></section>
-      ${wip.length ? `<section class="arch-sec" aria-labelledby="h-wip"><h2 class="sub arch-h" id="h-wip">In progress</h2><p class="hint arch-note">Open for reading and for your own entries. Still waiting for the parts listed.</p>
-        <div class="progs">${wip.map(progressRow).join("")}</div><p class="muted none" hidden>No record in progress matches both filters.</p></section>` : ""}
+      ${wip.length ? `<section class="arch-sec" aria-labelledby="h-wip"><h2 class="sub arch-h" id="h-wip">Awaiting documentation</h2><p class="hint arch-note">Open for reading and for your own entries. Still waiting for the parts listed.</p>
+        <div class="progs">${wip.map(progressRow).join("")}</div><p class="muted none" hidden>No record awaiting documentation matches both filters.</p></section>` : ""}
       ${comm.length ? `<section class="arch-sec" aria-labelledby="h-comm"><h2 class="sub arch-h" id="h-comm">Community submissions</h2><p class="hint arch-note">Registered by contributors. Not verified by the Institute.</p>
         <div class="grid">${comm.map(specLink).join("")}</div><p class="muted none" hidden>No community submission matches both filters.</p></section>` : ""}`
     : `<div class="index">${indexList(list)}</div>`}
@@ -710,7 +710,7 @@ async function detail(id) {
       </div>
       <div class="detail-info">
         <div><span class="label">${esc(collectionOf(m))}</span><h1>${esc(m.name)}</h1>${m.type ? `<p class="muted">${esc(m.type)}</p>` : ""}</div>
-        ${gaps.length ? `<p class="status-line"><span class="dot" aria-hidden="true"></span>Record in progress. Missing: ${esc(gaps.join(", ").toLowerCase())}.</p>` : ""}
+        ${gaps.length ? `<p class="status-line"><span class="dot" aria-hidden="true"></span>Awaiting documentation. Missing: ${esc(gaps.join(", ").toLowerCase())}.</p>` : ""}
         <section class="obs-block" aria-labelledby="obs-h">
           <span class="kind kind-obs" id="obs-h">Physical behaviour${m.responseExpected ? " · partly expected, not yet observed" : ""}${m.community ? " · not verified" : ""}</span>
           ${obsText ? `<p>${esc(obsText)}</p>` : missing("No observation written yet.")}
