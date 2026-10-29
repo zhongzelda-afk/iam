@@ -4,10 +4,11 @@
 // No drawn or textured stand-ins for the material itself.
 
 const f = n => n.toFixed(1);
-const LINE = "#8C9997";
+const LINE = "#B8AA97";
+const ROSE = "#C88A91";
 
 // ---------- small logo mark ----------
-export function mark(color = "#C77B85") {
+export function mark(color = ROSE) {
   let d = "";
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI;
@@ -34,14 +35,63 @@ function vessel(shape = "stand", strong = false) {
 
 // the technical field drawn around every specimen: corner registration marks, a dotted centre guide, a ruled baseline
 export function field() {
-  const corner = (x, y, dx, dy) => `<path d="M${x} ${y + dy * 10} V${y} H${x + dx * 10}"/>`;
+  const corner = (x, y, dx, dy) => `<path pathLength="1" d="M${x} ${y + dy * 10} V${y} H${x + dx * 10}"/>`;
   let ticks = "";
   for (let i = 0; i <= 20; i++) { const x = 30 + i * 7; ticks += `<path d="M${x} 168 V${i % 5 ? 171 : 174}"/>`; }
-  return `<svg class="field" viewBox="0 0 200 200" preserveAspectRatio="none" aria-hidden="true">
+  return `<svg class="sfield" viewBox="0 0 200 200" preserveAspectRatio="none" aria-hidden="true">
     <g fill="none" stroke="${LINE}" stroke-width=".5" vector-effect="non-scaling-stroke">
-      <g stroke-opacity=".35">${corner(8, 8, 1, 1)}${corner(192, 8, -1, 1)}${corner(8, 192, 1, -1)}${corner(192, 192, -1, -1)}</g>
-      <g stroke-opacity=".14" stroke-dasharray="1 3"><path d="M100 14 V186"/><path d="M14 100 H186"/></g>
-      <g stroke-opacity=".3"><path d="M30 168 H170"/>${ticks}</g>
+      <g class="cal" stroke-opacity=".35">${corner(8, 8, 1, 1)}${corner(192, 8, -1, 1)}${corner(8, 192, 1, -1)}${corner(192, 192, -1, -1)}</g>
+      <g class="cal-fade" stroke-opacity=".14" stroke-dasharray="1 3"><path d="M100 14 V186"/><path d="M14 100 H186"/></g>
+      <g class="cal" stroke-opacity=".3"><path pathLength="1" d="M30 168 H170"/></g><g class="cal-fade" stroke-opacity=".3">${ticks}</g>
+    </g>
+  </svg>`;
+}
+
+// ---------- guilloché seal ----------
+// a rosette of rotated hypotrochoid bands, the Institute's engraved mark
+export function guilloche({ size = 240, color = LINE } = {}) {
+  const c = size / 2;
+  // interwoven sinusoidal rings, each drawn several times with a small phase shift, as on engraved certificates
+  const bands = [[.84, .05, 24, 12, .28], [.6, .06, 16, 10, .24], [.38, .08, 10, 8, .22]];
+  let out = "";
+  bands.forEach(([R, A, k, copies, op], b) => {
+    for (let j = 0; j < copies; j++) {
+      const ph = (j / copies) * (Math.PI * 2 / k);
+      let d = "";
+      for (let i = 0; i <= 240; i++) {
+        const t = (i / 240) * Math.PI * 2;
+        const r = c * (R + A * Math.sin(k * t + ph));
+        d += `${i ? "L" : "M"}${f(c + r * Math.cos(t))} ${f(c + r * Math.sin(t))}`;
+      }
+      out += `<path class="g-band" pathLength="1" style="--d:${b * 160 + j * 30}ms" d="${d}Z" stroke-opacity="${op}"/>`;
+    }
+  });
+  out += `<circle class="g-ring" pathLength="1" cx="${c}" cy="${c}" r="${f(c * .98)}"/><circle class="g-ring" pathLength="1" cx="${c}" cy="${c}" r="${f(c * .955)}"/><circle class="g-ring" pathLength="1" cx="${c}" cy="${c}" r="${f(c * .2)}"/>`;
+  return `<svg class="guilloche" viewBox="0 0 ${size} ${size}" aria-hidden="true"><g fill="none" stroke="${color}" stroke-width=".5" vector-effect="non-scaling-stroke">${out}</g><text x="${c}" y="${c + 3.5}" text-anchor="middle" font-size="${f(size * .045)}" letter-spacing=".12em" fill="${color}" fill-opacity=".8">I.A.M.</text></svg>`;
+}
+
+// ---------- homepage report composition ----------
+// a measured plate around the specimens: grid, concentric survey circles, a schematic press and return curve, crosshairs, a few annotations
+export function report() {
+  // plate is 600 x 440; the four specimens stand in the lower band (centres at x 93, 231, 369, 507)
+  const circles = [34, 54, 76, 100].map((r, i) => `<circle class="draw" pathLength="1" style="--d:${120 + i * 90}ms" cx="369" cy="318" r="${r}"/>`).join("");
+  const cross = (x, y, i) => `<g class="draw-fade" style="--d:${500 + i * 80}ms"><path d="M${x - 9} ${y} H${x + 9} M${x} ${y - 9} V${y + 9}"/><circle cx="${x}" cy="${y}" r="3.5"/></g>`;
+  // schematic only: pressed down quickly, then returning
+  const curve = `M40 96 H128 C138 96 140 158 150 158 C176 158 192 102 262 98 H330`;
+  return `<svg class="report" viewBox="0 0 600 440" aria-hidden="true">
+    <g fill="none" stroke="${LINE}" stroke-width=".6" vector-effect="non-scaling-stroke">
+      <g stroke-opacity=".22">${circles}</g>
+      <g stroke-opacity=".2" class="draw-fade" style="--d:80ms" stroke-dasharray="2 4"><path d="M369 196 V436"/><path d="M8 232 H592"/></g>
+      <g stroke-opacity=".6"><path class="draw" pathLength="1" style="--d:420ms" d="${curve}"/></g>
+      <g stroke-opacity=".3" class="draw-fade" style="--d:300ms"><path d="M40 70 V176 H330"/>${Array.from({ length: 12 }, (_, i) => `<path d="M${40 + i * 26} 176 v4"/>`).join("")}</g>
+      <g stroke-opacity=".5">${cross(150, 158, 0)}${cross(560, 232, 1)}${cross(24, 420, 2)}</g>
+      <path class="draw" pathLength="1" style="--d:700ms" stroke="${ROSE}" stroke-opacity=".8" d="M150 158 L178 196 H232"/>
+    </g>
+    <g class="draw-fade" style="--d:900ms" fill="${LINE}" font-size="8.5" letter-spacing=".1em">
+      <text x="40" y="58">FIG. 01 · PRESS AND RETURN · SCHEMATIC</text>
+      <text x="238" y="199" fill="${ROSE}">POINT OF CONTACT</text>
+      <text x="336" y="179">TIME</text>
+      <text x="476" y="226" opacity=".7">SURVEY 003</text>
     </g>
   </svg>`;
 }
@@ -55,4 +105,4 @@ export function specimenArt(m, { large = false } = {}) {
 
 export const emptySlot = () => `<div class="pending empty-vessel">${vessel("vial")}</div>`;
 
-export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#151515"/>${mark().replace(/<\/?svg[^>]*>/g, "")}</svg>`;
+export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#221D1B"/>${mark().replace(/<\/?svg[^>]*>/g, "")}</svg>`;

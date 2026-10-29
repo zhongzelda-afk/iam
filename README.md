@@ -23,15 +23,22 @@ Plain HTML, CSS and JavaScript. No build step, nothing to install.
 | `config.js` | Supabase URL and publishable key (public) |
 | `supabase/schema.sql` | Database tables and access rules |
 
-## Turning on the shared archive (free)
+## Turning on contributor accounts (free)
 
 1. Create a project at supabase.com.
-2. SQL Editor → New query → paste `supabase/schema.sql` → Run.
-3. Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins** → Save.
-4. Project Settings → API: copy the Project URL and the publishable (anon) key into `config.js`. Never the secret key.
+2. SQL Editor → New query → paste `supabase/schema.sql` → Run. Re-run it after updates; it is safe to run again.
+3. Authentication → Sign In / Providers → Email: keep **Confirm email** on. Anonymous sign-ins can be turned off.
+4. Authentication → URL Configuration: set **Site URL** to the live address (for example `https://<user>.github.io/iam/`) and add the same address under **Redirect URLs**. Sign-up confirmation and password reset links return there.
+5. Project Settings → API: copy the Project URL and the publishable key into `config.js`. Never the secret or service_role key.
+6. Optional but recommended: Authentication → Emails → set up custom SMTP. The built-in sender only sends a few emails per hour.
 
-Without these, the site still works; shared entries just stay on the visitor's device.
-Re-run `schema.sql` after updates; it is safe to run again.
+How data is separated:
+- `profiles`: one row per contributor with consent choices (research use, publishing) and when they were given. Only the owner can read or change it.
+- `collection`: the private collection. Row level security lets only the owner read or change their rows.
+- `entries`: public entries. A contributor can only add one if their profile has publishing consent, and only change or remove their own.
+- `delete_my_account()`: removes everything a contributor owns, then their login.
+
+The legal pages in `js/legal.js` are drafts. Check them against UAL's research ethics and data protection requirements before using the site for research.
 To remove an unwanted public entry or material: Supabase → Table Editor → `entries` or `materials` → delete the row.
 
 ## Adding real footage

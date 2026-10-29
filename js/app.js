@@ -1,7 +1,8 @@
 import { allMaterials, setCommunity, byId, canonical, SPEEDS, AFTERS, LANGUAGE, DEMOS } from "./data.js";
-import { mark, specimenArt, emptySlot, field } from "./art.js";
+import { mark, specimenArt, emptySlot, field, guilloche, report } from "./art.js";
 import { mountEditor, mountPlayer, defaultPose } from "./body.js";
 import * as store from "./store.js";
+import { LEGAL } from "./legal.js";
 
 // ---------- helpers ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -26,17 +27,22 @@ function toast(msg) {
 }
 window.addEventListener("iam:toast", e => toast(e.detail));
 
+// whichever dialog or panel is open, closed when the page changes
+let overlay = null;
+const closeOverlay = () => { if (overlay && $("#modal-root").firstChild) overlay(); overlay = null; };
+
 // centred dialog, used for confirmations, expanded cards and image inspection
 function modal(html, onMount, onClose, { wide = false, cls = "" } = {}) {
   const root = $("#modal-root");
   const last = document.activeElement;
   root.innerHTML = `<div class="modal-backdrop"><div class="modal ${wide ? "wide" : ""} ${cls}" role="dialog" aria-modal="true">${html}<button class="modal-close" data-close aria-label="Close">×</button></div></div>`;
   const bd = $(".modal-backdrop", root);
-  const close = () => { root.innerHTML = ""; document.removeEventListener("keydown", onKey); last && last.focus && last.focus(); onClose && onClose(); };
+  const close = () => { if (root.contains(bd)) root.innerHTML = ""; document.removeEventListener("keydown", onKey); last && last.focus && last.focus(); onClose && onClose(); };
   const onKey = e => { if (e.key === "Escape") close(); };
   document.addEventListener("keydown", onKey);
   bd.addEventListener("click", e => { if (e.target === bd || e.target.closest("[data-close]")) close(); });
   const first = $("input, textarea, button:not([data-close])", bd); (first || $(".modal", bd)).focus?.();
+  overlay = close;
   onMount && onMount($(".modal", bd), close);
   return close;
 }
@@ -51,7 +57,7 @@ function panel(label, onMount, onClose) {
   const close = () => {
     if (closed) return; closed = true;
     document.removeEventListener("keydown", onKey);
-    const done = () => { root.innerHTML = ""; last && last.focus && last.focus(); onClose && onClose(); };
+    const done = () => { if (root.contains(side)) root.innerHTML = ""; last && last.focus && last.focus(); onClose && onClose(); };
     if (calm()) return done();
     side.classList.add("closing"); setTimeout(done, 240);
   };
@@ -59,6 +65,7 @@ function panel(label, onMount, onClose) {
   document.addEventListener("keydown", onKey);
   $(".panel-backdrop", root).addEventListener("click", close);
   side.addEventListener("click", e => { if (e.target.closest("[data-close]")) close(); });
+  overlay = close;
   onMount($(".side-body", side), close);
   return close;
 }
@@ -127,7 +134,8 @@ const routes = [
   [/^archive$/, archive],
   [new RegExp(`^archive-${ID}$`), detail],
   [/^collection$/, collection],
-  [/^about$/, about]
+  [/^about$/, about],
+  [/^(terms|privacy|research|consent)$/, legalPage]
 ];
 // addresses from earlier versions of the site
 const legacy = path => {
@@ -150,6 +158,7 @@ async function render() {
   const sameRoute = path === render.last;
   render.last = path;
   if (leaving) { leaving(); leaving = null; }
+  if (!sameRoute) closeOverlay();
   $$(".nav [data-nav]").forEach(a => a.dataset.nav === navKey(path) ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   const route = routes.find(([re]) => re.test(path));
   const y = window.scrollY;
@@ -209,25 +218,58 @@ async function home() {
   const shelf = ["001", "004", "003", "008"].map(byId);
   main.innerHTML = `
   <section class="wrap hero">
-    <div>
+    <div class="hero-text">
+      <span class="report-head"><span>Material Witness Report</span><span>I.A.M.</span></span>
       <h1>One Material. Many Meanings.</h1>
       <p>An evolving archive of materials and the meanings we give them.</p>
       <div class="row"><a class="btn btn-primary" href="#archive">Explore Archive</a></div>
     </div>
-    <div class="display" aria-label="Four specimens from the founding collection">
-      ${shelf.map((m, i) => `<a class="spec slot" href="#archive-${m.id}" data-id="${m.id}" style="--i:${i}">
-        <div class="img">${specimenArt(m, { large: true })}</div>
-        <span class="slot-no">${m.no}</span><span class="slot-name">${esc(m.name)}</span>
-      </a>`).join("")}
-      <span class="display-base" aria-hidden="true"></span>
-      <span class="inspect-mark" aria-hidden="true"></span>
+    <div class="plate">
+      ${report()}
+      <div class="seal">${guilloche({ size: 240 })}</div>
+      <div class="display" aria-label="Four specimens from the founding collection">
+        ${shelf.map((m, i) => `<a class="spec slot" href="#archive-${m.id}" data-id="${m.id}" style="--i:${i}">
+          <div class="img">${specimenArt(m, { large: true })}</div>
+          <span class="slot-no">${m.no}</span><span class="slot-name">${esc(m.name)}${m.identity ? `<small>${esc(m.identity.name)}</small>` : ""}</span>
+        </a>`).join("")}
+        <span class="display-base" aria-hidden="true"></span>
+      </div>
+      <span class="plate-ref" aria-hidden="true">Founding collection · 11 specimens</span>
     </div>
   </section>`;
 }
 
 // ---------- ARCHIVE ----------
 const FILTERS = [["all", "All"], ["returns", "Comes back"], ["keeps", "Keeps the change"], ["instant", "Instant"], ["delayed", "Delayed"], ["community", "Community"]];
-let archiveFilter = "all";
+const SORTS = [["no", "Number"], ["name", "Name"], ["family", "Family"]];
+let archiveFilter = "all", archiveView = "grid", archiveSort = "no";
+try { archiveView = localStorage.getItem("iam.view") === "index" ? "index" : "grid"; } catch { }
+const NOFAM = "Family not recorded";
+const familyOf = m => m.group || (m.parent && byId(m.parent) ? byId(m.parent).group : "") || (m.community ? "Community" : NOFAM);
+const matches = (m, f) => f === "all" || (f === "community" ? !!m.community : m.speed === f || m.after === f);
+
+// the index: compact cards, varieties filed under their parent
+function indexList(list) {
+  const roots = list.filter(m => !m.parent || !list.some(p => p.id === m.parent));
+  const kids = id => list.filter(m => m.parent === id);
+  const by = { no: (a, b) => String(a.no).localeCompare(String(b.no), undefined, { numeric: true }), name: (a, b) => a.name.localeCompare(b.name), family: (a, b) => (familyOf(a) === NOFAM) - (familyOf(b) === NOFAM) || familyOf(a).localeCompare(familyOf(b)) || a.name.localeCompare(b.name) }[archiveSort];
+  roots.sort(by);
+  const row = (m, sub = false) => `<a class="ix ${sub ? "ix-sub" : ""}" href="#archive-${m.id}" data-id="${m.id}" data-speed="${m.speed || ""}" data-after="${m.after || ""}" ${m.community ? "data-community" : ""}>
+      <span class="ix-no">${m.no}</span>
+      <span class="ix-name">${sub ? `<span class="ix-branch" aria-hidden="true"></span>` : ""}${esc(m.name)}${m.community ? ` <span class="tag-community">Community</span>` : ""}</span>
+      <span class="ix-fam">${esc(familyOf(m))}</span>
+      <span class="ix-lang">${(m.words || []).map(w => LANGUAGE[w].word).join(", ") || (m.speed ? `${SPEEDS[m.speed]} · ${AFTERS[m.after]}` : "")}</span>
+      <span class="ix-id">${m.identity ? esc(m.identity.name) : ""}</span>
+    </a>`;
+  let html = "", lastHead = null;
+  roots.forEach((m, i) => {
+    const head = archiveSort === "name" ? m.name[0].toUpperCase() : archiveSort === "family" ? familyOf(m) : null;
+    if (head !== null && head !== lastHead) { html += `<div class="ix-head">${esc(head)}</div>`; lastHead = head; }
+    html += `<div class="ix-group" style="--i:${Math.min(i, 14)}">${row(m)}${kids(m.id).sort(by).map(k => row(k, true)).join("")}</div>`;
+  });
+  return `<div class="ix-cols label" aria-hidden="true"><span>No.</span><span>Name</span><span>Family</span><span>Material language</span><span>I.A.M. reading</span></div>${html}`;
+}
+
 async function archive() {
   await loadMaterials();
   const list = allMaterials();
@@ -236,30 +278,46 @@ async function archive() {
   main.innerHTML = `
   <div class="wrap page">
     <div class="page-head">
-      <div><h1>Archive</h1><p>Eleven founding materials. Room for more.</p></div>
+      <div><span class="report-head small"><span>Archive</span><span>${list.length} records</span></span><h1>Archive</h1><p>Eleven founding materials. Room for more.</p></div>
+      <div class="seg view-seg" role="group" aria-label="View">${[["grid", "Specimens"], ["index", "Index"]].map(([k, l]) => `<button type="button" data-view="${k}" aria-pressed="${k === archiveView}">${l}</button>`).join("")}</div>
+    </div>
+    <div class="tools">
       <div class="filter-row" role="group" aria-label="Filter materials">${filters.map(([k, l]) => `<button class="chip" type="button" data-filter="${k}" aria-pressed="${k === archiveFilter}">${l}</button>`).join("")}</div>
+      ${archiveView === "index" ? `<div class="filter-row sort-row" role="group" aria-label="Sort by"><span class="label">Sort</span>${SORTS.map(([k, l]) => `<button class="chip" type="button" data-sort="${k}" aria-pressed="${k === archiveSort}">${l}</button>`).join("")}</div>` : ""}
     </div>
-    <div class="grid">
+    ${archiveView === "grid" ? `<div class="grid">
       ${list.map(specLink).join("")}
-      ${Array.from({ length: 4 }, (_, i) => `<button class="spec empty" data-add type="button" aria-label="Register a material"><div class="img">${field()}${emptySlot()}<span class="add">+ Register a Material</span></div><div class="meta"><span class="no">&nbsp;</span></div></button>`).join("")}
-    </div>
+      ${Array.from({ length: 4 }, () => `<button class="spec empty" data-add type="button" aria-label="Register a material"><div class="img">${field()}${emptySlot()}<span class="add">+ Register a Material</span></div><div class="meta"><span class="no">&nbsp;</span></div></button>`).join("")}
+    </div>` : `<div class="index">${indexList(list)}</div>
+      <div class="row" style="margin-top:24px"><button class="btn btn-small" type="button" data-add>+ Register a Material</button></div>`}
   </div>`;
-  const apply = () => $$(".spec[data-id]", main).forEach(s => {
-    const d = s.dataset, f = archiveFilter;
-    s.classList.toggle("hide", !(f === "all" || (f === "community" ? "community" in d : d.speed === f || d.after === f)));
-  });
+  const apply = () => {
+    $$(".spec[data-id], .ix[data-id]", main).forEach(s => s.classList.toggle("hide", !matches(byId(s.dataset.id) || {}, archiveFilter)));
+    $$(".ix-group", main).forEach(g => g.classList.toggle("hide", !$(".ix:not(.hide)", g)));
+    $$(".ix-head", main).forEach(h => { let n = h.nextElementSibling, any = false; while (n && !n.classList.contains("ix-head")) { if (!n.classList.contains("hide")) any = true; n = n.nextElementSibling; } h.classList.toggle("hide", !any); });
+  };
   apply();
-  $$("[data-filter]", main).forEach(b => b.addEventListener("click", () => {
-    if (b.dataset.filter === archiveFilter) return;
-    const items = $$(".grid > .spec", main);
+  // indexing: items glide to their new places
+  const reorder = fn => {
+    const items = $$(".grid > .spec, .ix-group", main);
     items.forEach((s, i) => { s.style.viewTransitionName = "s" + i; });
-    const t = transition(() => {
-      archiveFilter = b.dataset.filter;
-      $$("[data-filter]", main).forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-      apply();
-    });
+    const t = transition(fn);
     const clear = () => items.forEach(s => { s.style.viewTransitionName = ""; });
     t ? t.finished.finally(clear) : clear();
+  };
+  $$("[data-filter]", main).forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.filter === archiveFilter) return;
+    reorder(() => { archiveFilter = b.dataset.filter; $$("[data-filter]", main).forEach(x => x.setAttribute("aria-pressed", String(x === b))); apply(); });
+  }));
+  $$("[data-sort]", main).forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.sort === archiveSort) return;
+    archiveSort = b.dataset.sort;
+    transition(() => { $(".index", main).innerHTML = indexList(list); $$("[data-sort]", main).forEach(x => x.setAttribute("aria-pressed", String(x === b))); apply(); });
+  }));
+  $$("[data-view]", main).forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.view === archiveView) return;
+    archiveView = b.dataset.view; try { localStorage.setItem("iam.view", archiveView); } catch { }
+    transition(() => render());
   }));
   $$("[data-add]", main).forEach(b => b.addEventListener("click", registerMaterial));
 }
@@ -279,6 +337,7 @@ const similarTo = name => {
 
 // registration: one question at a time, with a duplicate check and an optional parent material
 function registerMaterial() {
+  if (store.mode() === "guest") return authPanel({ view: "signin", reason: "Registering a material needs a contributor account, so each record has someone who can correct or remove it." });
   const d = { name: "", note: "", parent: "" };
   let step = 0, similar = [];
   panel("Register a material", (body, close) => {
@@ -598,12 +657,18 @@ function addMeaning(m) {
       btn.disabled = true;
       const alias = d.share ? d.alias.trim() : "";
       if (alias) store.setAlias(alias);
-      const saved = store.addMine({ material_id: m.id, alias, observe: {}, meaning: d.meaning.trim(), meaning_note: d.note.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: hasBody(d) ? d.body : null, own_body_note: d.own.trim() });
-      try { sessionStorage.setItem("iam.justSaved", saved.id); } catch { }
-      if (d.share) {
-        try { const rid = await store.share(saved); store.updateMine(saved.id, { shared: true, remote_id: rid }); store.invalidate(); d.shared = true; }
-        catch (err) { console.error(err); toast("Saved. Sharing failed, try again from My Collection."); }
+      const entry = { material_id: m.id, alias, observe: {}, meaning: d.meaning.trim(), meaning_note: d.note.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: hasBody(d) ? d.body : null, own_body_note: d.own.trim() };
+      // guests keep the draft through sign in; it is saved privately afterwards and never published automatically
+      if (!store.canSave()) {
+        store.setPending({ ...entry, wantsShare: d.share, at: new Date().toISOString() });
+        close();
+        return authPanel({ view: "signup", reason: "Your meaning is kept as a draft. Create an account or sign in to file it in your collection." });
       }
+      let saved;
+      try { saved = await store.addMine(entry); }
+      catch (err) { console.error(err); btn.disabled = false; toast("Could not save. Please try again."); return; }
+      try { sessionStorage.setItem("iam.justSaved", saved.id); } catch { }
+      if (d.share) d.shared = await shareEntry(saved, { quiet: true });
       step = 6; view();
     };
     view();
@@ -615,80 +680,365 @@ function addMeaning(m) {
 }
 
 // ---------- MY COLLECTION ----------
+// a filing cabinet: one drawer tab per material, one index card per meaning
 async function collection() {
   await loadMaterials();
+  const mode = store.mode();
+  const draft = store.pending();
+  if (mode === "guest") {
+    main.innerHTML = `
+    <div class="wrap page">
+      <div class="page-head"><div><h1>My Collection</h1><p>Your own record of material meanings. Private by default.</p></div></div>
+      ${draft ? draftNote(draft) : ""}
+      <div class="cabinet-empty calibrate">
+        ${field()}
+        <div>
+          <span class="label">Contributor access</span>
+          <h2>Become an I.A.M. Contributor</h2>
+          <p>Create your collection of material meanings.</p>
+          <div class="row"><button class="btn btn-primary" type="button" data-auth="signup">Create an account</button><button class="btn" type="button" data-auth="signin">Sign in</button></div>
+          <p class="hint">You can browse and write a draft without an account. Nothing is published unless you share it.</p>
+        </div>
+      </div>
+    </div>`;
+    $$("[data-auth]", main).forEach(b => b.addEventListener("click", () => authPanel({ view: b.dataset.auth })));
+    $("[data-discard]", main)?.addEventListener("click", async () => { if (await ask("Discard this draft?", "Discard")) { store.setPending(null); render(); } });
+    return;
+  }
+
   const list = store.mine();
   const shared = list.filter(e => e.shared && e.remote_id);
   let readings = [];
   try { readings = await store.readingsFor(shared.map(e => e.remote_id)); } catch (e) { console.error(e); }
   let just = null; try { just = sessionStorage.getItem("iam.justSaved"); sessionStorage.removeItem("iam.justSaved"); } catch { }
+  const local = store.localEntries();
+  const groups = [];
+  list.forEach(e => {
+    const id = canonical(e.material_id);
+    let g = groups.find(x => x.id === id);
+    if (!g) groups.push(g = { id, m: byId(id) || unknown(id), items: [] });
+    g.items.push(e);
+  });
+  groups.sort((x, y) => String(x.m.no).localeCompare(String(y.m.no)));
 
   main.innerHTML = `
   <div class="wrap page">
     <div class="page-head">
-      <div><h1>My Collection</h1><p>Private unless you share.</p></div>
-      <a class="btn" href="#archive">Explore Archive</a>
+      <div><h1>My Collection</h1><p>${list.length} ${list.length === 1 ? "entry" : "entries"} · private unless you make one public</p></div>
+      <div class="row">${list.length ? `<button class="btn btn-small" type="button" data-export>Export</button>` : ""}<a class="btn btn-small" href="#archive">Explore Archive</a></div>
     </div>
-    ${list.length ? `<div class="entries">${list.map((e, i) => entryCard(e, readings.filter(r => r.entry_id === e.remote_id), i, e.id === just)).join("")}</div>
-      <p class="notice">Only this browser keeps your collection. <button class="link" data-export type="button">Download a copy</button></p>`
-      : `<div class="empty-state"><h2>Nothing here yet.</h2><p>Open a material and add your meaning.</p><a class="btn btn-primary" href="#archive">Explore Archive</a></div>`}
+    ${mode === "preview" ? `<p class="notice">Preview: this collection is kept in this browser only. Contributor accounts work on the live site.</p>` : ""}
+    ${local.length ? `<div class="notice row-notice"><span>${local.length} ${local.length === 1 ? "meaning was" : "meanings were"} saved in this browser before accounts. Add ${local.length === 1 ? "it" : "them"} to your collection? ${local.length === 1 ? "It stays" : "They stay"} private.</span><span class="row"><button class="btn btn-small btn-primary" type="button" data-import>Add to my collection</button><button class="btn btn-small btn-quiet" type="button" data-dismiss>Not now</button></span></div>` : ""}
+    ${list.length ? `<div class="cabinet">${groups.map((g, gi) => `
+      <section class="drawer" style="--i:${gi}">
+        <a class="drawer-tab" href="#archive-${g.m.id}"><span class="no">${g.m.no}</span><span>${esc(g.m.name)}</span><span class="count">${g.items.length}</span></a>
+        <div class="cards">${g.items.map(e => indexCard(e, readings.filter(r => r.entry_id === e.remote_id), e.id === just)).join("")}</div>
+      </section>`).join("")}</div>`
+      : `<div class="cabinet-empty calibrate">${field()}<div><span class="label">Empty drawer</span><h2>Nothing filed yet.</h2><p>Open a material and add your meaning.</p><a class="btn btn-primary" href="#archive">Explore Archive</a></div></div>`}
   </div>`;
 
-  list.forEach(e => e.body && mountPlayer($(`[data-mine="${e.id}"]`, main), e.body));
-  $("[data-export]", main)?.addEventListener("click", () => download("iam-my-collection.json", store.exportAll()));
   const onClick = async ev => {
+    if (ev.target.closest("[data-export]")) return download("iam-my-collection.json", store.exportAll());
+    if (ev.target.closest("[data-import]")) {
+      try { await store.importLocal(); toast("Added to your collection"); } catch (err) { console.error(err); toast("Could not add them. Please try again."); }
+      return render();
+    }
+    if (ev.target.closest("[data-dismiss]")) { if (await ask("Remove those browser-only meanings from this device?", "Remove")) { store.dismissLocal(); render(); } return; }
+    const head = ev.target.closest("[data-open]");
+    if (head) {
+      const card = head.closest(".icard-file"), o = !card.classList.contains("open");
+      card.classList.toggle("open", o); head.setAttribute("aria-expanded", String(o));
+      const fig = $("[data-mine]", card);
+      if (o && fig && !fig.dataset.on) { const e = store.getMine(card.dataset.id); fig.dataset.on = "1"; mountPlayer(fig, e.body); }
+      return;
+    }
     const b = ev.target.closest("[data-e]"); if (!b) return;
     const e = store.getMine(b.dataset.e); if (!e) return;
     const act = b.dataset.do;
     if (act === "revise") return revise(e);
     if (act === "body") return editBody(e);
-    if (act === "share") {
-      b.disabled = true;
-      try { const rid = await store.share(e); store.updateMine(e.id, { shared: true, remote_id: rid }); store.invalidate(); toast("Shared with the archive"); }
-      catch (err) { console.error(err); toast("Sharing failed. Please try again later."); }
-      return render();
-    }
+    if (act === "share") { b.disabled = true; if (await shareEntry(e)) toast("Public in the archive"); return render(); }
     if (act === "unshare") {
-      if (!(await ask("Remove this from the shared archive? It stays in your collection.", "Remove"))) return;
-      try { await store.unshare(e.remote_id); store.updateMine(e.id, { shared: false, remote_id: null }); store.invalidate(); toast("Removed from the archive"); }
-      catch (err) { console.error(err); toast("Could not remove it. Please try again."); }
+      if (!(await ask("Make this private again? It leaves the public archive and stays in your collection.", "Make private"))) return;
+      if (await unshareEntry(e)) toast("Private again");
       return render();
     }
     if (act === "delete") {
-      if (!(await ask("Delete this meaning?" + (e.shared ? " It will also leave the shared archive." : ""), "Delete"))) return;
-      if (e.shared && e.remote_id) { try { await store.unshare(e.remote_id); store.invalidate(); } catch (err) { console.error(err); } }
-      store.deleteMine(e.id); toast("Deleted"); return render();
+      if (!(await ask("Delete this meaning and all its versions?" + (e.shared ? " It will also leave the public archive." : ""), "Delete"))) return;
+      if (e.shared && e.remote_id && !(await unshareEntry(e))) return;
+      try { await store.deleteMine(e.id); toast("Deleted"); } catch (err) { console.error(err); toast("Could not delete it. Please try again."); }
+      return render();
     }
   };
   main.addEventListener("click", onClick);
   leaving = () => main.removeEventListener("click", onClick);
+  if (just) { const c = $(`.icard-file[data-id="${CSS.escape(just)}"]`, main); c && c.scrollIntoView({ block: "center", behavior: "instant" in window ? "instant" : "auto" }); }
 }
 
-function entryCard(e, readings = [], i = 0, just = false) {
-  const m = byId(e.material_id) || unknown(e.material_id);
+const draftNote = d => `<div class="notice row-notice"><span><strong>Unsaved draft:</strong> “${esc(d.meaning)}” for ${esc((byId(d.material_id) || unknown(d.material_id)).name)}. Sign in to file it privately.</span><span class="row"><button class="btn btn-small btn-quiet" type="button" data-discard>Discard</button></span></div>`;
+
+function indexCard(e, readings = [], just = false) {
   const revs = e.revisions || [];
-  const act = e.observe && e.observe.action ? `${e.observe.action} · ${e.observe.response || ""}` : "";
-  return `<article class="entry ${just ? "just-saved" : ""}" style="animation-delay:${Math.min(i, 8) * 40}ms">
-    <div class="entry-top">
-      <div><span class="name">${esc(m.name)}</span> <span class="label">No. ${m.no}</span><br><span class="label">${e.shared ? `<span class="shared-dot" aria-hidden="true"></span>Shared · ` : "Private · "}${fmtDate(e.created_at)}</span></div>
-    </div>
-    ${revs.length ? `<span class="old">${esc(e.meaning)}</span>` : ""}
-    <span class="word">${esc(latestMeaning(e))}</span>
-    ${e.meaning_note ? `<p>${esc(e.meaning_note)}</p>` : ""}
-    ${e.voice ? `<p><span class="label">Imagined voice</span><br><span class="voice">${esc(e.voice)}</span></p>` : ""}
-    ${e.own_body_note ? `<p><span class="label">Became it</span><br>${esc(e.own_body_note)}</p>` : ""}
-    ${act ? `<span class="label">${esc(act)}</span>` : ""}
-    ${e.body ? `<div class="fig" data-mine="${e.id}"></div>` : ""}
-    ${readings.length ? `<span class="label">Others read your body as: ${readings.slice(0, 6).map(r => esc(r.text)).join(" · ")}</span>` : ""}
-    <div class="actions">
-      <button data-e="${e.id}" data-do="revise" type="button">Revisit</button>
-      <button data-e="${e.id}" data-do="body" type="button">${e.body ? "Edit body" : "Add body"}</button>
-      <a href="#archive-${m.id}">Compare</a>
-      ${e.shared ? `<button data-e="${e.id}" data-do="unshare" type="button">Unshare</button>` : `<button data-e="${e.id}" data-do="share" type="button">Share</button>`}
-      <button data-e="${e.id}" data-do="delete" type="button">Delete</button>
-    </div>
+  const versions = [{ at: e.created_at, meaning: e.meaning, note: e.meaning_note, first: true }, ...revs];
+  return `<article class="icard-file ${just ? "filing" : ""}" data-id="${esc(e.id)}">
+    <button class="icard-head" type="button" data-open aria-expanded="false">
+      <span class="word">${esc(latestMeaning(e))}</span>
+      <span class="icard-meta"><span class="state ${e.shared ? "is-public" : ""}">${e.shared ? "Public" : "Private"}</span><span>${fmtDate(e.created_at)}</span>${revs.length ? `<span>${revs.length + 1} versions</span>` : ""}${hasBody(e) ? `<span>Body</span>` : ""}</span>
+      <span class="chev" aria-hidden="true">+</span>
+    </button>
+    <div class="icard-body"><div><div class="icard-inner">
+      <ol class="versions">${versions.map((v, i) => `<li><span class="label">${v.first ? "Original" : "Revised"} · ${fmtDate(v.at)}</span><span class="${i < versions.length - 1 ? "old" : "word"}">${esc(v.meaning)}</span>${v.note && !v.first ? `<span class="muted">${esc(v.note)}</span>` : ""}</li>`).join("")}</ol>
+      ${e.meaning_note ? `<p><span class="label">Why</span><br>${esc(e.meaning_note)}</p>` : ""}
+      ${e.voice ? `<p><span class="label">Imagined voice</span><br><span class="voice">${esc(e.voice)}</span></p>` : ""}
+      ${e.own_body_note ? `<p><span class="label">Became it</span><br>${esc(e.own_body_note)}</p>` : ""}
+      ${e.body ? `<div class="fig" data-mine="${esc(e.id)}"></div>` : ""}
+      ${readings.length ? `<p class="label">Others read your body as: ${readings.slice(0, 6).map(r => esc(r.text)).join(" · ")}</p>` : ""}
+      <div class="actions">
+        <button data-e="${esc(e.id)}" data-do="revise" type="button">Revise</button>
+        <button data-e="${esc(e.id)}" data-do="body" type="button">${e.body ? "Edit body" : "Add body"}</button>
+        <a href="#archive-${canonical(e.material_id)}">Compare</a>
+        ${e.shared ? `<button data-e="${esc(e.id)}" data-do="unshare" type="button">Make private</button>` : `<button data-e="${esc(e.id)}" data-do="share" type="button">Make public</button>`}
+        <button data-e="${esc(e.id)}" data-do="delete" type="button">Delete</button>
+      </div>
+    </div></div></div>
   </article>`;
 }
+
+// ---------- sharing, always a separate choice from saving ----------
+async function shareEntry(e, { quiet = false } = {}) {
+  if (!store.publishAllowed() && !(await publishConsent())) return false;
+  try {
+    const rid = await store.share(e);
+    await store.updateMine(e.id, { shared: true, remote_id: rid });
+    store.invalidate(); return true;
+  } catch (err) { console.error(err); toast(quiet ? "Saved privately. Making it public failed, try again from My Collection." : "Could not make it public. Please try again."); return false; }
+}
+async function unshareEntry(e) {
+  try {
+    if (e.remote_id) await store.unshare(e.remote_id);
+    await store.updateMine(e.id, { shared: false, remote_id: null });
+    store.invalidate(); return true;
+  } catch (err) { console.error(err); toast("Could not make it private. Please try again."); return false; }
+}
+function publishConsent() {
+  return new Promise(resolve => {
+    let done = false;
+    modal(`<span class="label">Publishing consent</span><h2>Show selected entries in the public archive?</h2>
+      <p class="muted">You have not given publishing consent. If you agree, only the entries you choose are shown, signed with the name you choose or as Anonymous. Your email is never shown. You can make any entry private again, or withdraw this consent from your account.</p>
+      <p><a class="ulink" href="#consent" target="_blank" rel="noopener">Research Consent Details</a></p>
+      <div class="row" style="margin-top:24px"><button class="btn btn-primary" data-yes type="button">I agree to publish selected entries</button><button class="btn btn-quiet" data-close type="button">Keep private</button></div>`, (box, close) => {
+      $("[data-yes]", box).addEventListener("click", async ev => {
+        ev.currentTarget.disabled = true;
+        try { await store.setConsent({ publish: true }); done = true; close(); resolve(true); }
+        catch (err) { console.error(err); toast("Could not record your consent. Please try again."); ev.currentTarget.disabled = false; }
+      });
+    }, () => { if (!done) resolve(false); });
+  });
+}
+
+// ---------- contributor accounts ----------
+const authErr = err => {
+  const m = String(err && (err.message || err)).toLowerCase();
+  if (m.includes("invalid login")) return "That email and password do not match.";
+  if (m.includes("not confirmed")) return "Please confirm your email first. Check your inbox for the link.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "An account with this email already exists. Try signing in.";
+  if (m.includes("password")) return err.message;
+  if (m.includes("rate limit") || m.includes("security purposes")) return "Too many attempts. Please wait a minute and try again.";
+  if (m.includes("fetch") || m.includes("network")) return "The archive could not be reached. Check your connection.";
+  return err && err.message ? err.message : "Something went wrong. Please try again.";
+};
+const legalLink = (k, t) => `<a class="ulink" href="#${k}" target="_blank" rel="noopener">${t || LEGAL[k].title}</a>`;
+
+function authPanel({ view = "signin", reason = "", email = "" } = {}) {
+  let v = view, mail = email;
+  panel("Contributor access", (body, close) => {
+    const draw = () => {
+      if (store.mode() === "preview") {
+        body.innerHTML = `<div class="step"><span class="label">Contributor access</span><h2>Become an I.A.M. Contributor</h2><p>Create your collection of material meanings.</p>
+          <p class="notice">This preview cannot reach the account service, so sign up and sign in are switched off here. They work on the live site. In the preview, meanings are kept in this browser only.</p>
+          ${store.pending() ? `<div class="step-actions"><button class="btn btn-primary" type="button" data-keep>Keep my draft in this browser</button></div>` : ""}</div>`;
+        $("[data-keep]", body)?.addEventListener("click", async () => { close(); await resumePending(); });
+        return;
+      }
+      const why = reason ? `<p class="notice">${esc(reason)}</p>` : "";
+      if (v === "signup") body.innerHTML = `<form class="step auth" novalidate>
+          <span class="label">Contributor access</span><h2>Become an I.A.M. Contributor</h2><p>Create your collection of material meanings.</p>${why}
+          <label class="field">Email<input class="input" type="email" name="email" autocomplete="email" required value="${esc(mail)}"></label>
+          <label class="field">Password<input class="input" type="password" name="password" autocomplete="new-password" minlength="8" required><span class="hint">At least 8 characters.</span></label>
+          <details class="plain"><summary>What happens to my data?</summary>
+            <ul>
+              <li><strong>Stored:</strong> your email, your consent choices, and the meanings you save. Your password is handled by the sign-in service and never seen by the project.</li>
+              <li><strong>Purpose:</strong> to keep your collection, and to show the entries you choose to share.</li>
+              <li><strong>Access:</strong> private entries are visible only to you. Public entries are visible to everyone, without your email.</li>
+              <li><strong>Research:</strong> your entries are used in the research only if you tick the research box.</li>
+              <li><strong>Leaving:</strong> you can make entries private, withdraw consent, export, or delete your account at any time.</li>
+            </ul></details>
+          <fieldset class="consents"><legend class="label">Required</legend>
+            <label class="check"><input type="checkbox" name="terms" required> <span>I agree to the ${legalLink("terms")}.</span></label>
+            <label class="check"><input type="checkbox" name="privacy" required> <span>I have read the ${legalLink("privacy")}.</span></label>
+          </fieldset>
+          <fieldset class="consents"><legend class="label">Optional · you can change these later</legend>
+            <label class="check"><input type="checkbox" name="research"> <span>I agree that my entries may be used in the <em>UX of Respond</em> research. ${legalLink("research", "Research Participation Information")}</span></label>
+            <label class="check"><input type="checkbox" name="publish"> <span>I agree that entries I choose to share may be shown publicly in the archive. ${legalLink("consent", "Research Consent Details")}</span></label>
+          </fieldset>
+          <p class="form-error" role="alert"></p>
+          <div class="step-actions"><button class="btn btn-primary" type="submit">Create account</button></div>
+          <p class="hint">Already a contributor? <button class="link" type="button" data-v="signin">Sign in</button></p>
+        </form>`;
+      if (v === "signin") body.innerHTML = `<form class="step auth" novalidate>
+          <span class="label">Contributor access</span><h2>Sign in</h2>${why}
+          <label class="field">Email<input class="input" type="email" name="email" autocomplete="email" required value="${esc(mail)}"></label>
+          <label class="field">Password<input class="input" type="password" name="password" autocomplete="current-password" required></label>
+          <p class="form-error" role="alert"></p>
+          <div class="step-actions"><button class="btn btn-primary" type="submit">Sign in</button><button class="link" type="button" data-v="forgot">Forgot password?</button></div>
+          <p class="hint">New here? <button class="link" type="button" data-v="signup">Become an I.A.M. Contributor</button></p>
+        </form>`;
+      if (v === "forgot") body.innerHTML = `<form class="step auth" novalidate>
+          <span class="label">Contributor access</span><h2>Reset your password</h2><p class="hint">We will email you a link to choose a new one.</p>
+          <label class="field">Email<input class="input" type="email" name="email" autocomplete="email" required value="${esc(mail)}"></label>
+          <p class="form-error" role="alert"></p>
+          <div class="step-actions"><button class="btn btn-primary" type="submit">Send link</button><button class="link" type="button" data-v="signin">Back to sign in</button></div>
+        </form>`;
+      if (v === "sent") body.innerHTML = `<div class="step"><span class="label">Check your email</span><h2>Reset link sent</h2><p>If an account exists for ${esc(mail)}, a link to reset the password is on its way.</p></div>`;
+      if (v === "verify") body.innerHTML = `<div class="step"><span class="label">One more step</span><h2>Confirm your email</h2>
+          <p>We sent a confirmation link to <strong>${esc(mail)}</strong>. Open it on this device to finish creating your account.</p>
+          ${store.pending() ? `<p class="hint">Your draft is kept in this browser and will be filed privately once you are signed in.</p>` : ""}
+          <p class="form-error" role="alert"></p>
+          <div class="step-actions"><button class="btn" type="button" data-resend>Send the link again</button></div></div>`;
+      wire();
+    };
+    const wire = () => {
+      $$("[data-v]", body).forEach(b => b.addEventListener("click", () => { const f = $("form", body); if (f && f.email) mail = f.email.value.trim(); v = b.dataset.v; draw(); }));
+      $("[data-resend]", body)?.addEventListener("click", async ev => {
+        ev.currentTarget.disabled = true;
+        try { await store.resendVerification(mail); toast("Link sent again"); } catch (err) { $(".form-error", body).textContent = authErr(err); ev.currentTarget.disabled = false; }
+      });
+      const form = $("form", body); if (!form) return;
+      (form.email.value ? form.password || form.email : form.email).focus({ preventScroll: true });
+      form.addEventListener("submit", async ev => {
+        ev.preventDefault();
+        const err = $(".form-error", form), btn = $("button[type=submit]", form);
+        err.textContent = "";
+        mail = form.email.value.trim();
+        if (!/^\S+@\S+\.\S+$/.test(mail)) { err.textContent = "Please enter a valid email address."; return; }
+        if (v === "signup") {
+          if (form.password.value.length < 8) { err.textContent = "The password needs at least 8 characters."; return; }
+          if (!form.terms.checked || !form.privacy.checked) { err.textContent = "Please agree to the Terms of Use and confirm you have read the Privacy Notice."; return; }
+        }
+        btn.disabled = true;
+        try {
+          if (v === "signup") {
+            const r = await store.signUp({ email: mail, password: form.password.value, research: form.research.checked, publish: form.publish.checked });
+            if (r.needsVerification) { v = "verify"; return draw(); }
+            close(); toast("Welcome, contributor"); return;
+          }
+          if (v === "signin") { await store.signIn({ email: mail, password: form.password.value }); close(); toast("Signed in"); return; }
+          if (v === "forgot") { await store.resetPassword(mail); v = "sent"; return draw(); }
+        } catch (e) { console.error(e); err.textContent = authErr(e); btn.disabled = false; }
+      });
+    };
+    draw();
+  });
+}
+
+function newPasswordPanel() {
+  panel("Choose a new password", (body, close) => {
+    body.innerHTML = `<form class="step auth" novalidate><span class="label">Contributor access</span><h2>Choose a new password</h2>
+      <label class="field">New password<input class="input" type="password" name="password" autocomplete="new-password" minlength="8" required><span class="hint">At least 8 characters.</span></label>
+      <p class="form-error" role="alert"></p>
+      <div class="step-actions"><button class="btn btn-primary" type="submit">Save password</button></div></form>`;
+    const form = $("form", body); form.password.focus();
+    form.addEventListener("submit", async ev => {
+      ev.preventDefault();
+      const err = $(".form-error", form);
+      if (form.password.value.length < 8) { err.textContent = "The password needs at least 8 characters."; return; }
+      try { await store.updatePassword(form.password.value); close(); toast("Password updated"); } catch (e) { err.textContent = authErr(e); }
+    });
+  });
+}
+
+function accountPanel() {
+  panel("Your account", (body, close) => {
+    const draw = () => {
+      const u = store.user(), p = store.profile() || {};
+      body.innerHTML = `<div class="step">
+        <span class="label">I.A.M. Contributor</span><h2>Your account</h2>
+        <p class="muted">${esc(u.email)}</p>
+        <fieldset class="consents"><legend class="label">Your choices · change any time</legend>
+          <label class="check"><input type="checkbox" data-consent="research" ${p.research_consent ? "checked" : ""}> <span>My entries may be used in the research. ${legalLink("research", "Information")}</span></label>
+          <label class="check"><input type="checkbox" data-consent="publish" ${p.publish_consent ? "checked" : ""}> <span>Entries I choose to share may be shown publicly. ${legalLink("consent", "Details")}</span></label>
+        </fieldset>
+        <div class="acct-actions">
+          <a class="btn btn-small" href="#collection" data-close>My Collection</a>
+          <button class="btn btn-small" type="button" data-export>Export my data</button>
+          <button class="btn btn-small" type="button" data-signout>Sign out</button>
+        </div>
+        <div class="danger">
+          <span class="label">Delete account</span>
+          <p class="hint">Deletes your profile, collection, public entries and sign-in. This cannot be undone. Export first if you want a copy.</p>
+          <button class="btn btn-small btn-danger" type="button" data-delete>Delete my account</button>
+        </div>
+        <p class="hint">${legalLink("terms")} · ${legalLink("privacy")}</p>
+      </div>`;
+      $$("[data-consent]", body).forEach(c => c.addEventListener("change", async () => {
+        const key = c.dataset.consent, on = c.checked;
+        if (key === "publish" && !on) {
+          const pub = store.mine().filter(e => e.shared && e.remote_id);
+          if (pub.length) {
+            // the confirmation replaces this panel, so the panel is reopened afterwards
+            const yes = await ask(`Withdraw publishing consent? Your ${pub.length} public ${pub.length === 1 ? "entry" : "entries"} will be made private.`, "Withdraw");
+            if (yes) { for (const e of pub) if (!(await unshareEntry(e))) return accountPanel(); }
+            if (!yes) return accountPanel();
+          }
+        }
+        try { await store.setConsent({ [key]: on }); toast(on ? "Consent recorded" : "Consent withdrawn"); }
+        catch (err) { console.error(err); toast("Could not update your choice. Please try again."); }
+        if (!body.isConnected) accountPanel();
+        if (currentPath() === "collection") render();
+      }));
+      $("[data-export]", body).addEventListener("click", () => download("iam-my-data.json", store.exportAll()));
+      $("[data-signout]", body).addEventListener("click", async () => { await store.signOut(); close(); toast("Signed out"); });
+      $("[data-delete]", body).addEventListener("click", async () => {
+        if (!(await ask("Delete your account and everything in it? This cannot be undone.", "Delete everything"))) return accountPanel();
+        try { await store.deleteAccount(); toast("Your account has been deleted"); location.hash = "#"; }
+        catch (err) { console.error(err); toast("Could not delete the account. Please try again."); accountPanel(); }
+      });
+    };
+    draw();
+  });
+}
+
+// header control: Sign in, or the contributor's account
+function updateAcct() {
+  const b = $("[data-acct]"); if (!b) return;
+  const u = store.user();
+  b.hidden = false;
+  b.textContent = u ? "Account" : "Sign in";
+  b.classList.toggle("signed", !!u);
+  b.setAttribute("aria-label", u ? `Account, signed in as ${u.email}` : "Sign in or become a contributor");
+}
+$("[data-acct]")?.addEventListener("click", () => store.user() ? accountPanel() : authPanel({ view: "signin" }));
+
+// a draft written before signing in is filed privately once there is somewhere to keep it
+async function resumePending() {
+  const d = store.pending();
+  if (!d || !store.canSave()) return;
+  const { wantsShare, at, ...entry } = d;
+  try {
+    const saved = await store.addMine(entry);
+    store.setPending(null);
+    try { sessionStorage.setItem("iam.justSaved", saved.id); } catch { }
+    toast(wantsShare ? "Your draft is filed privately. Make it public from My Collection if you still want to." : "Your draft is filed in My Collection");
+    if (currentPath() === "collection") render(); else go("#collection");
+  } catch (err) { console.error(err); toast("Your draft could not be filed yet. It is still kept in this browser."); }
+}
+
+window.addEventListener("iam:auth", async () => {
+  updateAcct();
+  if (store.pending() && store.canSave()) return resumePending();
+  render();
+});
+window.addEventListener("iam:recovery", newPasswordPanel);
 
 function editBody(e) {
   let editor = null;
@@ -696,7 +1046,8 @@ function editBody(e) {
     <div class="row" style="margin-top:20px"><button class="btn btn-primary" type="button" data-save>Save movement</button>${e.body ? `<button class="btn btn-quiet" type="button" data-remove>Remove movement</button>` : ""}</div>`, (box, close) => {
     editor = mountEditor($("#eb", box), e.body);
     const finish = async body => {
-      const upd = store.updateMine(e.id, { body });
+      let upd;
+      try { upd = await store.updateMine(e.id, { body }); } catch (err) { console.error(err); toast("Could not save. Please try again."); return; }
       if (upd.shared && upd.remote_id) { try { await store.updateShared(upd.remote_id, upd); store.invalidate(); } catch (err) { console.error(err); toast("Saved here; the shared copy could not be updated."); } }
       try { sessionStorage.setItem("iam.justSaved", e.id); } catch { }
       close(); toast("Movement saved"); render();
@@ -720,7 +1071,8 @@ function revise(e) {
     if (e.body) mountPlayer($("#rv-fig", box), e.body, { trails: true });
     const finish = async (meaning, note) => {
       const revisions = [...(e.revisions || []), { at: new Date().toISOString(), meaning, note }];
-      const upd = store.updateMine(e.id, { revisions });
+      let upd;
+      try { upd = await store.updateMine(e.id, { revisions }); } catch (err) { console.error(err); toast("Could not save. Please try again."); return; }
       if (upd.shared && upd.remote_id) { try { await store.updateShared(upd.remote_id, upd); store.invalidate(); } catch (err) { console.error(err); toast("Saved here; the shared copy could not be updated."); } }
       try { sessionStorage.setItem("iam.justSaved", e.id); } catch { }
       close(); toast("Saved"); render();
@@ -738,14 +1090,22 @@ async function about() {
       <h1>About &amp; privacy</h1>
       <p>The Institute of Animate Matter is a fictional institute made for <em>UX of Respond</em>, an MA UX Design project by Lynn Zhong at the University of the Arts London, 2026. It studies how people give meanings, feelings and imagined voices to the way everyday materials respond.</p>
       <p>Physical observations describe what a material did. Interpretations, including the Institute's own, are subjective. Materials are not claimed to think or feel. Demo content is marked as demo.</p>
-      <h2 class="sub">Your data</h2>
+      <h2 class="sub">Your data, in short</h2>
       <ul>
-        <li>My Collection is stored only in your browser. Meanings are private unless you choose to share.</li>
-        <li>What you share (meaning, note, imagined voice, body, the name you sign with, date) is public here and may be quoted in the research.</li>
-        <li>No email, account, location or tracking cookies. An anonymous ID in your browser lets you remove what you shared.</li>
+        <li>Browsing needs no account. A contributor account keeps your collection.</li>
+        <li>Everything you save is private unless you make a specific entry public.</li>
+        <li>Research use and publishing are two separate, optional permissions. You can withdraw either.</li>
+        <li>You can export your data or delete your account at any time.</li>
       </ul>
+      <h2 class="sub">Documents</h2>
+      <ul class="doc-links">${Object.entries(LEGAL).map(([k, d]) => `<li><a class="ulink" href="#${k}">${d.title}</a></li>`).join("")}</ul>
     </div>
   </div>`;
+}
+
+async function legalPage(key) {
+  const d = LEGAL[key];
+  main.innerHTML = `<div class="wrap page"><div class="prose legal"><a class="back" href="#about">← About &amp; privacy</a><h1>${d.title}</h1>${d.html}</div></div>`;
 }
 
 function notFound() {
@@ -754,5 +1114,7 @@ function notFound() {
 
 // ---------- boot ----------
 $("[data-mark]").innerHTML = mark();
-await loadMaterials();
+await Promise.all([store.ready(), loadMaterials()]);
+updateAcct();
 render();
+resumePending();
