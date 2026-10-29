@@ -1,10 +1,11 @@
 # I.A.M. — Institute of Animate Matter
 
 A public website for *UX of Respond* (Lynn Zhong, MA UX Design, UAL, 2026).
-Three pages: **Home**, **Archive** (11 founding materials as dictionary entries:
-definition, material language, in the body, made of, record; people's meanings and
-bodies; Add Your Meaning; empty jars add community materials) and
-**My Collection** (revisit, share, delete).
+Dark, minimal material archive. Three pages: **Home**, **Archive** (11 founding
+materials, filters, empty slots to register community materials) with a case
+file per material (physical response, I.A.M. interpretation, View Full Record with
+the original research content, interpretation carousel, Add Your Meaning panel)
+and **My Collection** (revisit, share, delete).
 
 Plain HTML, CSS and JavaScript. No build step, nothing to install.
 
@@ -13,8 +14,8 @@ Plain HTML, CSS and JavaScript. No build step, nothing to install.
 | Path | What it is |
 |---|---|
 | `index.html` | Page shell, header, footer |
-| `css/styles.css` | Design tokens (palette, three text sizes) and all styles |
-| `js/data.js` | The 11 founding materials (dictionary entries), examples |
+| `css/styles.css` | Dark design tokens, specimen interactions and all styles |
+| `js/data.js` | The 11 founding materials with their original records, I.A.M. interpretations |
 | `js/app.js` | Pages and flows |
 | `js/body.js` | Borrow a Body editor and players |
 | `js/art.js` | Logo mark, cube and jar drawings |

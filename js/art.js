@@ -1,12 +1,11 @@
 // Specimen images: lit material cubes and glass jars, drawn with SVG lighting filters.
 // They are art-directed archive representations. Real photos can replace them (photo: true in data.js).
 
-const INK = "#292724";
 let uidN = 0;
 const f = n => n.toFixed(1);
 
 // ---------- small logo mark ----------
-export function mark(color = "#873F48") {
+export function mark(color = "#C77B85") {
   let d = "";
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI;
@@ -73,10 +72,10 @@ function cube(m) {
     <g clip-path="url(#${u}k${name})"><rect x="40" y="50" width="130" height="130" fill="${s.color}" filter="url(#${u}f)" opacity="${s.alpha || 1}"/><polygon points="${pts}" fill="${shade}"/></g>`;
   return `<svg class="specimen" viewBox="20 30 160 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${m.name}">
     <defs><filter id="${u}f" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">${s.f}</filter>
-      <radialGradient id="${u}sh"><stop offset="0" stop-color="${INK}" stop-opacity=".22"/><stop offset="1" stop-color="${INK}" stop-opacity="0"/></radialGradient></defs>
-    <ellipse cx="104" cy="176" rx="70" ry="8" fill="url(#${u}sh)"/>
-    ${face(SIDE, "rgba(41,39,36,.22)", "s")}${face(FRONT, "rgba(41,39,36,.05)", "f")}${face(TOP, "rgba(255,255,255,.14)", "t")}
-    <polyline points="48,82 140,82 158,60" fill="none" stroke="#FFFFFF" stroke-opacity=".45" stroke-width=".8"/>
+      <radialGradient id="${u}sh"><stop offset="0" stop-color="#000000" stop-opacity=".55"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient></defs>
+    <ellipse class="shadow" cx="104" cy="176" rx="70" ry="8" fill="url(#${u}sh)"/>
+    <g class="obj">${face(SIDE, "rgba(0,0,0,.3)", "s")}${face(FRONT, "rgba(0,0,0,.06)", "f")}${face(TOP, "rgba(255,255,255,.14)", "t")}
+    <polyline points="48,82 140,82 158,60" fill="none" stroke="#FFFFFF" stroke-opacity=".45" stroke-width=".8"/></g>
   </svg>`;
 }
 
@@ -105,14 +104,13 @@ function jar(m, empty = false) {
   const inner = empty ? "" : (CONTENT[m.tex] || CONTENT.foam)(u);
   return `<svg class="specimen" viewBox="20 30 160 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${empty ? "Empty specimen jar" : m.name}">
     <defs><clipPath id="${u}cl"><path d="${JAR}"/></clipPath>
-      <radialGradient id="${u}sh"><stop offset="0" stop-color="${INK}" stop-opacity=".2"/><stop offset="1" stop-color="${INK}" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${u}sh"><stop offset="0" stop-color="#000000" stop-opacity=".5"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
       <linearGradient id="${u}g" x1="0" x2="1"><stop offset="0" stop-color="#C9D2CF" stop-opacity=".45"/><stop offset=".45" stop-color="#FFFFFF" stop-opacity=".05"/><stop offset="1" stop-color="#AEB9B5" stop-opacity=".4"/></linearGradient></defs>
-    <ellipse cx="102" cy="175" rx="46" ry="6" fill="url(#${u}sh)"/>
-    <g clip-path="url(#${u}cl)">${inner}</g>
-    <path d="${JAR}" fill="url(#${u}g)" stroke="${INK}" stroke-opacity=".28" stroke-width=".8"/>
-    <rect x="73" y="74" width="54" height="17" rx="2" fill="${empty ? "#EAE6DE" : "#CDB79A"}" stroke="${INK}" stroke-opacity=".2" stroke-width=".6"/>
-    <path d="M74 100 V160" stroke="#FFFFFF" stroke-width="4" opacity=".5" stroke-linecap="round"/>
-    ${empty ? `<path d="M100 122 v20 M90 132 h20" stroke="#873F48" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>` : ""}
+    <ellipse class="shadow" cx="102" cy="175" rx="46" ry="6" fill="url(#${u}sh)"/>
+    <g class="obj"><g clip-path="url(#${u}cl)"><g class="fill">${inner}</g></g>
+    <path d="${JAR}" fill="url(#${u}g)" stroke="#F0ECE5" stroke-opacity=".3" stroke-width=".8"/>
+    <rect x="73" y="74" width="54" height="17" rx="2" fill="${empty ? "#383635" : "#CDB79A"}" stroke="#F0ECE5" stroke-opacity=".2" stroke-width=".6"/>
+    <path d="M74 100 V160" stroke="#FFFFFF" stroke-width="4" opacity=".35" stroke-linecap="round"/></g>
   </svg>`;
 }
 
@@ -122,4 +120,4 @@ export function specimenArt(m) {
 }
 export const emptyJar = () => jar({ name: "" }, true);
 
-export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#F8F6F0"/>${mark().replace(/<\/?svg[^>]*>/g, "")}</svg>`;
+export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#151515"/>${mark().replace(/<\/?svg[^>]*>/g, "")}</svg>`;
