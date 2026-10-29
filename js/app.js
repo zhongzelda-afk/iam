@@ -295,22 +295,21 @@ const params = m => codeLines(19, [
 const detailSlots = m => (m.details || DETAILS.map(label => ({ label }))).map((d, i) => `<li class="${d.src ? "has" : "none"}" style="--i:${i}"><span class="dimg">${d.src ? `<img src="${esc(d.src)}" alt="${esc(m.name)}, ${esc(d.label)}" loading="lazy">` : ""}</span><span class="dlabel"><span>0${i + 1}</span>${esc(d.label)}</span></li>`).join("");
 const FINDERS = [[[54, 30, 9], [44, 56, 14]], [[40, 26, 10], [56, 60, 12]], [[58, 40, 8], [38, 62, 15]], [[46, 22, 11], [60, 52, 13]]];
 
+// how to take part, written like the observation protocol beside it
 const rail = () => {
   const ex = byId("001");
+  const rows = [
+    ["c", "// how it works [参与方式]"], ["rule", "------------------------"], ["", ""],
+    ["h", "Two dictionaries"], ["v", "Every material answers pressure"], ["v", "in its own way."], ["v", "The Institute reads it and writes"], ["v", "an entry in its dictionary."], ["v", "You read the same behaviour"], ["v", "and write an entry in yours."], ["", ""],
+    ["k", "01_explore"], ["v", "Watch how a material changes:"], ["v", "before, during, after release."], ["", ""],
+    ["k", "02_read"], ["v", "The Institute's reading."], ["v", "One authored reading,"], ["v", "not the answer."], ["a", `e.g. ${ex.name} → ${ex.identity.name}`], ["", ""],
+    ["k", "03_write"], ["v", "Your own entry:"], ["v", "notice · associate ·"], ["v", "imagine · name."], ["v", "Adopt it, adapt it, or differ."], ["", ""],
+    ["k", "04_keep"], ["v", "Private by default."], ["v", "No account needed to start."], ["", ""]
+  ];
   return `<aside class="rail" aria-labelledby="rail-h">
-    <div class="rail-in">
-      <span class="label">How it works</span>
-      <h2 id="rail-h">Two dictionaries</h2>
-      <p>Every material answers pressure in its own way. The Institute reads that behaviour and writes an entry in its dictionary. You read the same behaviour, and write an entry in yours.</p>
-      <ol class="rail-steps">
-        <li><span class="step-no">01</span><div><strong>Explore a material</strong><p>Watch how it changes under a hand: before, during, after release.</p></div></li>
-        <li><span class="step-no">02</span><div><strong>Read the Institute's interpretation</strong><p>One authored reading, not the answer. For ${esc(ex.name)}: <span class="accent">${esc(ex.identity.name)}</span>.</p></div></li>
-        <li><span class="step-no">03</span><div><strong>Create your own entry</strong><p>Notice, associate, imagine, name. Adopt the Institute's reading, adapt it, or say something different.</p></div></li>
-      </ol>
-      <details class="rail-eg"><summary>See an example entry</summary>${dictEntry(SAMPLE(), { sample: true })}</details>
-      <p class="rail-why">You leave with a personal dictionary of materials, private by default, that you can revisit and revise. No account needed to start.</p>
-      <a class="btn btn-primary btn-small" href="#archive">Explore a material</a>
-    </div>
+    <h2 class="visually-hidden" id="rail-h">How it works</h2>
+    <pre class="code rail-code">${codeLines(1, rows)}<span class="cl x"><span class="ln" aria-hidden="true">${rows.length + 1}</span><span class="ct"><a href="#archive" class="rail-go">Explore_a_material() →</a></span></span></pre>
+    <details class="rail-eg"><summary><span class="ln-pad" aria-hidden="true">${rows.length + 2}</span>// see an example entry</summary>${dictEntry(SAMPLE(), { sample: true })}</details>
   </aside>`;
 };
 

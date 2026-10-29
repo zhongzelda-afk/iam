@@ -887,3 +887,28 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 }
 @media (max-width: 680px) { .rail-steps { grid-template-columns: 1fr; } }
 [data-route="home"] .site-head .wrap, [data-route="home"] .site-foot .wrap { max-width: 1480px; }
+
+/* the left column in the protocol's own style */
+.rail { padding-top: clamp(28px, 5vw, 56px); }
+.rail-code { font-size: 11.5px; }
+.rail-code .cl.v .ct, .rail-code .cl.a .ct { padding-left: 1.5em; }
+.rail-code .cl.k .ct { padding-left: .75em; }
+.rail-code .cl.h .ct { padding-left: 0; color: var(--ink); }
+.rail-code .cl.a .ct { color: var(--accent); }
+.rail-code .cl.x .ct { padding-left: 0; }
+.rail-go { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(185, 214, 227, .4); }
+.rail-go:hover { border-bottom-color: var(--accent); }
+.rail-eg { margin-top: 6px; font: 11.5px/1.5 var(--mono); }
+.rail-eg summary { list-style: none; cursor: pointer; color: var(--muted); display: grid; grid-template-columns: 2.6em minmax(0, 1fr); }
+.rail-eg summary::-webkit-details-marker { display: none; }
+.rail-eg summary:hover { color: var(--ink); }
+.rail-eg .ln-pad { color: var(--muted); opacity: .7; }
+.rail-eg .dict-entry { margin-top: 10px; font-family: var(--font); }
+.rail-in, .rail-in::before { all: unset; }
+@media (max-width: 1100px) {
+  .rail-code { background: #0A0B0C; border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+}
+.rail-code .cl .ct { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.rail-eg summary { font-size: inherit; margin-bottom: 0; }
+.home-grid { grid-template-columns: 300px minmax(0, 1fr); }
+@media (max-width: 1100px) { .home-grid { grid-template-columns: minmax(0, 1fr); } }
