@@ -33,6 +33,9 @@ create table if not exists public.materials (
   note text check (char_length(note) <= 160)
 );
 
+-- a submission may be a variety of an existing material (e.g. Blood Orange under 004 Orange)
+alter table public.materials add column if not exists parent text check (parent is null or parent ~ '^([0-9]{3}|c-[a-z0-9]{8})$');
+
 -- entries may point at community materials too (updates tables made by an earlier version of this file)
 alter table public.entries drop constraint if exists entries_material_id_check;
 alter table public.entries add constraint entries_material_id_check check (material_id ~ '^([0-9]{3}([.][0-9]{2})?|c-[a-z0-9]{8})$');

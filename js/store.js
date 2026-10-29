@@ -81,11 +81,11 @@ export async function share(entry) {
 export async function updateShared(remoteId, entry) {
   const c = await client();
   if (c) {
-    const { error } = await c.from("entries").update({ revisions: entry.revisions, meaning_note: entry.meaning_note, voice: entry.voice }).eq("id", remoteId);
+    const { error } = await c.from("entries").update({ revisions: entry.revisions, meaning_note: entry.meaning_note, voice: entry.voice, body: entry.body || null, own_body_note: entry.own_body_note || "" }).eq("id", remoteId);
     if (error) throw error; return;
   }
   const list = LS.get(K_SHARED, []); const i = list.findIndex(x => x.id === remoteId);
-  if (i >= 0) { list[i].revisions = entry.revisions; LS.set(K_SHARED, list); }
+  if (i >= 0) { Object.assign(list[i], { revisions: entry.revisions, voice: entry.voice, body: entry.body || null, own_body_note: entry.own_body_note || "" }); LS.set(K_SHARED, list); }
 }
 
 export async function unshare(remoteId) {
@@ -139,17 +139,23 @@ export async function listMaterials() {
   const local = LS.get(K_MATS, []);
   const c = await client();
   if (!c) return local;
-  const { data, error } = await c.from("materials").select("id,name,note,created_at").order("created_at", { ascending: true }).limit(500);
+  const { data, error } = await c.from("materials").select("*").order("created_at", { ascending: true }).limit(500);
   if (error) throw error;
   const seen = new Set(data.map(m => m.id));
   return [...data, ...local.filter(m => !seen.has(m.id) && !m.remote)];
 }
 
-export async function addMaterial({ name, note }) {
+export async function addMaterial({ name, note, parent }) {
   const row = { id: matId(), name: name.trim().slice(0, 40), note: (note || "").trim().slice(0, 160) || null };
+  if (parent) row.parent = parent;
   const c = await client();
   let remote = false;
-  if (c) { const { error } = await c.from("materials").insert(row); if (error) throw error; remote = true; }
+  if (c) {
+    let { error } = await c.from("materials").insert(row);
+    // databases set up before varieties existed have no parent column: keep the link on this device only
+    if (error && row.parent) { const { parent, ...plain } = row; ({ error } = await c.from("materials").insert(plain)); }
+    if (error) throw error; remote = true;
+  }
   const list = LS.get(K_MATS, []); list.push({ ...row, created_at: new Date().toISOString(), remote }); LS.set(K_MATS, list);
   return row;
 }
