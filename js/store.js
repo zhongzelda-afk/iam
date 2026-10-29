@@ -1,12 +1,12 @@
 // Where entries live.
-// My Dictionary is always kept in this browser (localStorage).
-// Shared entries and readings go to Supabase when config.js has keys; otherwise they stay on this device.
+// My Collection is always kept in this browser (localStorage).
+// Shared entries, readings and community materials go to Supabase when config.js has keys; otherwise they stay on this device.
 
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
 };
-const K_MINE = "iam.mine.v1", K_SHARED = "iam.shared.v1", K_READINGS = "iam.readings.v1", K_ALIAS = "iam.alias.v1", K_DRAFT = "iam.draft.v1";
+const K_MATS = "iam.materials.v1", K_MINE = "iam.mine.v1", K_SHARED = "iam.shared.v1", K_READINGS = "iam.readings.v1", K_ALIAS = "iam.alias.v1", K_DRAFT = "iam.draft.v1";
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id-" + Date.now().toString(36) + Math.random().toString(36).slice(2));
 
@@ -28,7 +28,7 @@ async function client() {
   return sbReady;
 }
 
-// ---------- my dictionary ----------
+// ---------- my collection ----------
 export const mine = () => LS.get(K_MINE, []);
 const saveMine = list => LS.set(K_MINE, list);
 export const getMine = id => mine().find(e => e.id === id);
@@ -130,6 +130,28 @@ export async function readingsFor(entryIds) {
     return [...data, ...local.filter(r => String(r.entry_id).startsWith("ex-"))];
   }
   return local;
+}
+
+// ---------- community materials ----------
+const matId = () => "c-" + Array.from(crypto.getRandomValues(new Uint8Array(8)), b => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
+
+export async function listMaterials() {
+  const local = LS.get(K_MATS, []);
+  const c = await client();
+  if (!c) return local;
+  const { data, error } = await c.from("materials").select("id,name,note,created_at").order("created_at", { ascending: true }).limit(500);
+  if (error) throw error;
+  const seen = new Set(data.map(m => m.id));
+  return [...data, ...local.filter(m => !seen.has(m.id) && !m.remote)];
+}
+
+export async function addMaterial({ name, note }) {
+  const row = { id: matId(), name: name.trim().slice(0, 40), note: (note || "").trim().slice(0, 160) || null };
+  const c = await client();
+  let remote = false;
+  if (c) { const { error } = await c.from("materials").insert(row); if (error) throw error; remote = true; }
+  const list = LS.get(K_MATS, []); list.push({ ...row, created_at: new Date().toISOString(), remote }); LS.set(K_MATS, list);
+  return row;
 }
 
 // ---------- export ----------

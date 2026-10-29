@@ -1,10 +1,11 @@
 # I.A.M. — Institute of Animate Matter
 
 A public website for *UX of Respond* (Lynn Zhong, MA UX Design, UAL, 2026).
-Visitors browse a specimen archive, translate a material in the Translation Lab
-(observe, interpret, imagine, perform with **Borrow a Body**), keep a personal
-dictionary, revise meanings over time, and optionally share to a Collective
-Dictionary where others read their bodies before the meaning is revealed.
+Four pages: **Home**, **Archive** (11 founding materials, empty jars to add
+community materials, each material page compares people's meanings and bodies),
+**Play** (pick a material, draw an action card, say what it does and what it
+means, optionally Borrow a Body, save) and **My Collection** (revisit, share,
+delete).
 
 Plain HTML, CSS and JavaScript. No build step, nothing to install.
 
@@ -13,30 +14,30 @@ Plain HTML, CSS and JavaScript. No build step, nothing to install.
 | Path | What it is |
 |---|---|
 | `index.html` | Page shell, header, footer |
-| `css/styles.css` | Design tokens (palette, emboss/deboss shadows) and all styles |
-| `js/data.js` | The specimen register: edit names, behaviours, notes here |
+| `css/styles.css` | Design tokens (palette, three text sizes) and all styles |
+| `js/data.js` | The 11 founding materials, action cards, examples |
 | `js/app.js` | Pages and flows |
 | `js/body.js` | Borrow a Body editor and players |
-| `js/art.js` | Rosette seal and specimen drawings |
+| `js/art.js` | Logo mark, cube and jar drawings |
 | `js/store.js` | Saving: browser storage + Supabase |
-| `config.js` | Supabase URL and anon key, optional hero video |
+| `config.js` | Supabase URL and publishable key (public) |
 | `supabase/schema.sql` | Database tables and access rules |
 
-## Turning on the shared Collective Dictionary (free)
+## Turning on the shared archive (free)
 
 1. Create a project at supabase.com.
 2. SQL Editor → New query → paste `supabase/schema.sql` → Run.
 3. Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins** → Save.
-4. Project Settings → API: copy the Project URL and the `anon` `public` key into `config.js`.
+4. Project Settings → API: copy the Project URL and the publishable (anon) key into `config.js`. Never the secret key.
 
 Without these, the site still works; shared entries just stay on the visitor's device.
-To remove an unwanted public entry: Supabase → Table Editor → `entries` → delete the row.
+Re-run `schema.sql` after updates; it is safe to run again.
+To remove an unwanted public entry or material: Supabase → Table Editor → `entries` or `materials` → delete the row.
 
 ## Adding real footage
 
-Put `assets/materials/004.jpg` (and/or `004.mp4`) in the repo, then add
-`photo: true` / `video: true` to material `004` in `js/data.js`.
-For the homepage film, add `assets/hero.mp4` and set `HERO_VIDEO: "assets/hero.mp4"` in `config.js`.
+Put `assets/materials/004.jpg` in the repo, then add `photo: true` to
+material `004` in `js/data.js`.
 
 ## Running locally
 
