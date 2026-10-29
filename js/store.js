@@ -18,7 +18,7 @@ async function client() {
   if (!online()) return null;
   if (sbReady) return sbReady;
   sbReady = (async () => {
-    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
+    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/+esm");
     sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, { auth: { persistSession: true, storageKey: "iam.auth" } });
     // anonymous identity so a visitor can later revise or withdraw what they shared
     const { data } = await sb.auth.getSession();
