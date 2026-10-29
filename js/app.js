@@ -303,7 +303,7 @@ const rail = () => {
     ["h", "Two dictionaries"], ["v", "Every material answers pressure"], ["v", "in its own way."], ["v", "The Institute reads it and writes"], ["v", "an entry in its dictionary."], ["v", "You read the same behaviour"], ["v", "and write an entry in yours."], ["", ""],
     ["k", "01_explore"], ["v", "Watch how a material changes:"], ["v", "before, during, after release."], ["", ""],
     ["k", "02_read"], ["v", "The Institute's reading."], ["v", "One authored reading,"], ["v", "not the answer."], ["a", `e.g. ${ex.name} → ${ex.identity.name}`], ["", ""],
-    ["k", "03_write"], ["v", "Your own entry:"], ["v", "notice · associate ·"], ["v", "imagine · name."], ["v", "Adopt it, adapt it, or differ."], ["", ""],
+    ["k", "03_write"], ["v", "Your own entry:"], ["v", "notice · associate · imagine ·"], ["v", "embody (stick figure) · name."], ["v", "Adopt it, adapt it, or differ."], ["", ""],
     ["k", "04_keep"], ["v", "Private by default."], ["v", "No account needed to start."], ["", ""]
   ];
   return `<aside class="rail" aria-labelledby="rail-h">
@@ -842,7 +842,10 @@ function reinterpret(entry) {
 }
 
 // Your dictionary entry, as a little interview: notice, associate, imagine, name. Observe first, interpret later, compare last.
-const STAGES = [["notice", "Notice"], ["associate", "Associate"], ["imagine", "Imagine"], ["name", "Name"]];
+// embody is Borrow a Body: the visitor performs the material's response with a stick figure
+const STAGES = [["notice", "Notice"], ["associate", "Associate"], ["imagine", "Imagine"], ["embody", "Embody"], ["name", "Name"]];
+const LAST = STAGES.length - 1;
+const OPTIONAL = ["imagine", "embody"];
 const draftKey = id => "iam.interview." + id;
 const loadDraft = id => { try { return JSON.parse(localStorage.getItem(draftKey(id))) || null; } catch { return null; } };
 const saveDraft = (id, d) => { try { localStorage.setItem(draftKey(id), JSON.stringify(d)); } catch { } };
@@ -860,27 +863,29 @@ const noticeable = m => {
 function interview(m, { compareWith = null } = {}) {
   const box = $("#interview", main), info = $(".detail-info", main);
   if (!box) return;
-  const fresh = { started: false, step: 0, far: 0, noticed: [], noticeNote: "", associate: "", voice: "", title: "", relation: "" };
+  const fresh = { started: false, step: 0, far: 0, noticed: [], noticeNote: "", associate: "", voice: "", body: null, title: "", relation: "" };
+  let editor = null;
   const prior = loadDraft(m.id);
   let d = { ...fresh, ...(prior || {}) };
   if (prior && !("started" in prior)) d.started = true;
-  let saved = compareWith, view = compareWith ? "compare" : !d.started ? "intro" : d.step >= 4 ? "preview" : "ask";
-  const keep = () => { d.far = Math.max(d.far || 0, Math.min(d.step, 3)); saveDraft(m.id, d); };
+  let saved = compareWith, view = compareWith ? "compare" : !d.started ? "intro" : d.step > LAST ? "preview" : "ask";
+  const keep = () => { d.far = Math.max(d.far || 0, Math.min(d.step, LAST)); saveDraft(m.id, d); };
   const reg = `<svg class="iv-reg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6" vector-effect="non-scaling-stroke"><path class="draw" pathLength="1" d="M0 8 V0 H8"/><path class="draw" pathLength="1" d="M92 0 H100 V8"/><path class="draw" pathLength="1" d="M0 92 V100 H8"/><path class="draw" pathLength="1" d="M92 100 H100 V92"/></g></svg>`;
-  const track = () => `<ol class="iv-track" aria-label="Progress">${STAGES.map(([k, l], i) => `<li class="${i < d.step || (i <= (d.far || 0) && i !== d.step) || view !== "ask" ? "done" : ""} ${i === d.step && view === "ask" ? "now" : ""}"><button type="button" data-goto="${i}" ${i <= Math.max(d.step, d.far || 0) ? "" : "disabled"} ${i === d.step && view === "ask" ? `aria-current="step"` : ""}><span>0${i + 1}</span><em>${l}${k === "imagine" ? " (optional)" : ""}</em></button></li>`).join("")}</ol>`;
+  const track = () => `<ol class="iv-track" aria-label="Progress">${STAGES.map(([k, l], i) => `<li class="${i < d.step || (i <= (d.far || 0) && i !== d.step) || view !== "ask" ? "done" : ""} ${i === d.step && view === "ask" ? "now" : ""}"><button type="button" data-goto="${i}" ${i <= Math.max(d.step, d.far || 0) ? "" : "disabled"} ${i === d.step && view === "ask" ? `aria-current="step"` : ""}><span>0${i + 1}</span><em>${l}${OPTIONAL.includes(k) ? " (optional)" : ""}</em></button></li>`).join("")}</ol>`;
   const head = `<div class="iv-head"><span class="iv-thumb" aria-hidden="true">${specimenArt(m)}</span><span class="label">Your dictionary entry · No. ${m.no} ${esc(m.name)}</span><button class="link iv-close" type="button" data-iv-close>Close</button></div>`;
-  const entry = () => ({ material_id: m.id, alias: "", observe: { noticed: d.noticed, note: d.noticeNote.trim(), relation: d.relation || "" }, meaning: d.title.trim(), meaning_note: d.associate.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: null, own_body_note: "" });
+  const entry = () => ({ material_id: m.id, alias: "", observe: { noticed: d.noticed, note: d.noticeNote.trim(), relation: d.relation || "" }, meaning: d.title.trim(), meaning_note: d.associate.trim(), voice: d.voice.trim().replace(/^["“]|["”]$/g, ""), body: hasBody(d) ? d.body : null, own_body_note: "" });
 
   const draw = (dir = 1) => {
     let html = "";
     if (view === "intro") {
       html = `${head}<div class="iv-q" data-dir="1">
         <h2 id="iv-h">Write ${esc(m.name)} into your own dictionary</h2>
-        <p>You will create one entry: <strong>your name for this material</strong>, and a few words on why. Four short steps:</p>
+        <p>You will create one entry: <strong>your name for this material</strong>, and a few words on why. Five short steps:</p>
         <ol class="iv-steps">
           <li><strong>Notice</strong> what it physically does.</li>
           <li><strong>Associate</strong> it with a feeling, memory or situation.</li>
           <li><strong>Imagine</strong> what it might say. Optional.</li>
+          <li><strong>Embody</strong> it: borrow a body and show how it responds with a stick figure. Optional.</li>
           <li><strong>Name</strong> it. You can adopt the Institute's reading, adapt it, or choose something different.</li>
         </ol>
         <p class="hint">Any step except the name can be skipped. Your answers are kept in this browser as you go. Nothing is shared unless you choose to share it later.</p>
@@ -903,6 +908,8 @@ function interview(m, { compareWith = null } = {}) {
           <textarea class="answer area" id="q" rows="3" maxlength="400" aria-labelledby="iv-h" aria-describedby="iv-hint">${esc(d.associate)}</textarea>`;
       if (st === "imagine") q = `<h2 id="iv-h">If this material could speak, what might it say?</h2><p class="hint" id="iv-hint">An imagined voice, not a claim that materials think or feel. Optional.</p>
           <input class="answer" id="q" maxlength="200" autocomplete="off" placeholder="“…”" value="${esc(d.voice)}" aria-labelledby="iv-h" aria-describedby="iv-hint">`;
+      if (st === "embody") q = `<h2 id="iv-h">Can you show it with a body?</h2><p class="hint" id="iv-hint">Borrow a body. Drag the joints to make two or three poses of how ${esc(m.name.toLowerCase())} responds, then press play. Optional.</p>
+          <div class="iv-body" id="iv-body"></div>`;
       if (st === "name") q = `<h2 id="iv-h">What would you call it?</h2>
           ${m.identity ? `<div class="iv-inst"><span class="label">The Institute's entry</span><span class="iv-inst-word">${esc(m.identity.name)}</span><span class="muted">${esc(m.identity.note)}</span></div>
             <fieldset class="iv-set"><legend class="label">Your entry and the Institute's · optional</legend>
@@ -923,12 +930,13 @@ function interview(m, { compareWith = null } = {}) {
         <h2 id="iv-h">Review your entry</h2>
         <article class="dict-entry draft">
           <span class="label">Draft · not saved yet</span>
-          <div class="de-head"><span class="de-word">${esc(d.title)}</span><span class="de-mat">No. ${m.no} · ${esc(m.name)}</span>${edit(3, "name")}</div>
+          <div class="de-head"><span class="de-word">${esc(d.title)}</span><span class="de-mat">No. ${m.no} · ${esc(m.name)}</span>${edit(LAST, "name")}</div>
           <dl class="de-meta">
             <div><dt>Why ${edit(1, "explanation")}</dt><dd>${d.associate.trim() ? esc(d.associate) : `<span class="muted">Skipped</span>`}</dd></div>
             <div><dt>Noticed ${edit(0, "what you noticed")}</dt><dd>${noticed ? esc(noticed) : `<span class="muted">Skipped</span>`}</dd></div>
             <div><dt>Imagined voice ${edit(2, "imagined voice")}</dt><dd>${d.voice.trim() ? `<span class="voice">${esc(d.voice)}</span>` : `<span class="muted">Skipped</span>`}</dd></div>
-            ${relationLine(d.relation, m) ? `<div><dt>Relation ${edit(3, "relation")}</dt><dd>${relationLine(d.relation, m)}</dd></div>` : ""}
+            <div><dt>Body ${edit(3, "body movement")}</dt><dd>${hasBody(d) ? `<div class="iv-fig" data-iv-fig></div>` : `<span class="muted">Skipped</span>`}</dd></div>
+            ${relationLine(d.relation, m) ? `<div><dt>Relation ${edit(LAST, "relation")}</dt><dd>${relationLine(d.relation, m)}</dd></div>` : ""}
           </dl>
         </article>
         <p class="hint">${store.canSave() ? "Saving files it privately in My Dictionary. Sharing it in the archive is a separate choice you can make later, entry by entry." : "Saving needs a free contributor account, so your entry has somewhere to live. Your draft stays in this browser until then. Entries are private unless you choose to share one."}</p>
@@ -939,7 +947,12 @@ function interview(m, { compareWith = null } = {}) {
     if (view === "compare") {
       html = `${head}<div class="iv-q" data-dir="1"><span class="label">Filed privately in My Dictionary</span><h2>Your entry, beside others</h2><div class="iv-compare" data-cmp><p class="hint">Loading…</p></div></div>`;
     }
+    if (editor) { editor.stop(); editor = null; }
     box.innerHTML = reg + html;
+    const bodyRoot = $("#iv-body", box);
+    if (bodyRoot) editor = mountEditor(bodyRoot, d.body, b => { d.body = b && b.frames && b.frames.length > 1 ? b : null; keep(); });
+    const fig = $("[data-iv-fig]", box);
+    if (fig) mountPlayer(fig, d.body, { trails: true });
     wire();
   };
 
@@ -978,7 +991,7 @@ function interview(m, { compareWith = null } = {}) {
     close();
     render().then(() => reveal && $("#meanings")?.scrollIntoView({ behavior: calm() ? "auto" : "smooth" }));
   };
-  const close = () => { info.classList.remove("interviewing"); box.hidden = true; box.innerHTML = ""; $("[data-add-meaning]", info)?.focus({ preventScroll: true }); };
+  const close = () => { if (editor) { editor.stop(); editor = null; } info.classList.remove("interviewing"); box.hidden = true; box.innerHTML = ""; $("[data-add-meaning]", info)?.focus({ preventScroll: true }); };
 
   const save = async btn => {
     if (!d.title.trim()) return;
@@ -1031,9 +1044,9 @@ function interview(m, { compareWith = null } = {}) {
     $("[data-skip]", box)?.addEventListener("click", () => { d.step++; keep(); draw(1); });
     $("form.iv-q", box)?.addEventListener("submit", e => {
       e.preventDefault();
-      if (d.step < 3) { d.step++; keep(); return draw(1); }
+      if (d.step < LAST) { d.step++; keep(); return draw(1); }
       if (!d.title.trim()) return;
-      d.step = 4; view = "preview"; keep(); draw(1);
+      d.step = LAST + 1; view = "preview"; keep(); draw(1);
     });
     $("[data-save]", box)?.addEventListener("click", e => save(e.currentTarget));
   };
@@ -1049,7 +1062,7 @@ function interview(m, { compareWith = null } = {}) {
 const draftsList = () => {
   const ds = browserDrafts();
   return ds.length ? `<section class="drafts" aria-labelledby="drafts-h"><h2 class="sub" id="drafts-h">Unfinished entries in this browser</h2>
-    <ul>${ds.map(([m, d]) => `<li><span class="no">${m.no}</span><span>${esc(m.name)}${d.title ? ` · “${esc(d.title)}”` : ""}</span><span class="muted">${d.step >= 4 ? "Ready to save" : `Step ${Math.min(d.step, 3) + 1} of 4`}</span><a class="btn btn-small" href="#archive-${m.id}" data-resume="${m.id}">Continue</a></li>`).join("")}</ul></section>` : "";
+    <ul>${ds.map(([m, d]) => `<li><span class="no">${m.no}</span><span>${esc(m.name)}${d.title ? ` · “${esc(d.title)}”` : ""}</span><span class="muted">${d.step > LAST ? "Ready to save" : `Step ${Math.min(d.step, LAST) + 1} of ${STAGES.length}`}</span><a class="btn btn-small" href="#archive-${m.id}" data-resume="${m.id}">Continue</a></li>`).join("")}</ul></section>` : "";
 };
 const sampleBlock = () => `<div class="sample-wrap"><span class="label">What an entry looks like</span>${dictEntry(SAMPLE(), { sample: true })}</div>`;
 
