@@ -18,18 +18,29 @@ function toast(msg) {
 }
 window.addEventListener("iam:toast", e => toast(e.detail));
 
-function modal(html, onMount) {
+function modal(html, onMount, onClose) {
   const root = $("#modal-root");
   const last = document.activeElement;
   root.innerHTML = `<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true">${html}<button class="pill modal-close" data-close aria-label="Close">Close ✕</button></div></div>`;
   const bd = $(".modal-backdrop", root);
-  const close = () => { root.innerHTML = ""; document.removeEventListener("keydown", onKey); last && last.focus && last.focus(); };
+  const close = () => { root.innerHTML = ""; document.removeEventListener("keydown", onKey); last && last.focus && last.focus(); onClose && onClose(); };
   const onKey = e => { if (e.key === "Escape") close(); };
   document.addEventListener("keydown", onKey);
   bd.addEventListener("click", e => { if (e.target === bd || e.target.closest("[data-close]")) close(); });
   const first = $("input, textarea, button:not([data-close])", bd); (first || $(".modal", bd)).focus?.();
   onMount && onMount($(".modal", bd), close);
   return close;
+}
+
+// in-page confirmation (browser confirm() is blocked in some embeds)
+function ask(question, yes = "Yes") {
+  return new Promise(resolve => {
+    let done = false;
+    const close = modal(`<p class="eyebrow">Please confirm</p><h2 style="font-size:28px;margin-bottom:22px">${esc(question)}</h2>
+      <div class="btn-row"><button class="btn btn-primary" data-yes>${esc(yes)}</button><button class="btn btn-ghost" data-close>Cancel</button></div>`, (box, c) => {
+      $("[data-yes]", box).addEventListener("click", () => { done = true; c(); resolve(true); });
+    }, () => { if (!done) resolve(false); });
+  });
 }
 
 function download(name, text) {
@@ -86,22 +97,24 @@ function offlineNotice() {
 
 // ---------- router ----------
 const routes = [
-  [/^\/?$/, home],
-  [/^\/materials\/?$/, materials],
-  [/^\/materials\/(\d{3})$/, caseFile],
-  [/^\/lab\/?$/, lab],
-  [/^\/lab\/(\d{3})$/, lab],
-  [/^\/collective\/?$/, () => collective("words")],
-  [/^\/collective\/(words|bodies|traces)$/, collective],
-  [/^\/me\/?$/, me],
-  [/^\/about\/?$/, about]
+  [/^$/, home],
+  [/^materials$/, materials],
+  [/^materials-(\d{3})$/, caseFile],
+  [/^lab$/, lab],
+  [/^lab-(\d{3})$/, lab],
+  [/^collective$/, () => collective("words")],
+  [/^collective-(words|bodies|traces)(?:-(\d{3}))?$/, collective],
+  [/^me$/, me],
+  [/^about$/, about]
 ];
-const navKey = path => path.startsWith("/materials") ? "materials" : path.startsWith("/lab") ? "lab" : path.startsWith("/collective") ? "collective" : path.startsWith("/me") ? "me" : "home";
+const navKey = path => path.startsWith("materials") ? "materials" : path.startsWith("lab") ? "lab" : path.startsWith("collective") ? "collective" : path.startsWith("me") ? "me" : "home";
 
 let leaving = null;
 async function render() {
+  const path = location.hash.replace(/^#\/?/, "").replace(/\//g, "-");
+  if (path === "main") { history.replaceState(null, "", "#" + (render.last || "")); main.focus(); return; }
+  render.last = path;
   if (leaving) { leaving(); leaving = null; }
-  const path = (location.hash.replace(/^#/, "") || "/").split("?")[0];
   const route = routes.find(([re]) => re.test(path));
   const key = navKey(path);
   $$(".nav [data-nav]").forEach(a => a.dataset.nav === key ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
@@ -122,7 +135,7 @@ $(".nav-toggle").addEventListener("click", e => {
 
 // ---------- shared fragments ----------
 function specCard(m, { count } = {}) {
-  return `<a class="card spec-card" href="#/materials/${m.id}">
+  return `<a class="card spec-card" href="#materials-${m.id}">
     <span class="tag t-${m.tag}">Nº ${m.id}</span>
     <div class="spec-top"><span class="spec-no">${m.id} / ${esc(m.name.toUpperCase())}</span></div>
     <div class="spec-art">${mediaFor(m)}</div>
@@ -164,8 +177,8 @@ async function home() {
       <h1>Materials respond.<br><em>We make it personal.</em></h1>
       <p class="lede">Welcome to the Institute of Animate Matter, where everyday materials become subjects of human interpretation.</p>
       <div class="btn-row">
-        <a class="btn btn-primary" href="#/materials">Explore the Archive</a>
-        <a class="btn" href="#/lab">Become a Material Translator</a>
+        <a class="btn btn-primary" href="#materials">Explore the Archive</a>
+        <a class="btn" href="#lab">Become a Material Translator</a>
       </div>
     </div>
     <div class="hero-stamp"><span class="stamp">Certified<br>subjective finding</span></div>
@@ -178,7 +191,7 @@ async function home() {
           <p class="eyebrow">The specimen catalogue</p>
           <h2>Ten materials,<br>pressed and filed.</h2>
         </div>
-        <a class="btn" href="#/materials">See all ${MATERIALS.length} specimens</a>
+        <a class="btn" href="#materials">See all ${MATERIALS.length} specimens</a>
       </div>
       <div class="catalogue">${MATERIALS.slice(0, 6).map(m => specCard(m, { count: counts[m.id] })).join("")}</div>
     </div>
@@ -212,7 +225,7 @@ async function home() {
         <h2 style="font-size:clamp(38px,5.6vw,70px)">Borrow a Body</h2>
         <p class="serif" style="font-size:24px;font-weight:300;margin:14px 0 18px">“No body available? Borrow one from the Institute.”</p>
         <p class="prose">Drag the joints, file two or three poses, then choose how fast the change happens and whether the body comes back. Speed and return are the two things the Institute measures in every material.</p>
-        <div class="btn-row" style="margin-top:20px"><a class="btn btn-primary" href="#/lab">Open the Translation Lab</a><a class="btn" href="#/collective/bodies">Visit the Body Atlas</a></div>
+        <div class="btn-row" style="margin-top:20px"><a class="btn btn-primary" href="#lab">Open the Translation Lab</a><a class="btn" href="#collective-bodies">Visit the Body Atlas</a></div>
       </div>
       <div class="panel" style="max-width:420px;justify-self:center;width:100%">
         <span class="label" style="position:absolute;top:-12px;left:20px;background:var(--pink)">Specimen body 001</span>
@@ -226,10 +239,10 @@ async function home() {
     <div class="wrap">
       <div class="section-head">
         <div><p class="eyebrow">Collective Dictionary</p><h2>Recently recorded<br>meanings</h2></div>
-        <a class="btn" href="#/collective">Read the wall</a>
+        <a class="btn" href="#collective">Read the wall</a>
       </div>
       ${latest.length ? `<div class="wall">${latest.map(e => quoteCard(e)).join("")}</div>` :
-      `<div class="empty"><h3>The wall is waiting for its first meaning.</h3><p>Be the first translator on record.</p><a class="btn btn-primary" href="#/lab">Translate a material</a></div>`}
+      `<div class="empty"><h3>The wall is waiting for its first meaning.</h3><p>Be the first translator on record.</p><a class="btn btn-primary" href="#lab">Translate a material</a></div>`}
     </div>
   </section>
 
@@ -243,7 +256,7 @@ async function home() {
         <p>The Institute of Animate Matter is a fictional institution and a real research project. It asks how the way materials change can become a language that people read and perform with their bodies.</p>
         <p>Everything here separates two kinds of record: what the material physically did, and what a person thinks it means. The first is evidence. The second is yours.</p>
         <p class="hand">Institute property / handle with feeling</p>
-        <a class="btn" href="#/about">Read about the research &amp; your data</a>
+        <a class="btn" href="#about">Read about the research &amp; your data</a>
       </div>
     </div>
   </section>`;
@@ -268,7 +281,7 @@ async function materials() {
   <div class="wrap page-head">
     <p class="eyebrow">Department of Material Responses</p>
     <h1>The Material Archive</h1>
-    <p class="lede">Each specimen has been pressed by a human palm and watched closely. Open a case file to see the evidence, then the meanings people have filed.</p>
+    <p class="lede">Each specimen is pressed by a human palm and watched closely. Open a case file to see the evidence, then the meanings people have filed.</p>
   </div>
   <div class="wrap">
     <div class="filters" role="group" aria-label="Filter specimens">
@@ -310,7 +323,7 @@ async function caseFile(id) {
 
   main.innerHTML = `
   <div class="wrap page-head" style="padding-bottom:12px">
-    <a class="pill" href="#/materials">← Archive</a>
+    <a class="pill" href="#materials">← Archive</a>
   </div>
   <div class="wrap">
     <div class="case-hero">
@@ -330,7 +343,7 @@ async function caseFile(id) {
           <div class="meta-cell"><span class="mono">Meanings filed</span><strong>${real.length}</strong></div>
         </div>
         <div class="inset"><span class="mono muted">Mode of change</span><p class="serif" style="font-size:24px;margin:6px 0 0">${esc(m.mode)}</p></div>
-        <div class="btn-row"><a class="btn btn-primary" href="#/lab/${m.id}">Translate this material</a><span class="stamp coral" style="margin-left:auto">Handle<br>with feeling</span></div>
+        <div class="btn-row"><a class="btn btn-primary" href="#lab-${m.id}">Translate this material</a><span class="stamp coral" style="margin-left:auto">Handle<br>with feeling</span></div>
       </div>
     </div>
 
@@ -374,14 +387,14 @@ async function caseFile(id) {
         <header><p class="mono">05 / Your turn</p><h2>Add your reading</h2></header>
         <div>
           <p class="serif" style="font-size:26px;font-weight:300">What does this change mean to you?</p>
-          <div class="btn-row"><a class="btn btn-primary" href="#/lab/${m.id}">Start Experiment ${m.id}</a></div>
+          <div class="btn-row"><a class="btn btn-primary" href="#lab-${m.id}">Start Experiment ${m.id}</a></div>
         </div>
       </section>
     </div>
 
     <div class="btn-row" style="justify-content:space-between;margin-top:32px">
-      <a class="pill" href="#/materials/${prev.id}">← ${prev.id} / ${esc(prev.name)}</a>
-      <a class="pill" href="#/materials/${next.id}">${next.id} / ${esc(next.name)} →</a>
+      <a class="pill" href="#materials-${prev.id}">← ${prev.id} / ${esc(prev.name)}</a>
+      <a class="pill" href="#materials-${next.id}">${next.id} / ${esc(next.name)} →</a>
     </div>
   </div>`;
 
@@ -519,7 +532,7 @@ async function lab(id) {
           <input id="f-alias" class="input" data-k="alias" maxlength="40" placeholder="Anonymous translator" value="${esc(d.alias)}" autocomplete="nickname">
           <p class="hint">A first name, initials or a made-up name. Please don't use your full name.</p></div>
         <label class="check"><input type="checkbox" data-k="share" ${d.share ? "checked" : ""}>
-          <span><strong>Also share it with the Collective Dictionary.</strong><br><span class="muted" style="font-size:14px">Your meaning, voice and body appear publicly with the name above, and may be quoted in Lynn Zhong's MA research. You can withdraw it later from My Dictionary on this device. <a href="#/about" target="_blank">More about your data</a></span></span></label>
+          <span><strong>Also share it with the Collective Dictionary.</strong><br><span class="muted" style="font-size:14px">Your meaning, voice and body appear publicly with the name above, and may be quoted in Lynn Zhong's MA research. You can withdraw it later from My Dictionary on this device. <a href="#about" target="_blank">More about your data</a></span></span></label>
         ${offlineNotice()}`;
     }
     const canNext = d.step === 0 ? !!d.material_id : d.step === 2 ? !!d.meaning.trim() : true;
@@ -586,7 +599,7 @@ async function lab(id) {
       }
       save();
     }));
-    $$("[data-pick]", form).forEach(b => b.addEventListener("click", () => { d.material_id = b.dataset.pick; d.step = 1; save(); history.replaceState(null, "", `#/lab/${d.material_id}`); view(); }));
+    $$("[data-pick]", form).forEach(b => b.addEventListener("click", () => { d.material_id = b.dataset.pick; d.step = 1; save(); history.replaceState(null, "", `#lab-${d.material_id}`); view(); }));
     $$("[data-embody]", form).forEach(b => b.addEventListener("click", () => {
       d.embody = b.dataset.embody; save();
       $$("[data-embody]", form).forEach(x => x.setAttribute("aria-pressed", String(x === b)));
@@ -595,7 +608,7 @@ async function lab(id) {
     }));
     $('[data-act="back"]', main)?.addEventListener("click", () => { d.step = Math.max(0, d.step - 1); save(); view(); });
     $('[data-act="change"]', main)?.addEventListener("click", () => { d.step = 0; save(); view(); });
-    $('[data-act="restart"]', main)?.addEventListener("click", () => { if (confirm("Clear this draft and start again?")) { d = freshDraft(); save(); history.replaceState(null, "", "#/lab"); view(); } });
+    $('[data-act="restart"]', main)?.addEventListener("click", async () => { if (await ask("Clear this draft and start again?", "Clear draft")) { d = freshDraft(); save(); history.replaceState(null, "", "#lab"); view(); } });
     form.addEventListener("submit", async e => {
       e.preventDefault();
       if (d.step === 2 && !d.meaning.trim()) return;
@@ -630,9 +643,9 @@ async function lab(id) {
           <span class="stamp">Filed${sharedOk ? " & shared" : ""}<br>${fmtDate(saved.created_at)}</span>
           <p style="margin:26px auto 22px;max-width:46ch">${sharedOk ? "Your translation is now on the Collective Dictionary wall. Others may read your body and file what they think it says." : "Your translation is in your personal dictionary on this device."} Come back in a few days and see if the meaning still holds.</p>
           <div class="btn-row" style="justify-content:center">
-            <a class="btn btn-primary" href="#/me">Open My Dictionary</a>
-            <a class="btn" href="#/collective">See the Collective</a>
-            <a class="btn btn-ghost" href="#/lab">Translate another</a>
+            <a class="btn btn-primary" href="#me">Open My Dictionary</a>
+            <a class="btn" href="#collective">See the Collective</a>
+            <a class="btn btn-ghost" href="#lab">Translate another</a>
           </div>
         </div>
       </div>`;
@@ -661,14 +674,14 @@ async function me() {
         <p class="mono small muted" style="margin-top:12px">${list.length} entr${list.length === 1 ? "y" : "ies"} · ${shared.length} shared · kept in this browser</p>
       </div>
       <div class="btn-row" style="flex-direction:column;align-items:stretch">
-        <a class="btn btn-primary" href="#/lab">New translation</a>
+        <a class="btn btn-primary" href="#lab">New translation</a>
         ${list.length ? `<button class="btn btn-small" data-act="export">Download a copy</button>` : ""}
       </div>
     </div>
   </div>
   <div class="wrap">
     ${list.length ? `<div class="entries">${list.map(e => entryCard(e, readings.filter(r => r.entry_id === e.remote_id))).join("")}</div>` :
-      `<div class="empty"><h3>Your dictionary has no entries yet.</h3><p>Each translation you file becomes a page here: what you saw, what it meant, and how that meaning changes over time.</p><a class="btn btn-primary" href="#/lab">Translate your first material</a></div>`}
+      `<div class="empty"><h3>Your dictionary has no entries yet.</h3><p>Each translation you file becomes a page here: what you saw, what it meant, and how that meaning changes over time.</p><a class="btn btn-primary" href="#lab">Translate your first material</a></div>`}
     <p class="mono small muted" style="margin-top:28px">Entries live in this browser only. Clearing site data or switching device will lose them, so download a copy if they matter to you.</p>
   </div>`;
 
@@ -687,13 +700,13 @@ async function me() {
       return render();
     }
     if (act === "unshare") {
-      if (!confirm("Remove this entry from the Collective Dictionary? It stays in your own dictionary.")) return;
+      if (!(await ask("Withdraw this entry from the Collective Dictionary? It stays in your own dictionary.", "Withdraw"))) return;
       try { await store.unshare(e.remote_id); store.updateMine(e.id, { shared: false, remote_id: null }); store.invalidate(); toast("Withdrawn from the Collective"); }
       catch (err) { console.error(err); toast("Could not withdraw it. Please try again."); }
       return render();
     }
     if (act === "delete") {
-      if (!confirm("Delete this entry from your dictionary?" + (e.shared ? " It will also be withdrawn from the Collective." : ""))) return;
+      if (!(await ask("Delete this entry from your dictionary?" + (e.shared ? " It will also be withdrawn from the Collective." : ""), "Delete"))) return;
       if (e.shared && e.remote_id) { try { await store.unshare(e.remote_id); store.invalidate(); } catch (err) { console.error(err); } }
       store.deleteMine(e.id); toast("Entry deleted"); return render();
     }
@@ -752,11 +765,10 @@ function revise(e) {
 }
 
 // ---------- COLLECTIVE ----------
-async function collective(viewName = "words") {
+async function collective(viewName = "words", matParam = "") {
   const rows = await collectiveRows();
   const realCount = rows.filter(r => !r.example).length;
-  const q = new URLSearchParams(location.hash.split("?")[1] || "");
-  const mat = q.get("m") || "";
+  const mat = matParam || "";
   const filtered = mat ? rows.filter(r => r.material_id === mat) : rows;
 
   main.innerHTML = `
@@ -768,9 +780,9 @@ async function collective(viewName = "words") {
   <div class="wrap">
     ${offlineNotice()}
     <div class="view-tabs" style="margin-top:18px">
-      <a class="pill ${viewName === "words" ? "is-on" : ""}" href="#/collective/words${mat ? "?m=" + mat : ""}">Words</a>
-      <a class="pill ${viewName === "bodies" ? "is-on" : ""}" href="#/collective/bodies${mat ? "?m=" + mat : ""}">Bodies · Atlas</a>
-      <a class="pill ${viewName === "traces" ? "is-on" : ""}" href="#/collective/traces${mat ? "?m=" + mat : ""}">Traces</a>
+      <a class="pill ${viewName === "words" ? "is-on" : ""}" href="#collective-words${mat ? "-" + mat : ""}">Words</a>
+      <a class="pill ${viewName === "bodies" ? "is-on" : ""}" href="#collective-bodies${mat ? "-" + mat : ""}">Bodies · Atlas</a>
+      <a class="pill ${viewName === "traces" ? "is-on" : ""}" href="#collective-traces${mat ? "-" + mat : ""}">Traces</a>
       <label class="visually-hidden" for="mat-filter">Filter by specimen</label>
       <select id="mat-filter" class="select" style="width:auto;margin-left:auto;padding:9px 14px;font-size:14px">
         <option value="">All specimens</option>
@@ -779,7 +791,7 @@ async function collective(viewName = "words") {
     </div>
     <div id="cview"></div>
   </div>`;
-  $("#mat-filter").addEventListener("change", ev => { location.hash = `#/collective/${viewName}${ev.target.value ? "?m=" + ev.target.value : ""}`; });
+  $("#mat-filter").addEventListener("change", ev => { location.hash = `#collective-${viewName}${ev.target.value ? "-" + ev.target.value : ""}`; });
   const box = $("#cview");
 
   if (viewName === "words") {
@@ -787,7 +799,7 @@ async function collective(viewName = "words") {
     box.innerHTML = groups.length ? groups.map(([m, l]) => {
       const tr = l.slice(0, 3).map((r, i) => `<div class="row"><span>Human translation ${"ABC"[i]}:</span><span>${esc(latestMeaning(r))}</span></div>`).join("");
       return `<section class="material-group">
-        <header><h3>${m.id} / ${esc(m.name)}</h3><a class="pill" href="#/materials/${m.id}">Case file →</a></header>
+        <header><h3>${m.id} / ${esc(m.name)}</h3><a class="pill" href="#materials-${m.id}">Case file →</a></header>
         <div class="wall">
           <div class="card summary-card" style="background:var(--${m.tag === "butter" ? "butter" : m.tag})">
             <div class="row"><span>Specimen</span><span>${m.id} / ${esc(m.name)}</span></div>
@@ -830,7 +842,7 @@ async function collective(viewName = "words") {
       ${revised.length ? `<div class="entries">${revised.map(r => { const m = byId(r.material_id); return `<article class="card entry layered"><span class="spec-no">${m.id} / ${esc(m.name.toUpperCase())}</span><div><span class="mono small muted">Original meaning</span><p class="meaning old">${esc(r.meaning)}</p></div>${r.revisions.map(v => `<div><span class="mono small" style="color:var(--burgundy)">Revised${r.example ? "" : " · " + fmtDate(v.at)}</span><p class="meaning" style="font-size:28px">${esc(v.meaning)}</p>${v.note ? `<p class="hand" style="font-size:20px">${esc(v.note)}</p>` : ""}</div>`).join("")}<p class="mono small muted">${esc(r.alias || "Anonymous")}${r.example ? " · example" : ""}</p></article>`; }).join("")}</div>` : `<p class="muted">Nobody has revised a shared meaning yet.</p>`}`;
   }
 }
-const emptyCollective = (t = "Nothing filed for this specimen yet.") => `<div class="empty"><h3>${t}</h3><p>Translate a material and choose to share it.</p><a class="btn btn-primary" href="#/lab">Open the Translation Lab</a></div>`;
+const emptyCollective = (t = "Nothing filed for this specimen yet.") => `<div class="empty"><h3>${t}</h3><p>Translate a material and choose to share it.</p><a class="btn btn-primary" href="#lab">Open the Translation Lab</a></div>`;
 
 // ---------- ABOUT ----------
 async function about() {
@@ -865,7 +877,7 @@ async function about() {
 }
 
 function notFound() {
-  return `<div class="wrap section" style="text-align:center"><span class="stamp">Specimen missing</span><h1 style="font-size:56px;margin:24px 0 12px">This page has deformed beyond recognition.</h1><a class="btn btn-primary" href="#/">Back to the Institute</a></div>`;
+  return `<div class="wrap section" style="text-align:center"><span class="stamp">Specimen missing</span><h1 style="font-size:56px;margin:24px 0 12px">This page has deformed beyond recognition.</h1><a class="btn btn-primary" href="#">Back to the Institute</a></div>`;
 }
 
 // ---------- boot ----------
