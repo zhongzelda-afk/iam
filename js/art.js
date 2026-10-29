@@ -4,8 +4,8 @@
 // No drawn or textured stand-ins for the material itself.
 
 const f = n => n.toFixed(1);
-const LINE = "#B8AA97";
-const ROSE = "#C88A91";
+const LINE = "#A7B3BA";
+const ROSE = "#B9D6E3";
 
 // ---------- small logo mark ----------
 export function mark(color = ROSE) {
@@ -105,4 +105,4 @@ export function specimenArt(m, { large = false } = {}) {
 
 export const emptySlot = () => `<div class="pending empty-vessel">${vessel("vial")}</div>`;
 
-export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#221D1B"/>${mark().replace(/<\/?svg[^>]*>/g, "")}</svg>`;
+export const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#050505"/>${mark().replace(/<\/?svg[^>]*>/g, "")}</svg>`;

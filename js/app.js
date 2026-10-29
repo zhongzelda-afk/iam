@@ -1,5 +1,5 @@
 import { allMaterials, setCommunity, byId, canonical, SPEEDS, AFTERS, LANGUAGE, DEMOS } from "./data.js";
-import { mark, specimenArt, emptySlot, field, guilloche, report } from "./art.js";
+import { mark, specimenArt, emptySlot, field, guilloche } from "./art.js";
 import { mountEditor, mountPlayer, defaultPose } from "./body.js";
 import * as store from "./store.js";
 import { LEGAL } from "./legal.js";
@@ -214,29 +214,134 @@ const matrix = m => `<span class="matrix" role="img" aria-label="${SPEEDS[m.spee
 const savedMark = `<svg class="saved-mark" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="25" fill="none" stroke-width="1.5"/><path d="M18 29 l7 7 l13 -15" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 // ---------- HOME ----------
+// a specimen under observation: protocol and parameters read from the record, viewfinders, an exhibition board, then the catalogue
+const DETAILS = ["Surface", "Texture", "Interior"];
+const words = m => (m.words || []).map(w => LANGUAGE[w].word).join(", ");
+const codeLines = (start, rows) => rows.map((r, i) => `<span class="cl ${r[0]}"><span class="ln">${start + i}</span><span class="ct" ${r[1] ? `data-type="${esc(r[1])}"` : ""}>${esc(r[1] || "")}</span></span>`).join("");
+const protocol = m => {
+  const x = (m.experiments || [])[0];
+  return codeLines(31, [
+    ["c", "// observation protocol [观察指令]"], ["rule", "----------------------------------"], ["", ""],
+    ["h", "Input steps"], ["", ""],
+    ["k", "01_specimen"], ["v", m.specimen ? `${m.name} · ${m.specimen.condition}` : m.name],
+    ["k", "02_action"], ["v", x ? x.type : "Not yet tested"],
+    ["k", "03_response"], ["v", m.speed ? `${SPEEDS[m.speed]} · ${m.after === "keeps" ? "keeps the change" : "returns"}` : "Not yet recorded"],
+    ["k", "04_language"], ["v", words(m) || "Unassigned"],
+    ["", ""], ["x", "Execute_press()->read_response;"]
+  ]);
+};
+const params = m => codeLines(19, [
+  ["c", "// basic parameters"], ["rule", "------------------------"], ["", ""],
+  ["k", "Institute identifier"], ["v", "I.A.M."], ["", ""],
+  ["k", "Object id"], ["v", `Specimen_${m.no}`], ["", ""],
+  ["k", "Family"], ["v", m.group || "Not recorded"], ["", ""],
+  ["k", "I.A.M. reading"], ["v", m.identity ? m.identity.name : "None yet"], ["", ""],
+  ["k", "Status"], ["v", m.photo ? "Documented [√]" : "Photograph pending [ ]"]
+]);
+const FINDERS = [[[54, 30, 9], [44, 56, 14]], [[40, 26, 10], [56, 60, 12]], [[58, 40, 8], [38, 62, 15]], [[46, 22, 11], [60, 52, 13]]];
+
 async function home() {
-  const shelf = ["001", "004", "003", "008"].map(byId);
+  const all = allMaterials().filter(m => !m.community && !m.retired);
+  let cur = 0, timer = null;
+  const feat = all[0];
   main.innerHTML = `
-  <section class="wrap hero">
-    <div class="hero-text">
-      <span class="report-head"><span>Material Witness Report</span><span>I.A.M.</span></span>
+  <section class="wrap home-top">
+    <div class="home-title">
+      <span class="label">I.A.M. · Institute of Animate Matter</span>
       <h1>One Material. Many Meanings.</h1>
       <p>An evolving archive of materials and the meanings we give them.</p>
-      <div class="row"><a class="btn btn-primary" href="#archive">Explore Archive</a></div>
     </div>
-    <div class="plate">
-      ${report()}
-      <div class="seal">${guilloche({ size: 240 })}</div>
-      <div class="display" aria-label="Four specimens from the founding collection">
-        ${shelf.map((m, i) => `<a class="spec slot" href="#archive-${m.id}" data-id="${m.id}" style="--i:${i}">
-          <div class="img">${specimenArt(m, { large: true })}</div>
-          <span class="slot-no">${m.no}</span><span class="slot-name">${esc(m.name)}${m.identity ? `<small>${esc(m.identity.name)}</small>` : ""}</span>
-        </a>`).join("")}
-        <span class="display-base" aria-hidden="true"></span>
+    <a class="btn btn-primary" href="#archive">Explore Archive</a>
+  </section>
+
+  <section class="wrap">
+    <div class="viewer" aria-label="Specimen under observation">
+      <div class="board">
+        <div class="board-id"><span class="board-no" data-v-no>${all[0].no}</span><span class="board-name" data-v-name>${esc(all[0].name)}</span></div>
+        <div class="board-stage">
+          <svg class="board-guides" viewBox="0 0 400 400" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width=".6" vector-effect="non-scaling-stroke">
+            <circle class="draw" pathLength="1" cx="200" cy="200" r="150" stroke-dasharray="3 5" style="--d:200ms"/>
+            <g class="draw-fade" style="--d:500ms"><path d="M200 20 V60 M200 340 V380 M20 200 H60 M340 200 H380"/>${[[70, 70], [330, 70], [70, 330], [330, 330]].map(([x, y]) => `<path d="M${x - 8} ${y} H${x + 8} M${x} ${y - 8} V${y + 8}"/>`).join("")}</g>
+          </g></svg>
+          <div class="scale" aria-hidden="true"><span></span><em>— mm</em></div>
+          <a class="board-spec xray" href="#archive-${all[0].id}" data-v-link>${specimenArt(all[0], { large: true })}</a>
+          ${FINDERS[0].map(([x, y, w], i) => `<span class="vf" data-vf="${i}" style="--x:${x}%;--y:${y}%;--w:${w}%"></span>`).join("")}
+        </div>
+        <ol class="details" data-v-details>${DETAILS.map((d, i) => `<li><span class="dimg">${field()}<span class="pending-label">Pending</span></span><span class="dlabel"><span>0${i + 1}</span>${d}</span></li>`).join("")}</ol>
       </div>
-      <span class="plate-ref" aria-hidden="true">Founding collection · 11 specimens</span>
+      <pre class="code code-l" data-v-proto>${protocol(all[0])}</pre>
+      <pre class="code code-r" data-v-params>${params(all[0])}</pre>
+      <div class="viewer-foot">
+        <span class="viewer-mark">${guilloche({ size: 120 })}</span>
+        <span class="viewer-count label"><span data-v-i>01</span> / ${String(all.length).padStart(2, "0")}</span>
+        <div class="viewer-btns">
+          <button class="vbtn" type="button" data-v-step="-1" aria-label="Previous specimen">←</button>
+          <button class="vbtn" type="button" data-v-step="1" aria-label="Next specimen">→</button>
+          <a class="vbtn" href="#archive-${all[0].id}" data-v-open aria-label="Open case file"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap catalogue-wrap">
+    <div class="catalogue-side" aria-hidden="true"><span>FOUNDING COLLECTION_001–${String(all.length).padStart(3, "0")}</span></div>
+    <div class="catalogue">
+      ${all.map((m, i) => `<a class="cat" href="#archive-${m.id}" style="--i:${i}">
+        <div class="cat-img xray">${specimenArt(m)}<span class="cat-vf" aria-hidden="true"></span></div>
+        <div class="cat-cap"><span class="cat-no">${m.no}</span><span class="cat-text"><strong>${esc(m.name.toUpperCase())}</strong><span>${esc(m.group || "Family not recorded")}</span></span></div>
+      </a>`).join("")}
+    </div>
+  </section>
+
+  <section class="wrap spec-wrap">
+    <div class="spec-card">
+      <span class="spec-side">Specimen</span>
+      <div class="spec-card-img xray">${specimenArt(feat, { large: true })}</div>
+      <div class="spec-card-info">
+        <h2>${esc(feat.name)}</h2>
+        <dl class="spec-table">
+          ${[["Item", feat.type], ["Family", feat.group], ["Response", feat.speed ? `${SPEEDS[feat.speed]}, ${feat.after === "keeps" ? "keeps the change" : "returns"}` : ""], ["Language", words(feat)], ["Reading", feat.identity && feat.identity.name], ["ID", feat.no]].filter(([, v]) => v).map(([k, v]) => `<div><dt>${k}:</dt><dd>${esc(v)}</dd></div>`).join("")}
+        </dl>
+        <a class="btn btn-small" href="#archive-${feat.id}">Open case file</a>
+      </div>
+    </div>
+    <div class="spec-card spec-card-foot">
+      <span>Add your meaning to any material.<br>Private by default.</span>
+      <span><a class="ulink" href="#archive">Archive</a><br><a class="ulink" href="#collection">My Collection</a><br><a class="ulink" href="#about">About &amp; privacy</a></span>
     </div>
   </section>`;
+
+  // typed update of each line, a quick settle rather than a slow effect
+  const type = (root, html) => {
+    root.innerHTML = html;
+    if (calm()) return;
+    $$("[data-type]", root).forEach(el => {
+      const full = el.dataset.type, t0 = performance.now(), glyphs = "▮▯/_01";
+      const step = now => {
+        const k = Math.min(1, (now - t0) / 320), n = Math.floor(full.length * k);
+        el.textContent = full.slice(0, n) + (k < 1 ? glyphs[Math.floor(Math.random() * glyphs.length)] : "");
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  };
+  const show = i => {
+    cur = (i + all.length) % all.length;
+    const m = all[cur], v = $(".viewer", main); if (!v) return;
+    $("[data-v-no]", v).textContent = m.no; $("[data-v-name]", v).textContent = m.name;
+    $("[data-v-i]", v).textContent = String(cur + 1).padStart(2, "0");
+    const link = $("[data-v-link]", v); link.href = "#archive-" + m.id;
+    link.classList.remove("swap"); void link.offsetWidth; link.classList.add("swap");
+    link.innerHTML = specimenArt(m, { large: true });
+    $("[data-v-open]", v).href = "#archive-" + m.id;
+    FINDERS[cur % FINDERS.length].forEach(([x, y, w], k) => { const f = $(`[data-vf="${k}"]`, v); f.style.setProperty("--x", x + "%"); f.style.setProperty("--y", y + "%"); f.style.setProperty("--w", w + "%"); });
+    type($("[data-v-proto]", v), protocol(m));
+    type($("[data-v-params]", v), params(m));
+  };
+  const auto = () => { clearInterval(timer); if (!calm()) timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 6000); };
+  $$("[data-v-step]", main).forEach(b => b.addEventListener("click", () => { show(cur + Number(b.dataset.vStep)); auto(); }));
+  auto();
+  leaving = () => clearInterval(timer);
 }
 
 // ---------- ARCHIVE ----------

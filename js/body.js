@@ -81,16 +81,16 @@ export function sampler(body) {
 }
 
 // ---------- drawing ----------
-function figureSVG(P, { stroke = "#F0E8DA", joints = false, color = "#C88A91", sw = 6 } = {}) {
+function figureSVG(P, { stroke = "#F2F2F0", joints = false, color = "#B9D6E3", sw = 6 } = {}) {
   const bones = LIMBS.map(([a, b]) => `<line x1="${P[a].x.toFixed(1)}" y1="${P[a].y.toFixed(1)}" x2="${P[b].x.toFixed(1)}" y2="${P[b].y.toFixed(1)}"/>`).join("");
   const headR = 15;
   const hx = P.head.x, hy = P.head.y;
   let out = `<g stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" fill="none">${bones}</g>
-    <circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="${headR}" fill="#2B2522" stroke="${stroke}" stroke-width="${sw * .5}"/>`;
+    <circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="${headR}" fill="#0E0F10" stroke="${stroke}" stroke-width="${sw * .5}"/>`;
   if (joints) {
     out += ["hip", ...ORDER].map(j => `<g class="joint" data-j="${j}" tabindex="0" role="slider" aria-label="${LABELS[j]}. Drag, or use arrow keys">
       <circle cx="${P[j].x.toFixed(1)}" cy="${P[j].y.toFixed(1)}" r="20" fill="transparent" stroke="none"/>
-      <circle class="j-ring" cx="${P[j].x.toFixed(1)}" cy="${P[j].y.toFixed(1)}" r="${j === "hip" ? 10 : 8}" fill="${j === "hip" ? "#A99E92" : color}" stroke="#2B2522" stroke-width="2" filter="url(#raise)"/>
+      <circle class="j-ring" cx="${P[j].x.toFixed(1)}" cy="${P[j].y.toFixed(1)}" r="${j === "hip" ? 10 : 8}" fill="${j === "hip" ? "#8D9196" : color}" stroke="#0E0F10" stroke-width="2" filter="url(#raise)"/>
     </g>`).join("");
   }
   return out;
@@ -98,12 +98,12 @@ function figureSVG(P, { stroke = "#F0E8DA", joints = false, color = "#C88A91", s
 
 function guides() {
   let g = `<defs><filter id="raise" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity=".5"/></filter></defs>`;
-  g += `<g stroke="#F0E8DA" stroke-width=".6" opacity=".16">`;
+  g += `<g stroke="#F2F2F0" stroke-width=".6" opacity=".16">`;
   for (let x = 30; x < W; x += 30) g += `<line x1="${x}" y1="10" x2="${x}" y2="${FLOOR}" stroke-dasharray="2 4"/>`;
   for (let y = 30; y < FLOOR; y += 30) g += `<line x1="10" y1="${y}" x2="${W - 10}" y2="${y}" stroke-dasharray="2 4"/>`;
-  g += `</g><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F0E8DA" stroke-width="1.2"/>`;
-  for (let x = 20; x < W; x += 20) g += `<line x1="${x}" y1="${FLOOR}" x2="${x}" y2="${FLOOR + (x % 100 === 0 ? 8 : 4)}" stroke="#F0E8DA" stroke-width=".8"/>`;
-  g += `<text x="${W - 14}" y="${FLOOR + 22}" text-anchor="end" font-family="Geist Mono, monospace" font-size="8" fill="#A99E92">floor</text>`;
+  g += `</g><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F2F2F0" stroke-width="1.2"/>`;
+  for (let x = 20; x < W; x += 20) g += `<line x1="${x}" y1="${FLOOR}" x2="${x}" y2="${FLOOR + (x % 100 === 0 ? 8 : 4)}" stroke="#F2F2F0" stroke-width=".8"/>`;
+  g += `<text x="${W - 14}" y="${FLOOR + 22}" text-anchor="end" font-family="Geist Mono, monospace" font-size="8" fill="#8D9196">floor</text>`;
   return g;
 }
 
@@ -121,11 +121,11 @@ function tick(now) {
 }
 export function mountPlayer(el, body, { trails = false, label = "" } = {}) {
   if (!body || !body.frames || !body.frames.length) {
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}"><text x="150" y="170" text-anchor="middle" font-family="Geist Mono, monospace" font-size="11" fill="#A99E92">No body</text></svg>`;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}"><text x="150" y="170" text-anchor="middle" font-family="Geist Mono, monospace" font-size="11" fill="#8D9196">No body</text></svg>`;
     return;
   }
   const at = sampler(body);
-  el.innerHTML = `<svg viewBox="20 40 260 290" role="img" aria-label="${label || "A body performing a material change"}"><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F0E8DA" stroke-width="1"/><g class="tr"></g><g class="fig"></g></svg>`;
+  el.innerHTML = `<svg viewBox="20 40 260 290" role="img" aria-label="${label || "A body performing a material change"}"><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F2F2F0" stroke-width="1"/><g class="tr"></g><g class="fig"></g></svg>`;
   const fig = el.querySelector(".fig"), tr = el.querySelector(".tr");
   const hist = {};
   const p = {
@@ -137,7 +137,7 @@ export function mountPlayer(el, body, { trails = false, label = "" } = {}) {
         tr.innerHTML = TRAIL_JOINTS.map(j => {
           (hist[j] ||= []).push(`${P[j].x.toFixed(1)},${P[j].y.toFixed(1)}`);
           if (hist[j].length > 70) hist[j].shift();
-          return `<polyline points="${hist[j].join(" ")}" fill="none" stroke="#C88A91" stroke-width="1.2" opacity=".55"/>`;
+          return `<polyline points="${hist[j].join(" ")}" fill="none" stroke="#B9D6E3" stroke-width="1.2" opacity=".55"/>`;
         }).join("");
       }
     }
@@ -149,7 +149,7 @@ export function mountPlayer(el, body, { trails = false, label = "" } = {}) {
 
 // static thumbnail
 export function poseThumb(pose) {
-  return `<svg viewBox="0 0 ${W} ${H}"><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F0E8DA" stroke-width="2"/>${figureSVG(positions(pose), { sw: 9 })}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}"><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F2F2F0" stroke-width="2"/>${figureSVG(positions(pose), { sw: 9 })}</svg>`;
 }
 
 // all traces of several bodies, overlaid (for the Traces view)
@@ -162,10 +162,10 @@ export function tracesSVG(bodies) {
       const P = positions(at(ms));
       for (const j of TRAIL_JOINTS) (hist[j] ||= []).push(`${P[j].x.toFixed(1)},${P[j].y.toFixed(1)}`);
     }
-    const col = ["#C88A91", "#A99E92", "#F0E8DA", "#A99E92", "#B85B50"][bi % 5];
+    const col = ["#B9D6E3", "#8D9196", "#F2F2F0", "#8D9196", "#5B6670"][bi % 5];
     lines += Object.values(hist).map(h => `<polyline points="${h.join(" ")}" fill="none" stroke="${col}" stroke-width="1" opacity=".5"/>`).join("");
   });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Movement traces"><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F0E8DA" stroke-width="1"/>${lines}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Movement traces"><line x1="12" y1="${FLOOR}" x2="${W - 12}" y2="${FLOOR}" stroke="#F2F2F0" stroke-width="1"/>${lines}</svg>`;
 }
 
 // ---------- the editor ----------
@@ -242,10 +242,10 @@ export function mountEditor(root, initial, onChange) {
       trail.innerHTML = TRAIL_JOINTS.map(j => {
         (trailHist[j] ||= []).push(`${P[j].x.toFixed(1)},${P[j].y.toFixed(1)}`);
         if (trailHist[j].length > 90) trailHist[j].shift();
-        return `<polyline points="${trailHist[j].join(" ")}" fill="none" stroke="#C88A91" stroke-width="1.3" opacity=".6"/>`;
+        return `<polyline points="${trailHist[j].join(" ")}" fill="none" stroke="#B9D6E3" stroke-width="1.3" opacity=".6"/>`;
       }).join("");
     } else {
-      trail.innerHTML = cur > 0 ? `<g opacity=".18">${figureSVG(positions(body.frames[cur - 1]), { stroke: "#A99E92", sw: 4 })}</g>` : "";
+      trail.innerHTML = cur > 0 ? `<g opacity=".18">${figureSVG(positions(body.frames[cur - 1]), { stroke: "#8D9196", sw: 4 })}</g>` : "";
     }
   }
 
