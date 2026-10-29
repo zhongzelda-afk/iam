@@ -1,8 +1,8 @@
-import { allMaterials, setCommunity, byId, canonical, SPEEDS, AFTERS, AFTERS_SHORT, LANGUAGE, DEMOS } from "./data.js";
-import { mark, specimenArt, field, guilloche } from "./art.js";
-import { mountEditor, mountPlayer, defaultPose } from "./body.js";
-import * as store from "./store.js";
-import { LEGAL } from "./legal.js";
+import { allMaterials, setCommunity, byId, canonical, SPEEDS, AFTERS, AFTERS_SHORT, LANGUAGE, DEMOS } from "./data.js?v=202610292331";
+import { mark, specimenArt, field, guilloche } from "./art.js?v=202610292331";
+import { mountEditor, mountPlayer, defaultPose } from "./body.js?v=202610292331";
+import * as store from "./store.js?v=202610292331";
+import { LEGAL } from "./legal.js?v=202610292331";
 
 // ---------- helpers ----------
 const $ = (s, r = document) => r.querySelector(s);

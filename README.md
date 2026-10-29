@@ -49,3 +49,6 @@ material `004` in `js/data.js`.
 ## Running locally
 
 Any static server, e.g. `python3 -m http.server` in this folder, then open http://localhost:8000.
+
+## Publishing an update
+Run `./bump.sh` before each commit. It stamps a new `?v=` version on the stylesheet and scripts, so visitors' browsers load the new files instead of cached ones. GitHub Pages deploys `main` within a minute or two.
