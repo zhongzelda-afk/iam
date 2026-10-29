@@ -26,7 +26,7 @@ export const LANGUAGE = {
 };
 
 export const FOUNDING = [
-  { id: "001", no: "001", name: "Sponge", type: "Cleaning sponge", group: "Porous Solids", shape: "cube", tex: "sponge",
+  { id: "001", photo: true, cutout: true, refImage: true, no: "001", name: "Sponge", type: "Cleaning sponge", group: "Porous Solids", shape: "cube", tex: "sponge",
     response: "Compresses under pressure and returns towards its original shape after release. Recovery speed varies.",
     traits: "Porous · Compressible · Flexible · Elastic",
     identity: { name: "The Adapter", note: "Flexible and resilient, able to adjust and recover after pressure.", card: "I05" },
@@ -35,7 +35,7 @@ export const FOUNDING = [
     note: "Pressed in bodystorming phase 1 (Sept 2026).",
     specimen: { name: "Kitchen Sponge", variety: "Household cleaning sponge (type not recorded)", composition: "Open-cell foam with connected air pores", part: "Block", condition: "Dry, new", preparation: "Used as bought" },
     experiments: [press({ date: NR, context: "Bodystorming phase 1" })], media: [] },
-  { id: "002", no: "002", name: "Ice", type: "Frozen tap water", group: "Water", shape: "cube", tex: "ice",
+  { id: "002", photo: true, cutout: true, refImage: true, no: "002", name: "Ice", type: "Frozen tap water", group: "Water", shape: "cube", tex: "ice",
     response: "Gradually melts when exposed to warmth. May crack or fracture under sufficient force.", responseExpected: true,
     traits: "Cold · Solid · Rigid · Temperature-sensitive",
     identity: { name: "The Slow Transformer", note: "Appears still and unchanging, but gradually transforms in response to its environment.", card: "I06" },
@@ -45,7 +45,7 @@ export const FOUNDING = [
     specimen: { name: "Ice", variety: "Frozen tap water", composition: "Water in solid phase", part: "Cube", condition: "Frozen", preparation: "Household freezer tray" },
     experiments: [{ id: "E01", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B 05" }],
     media: [{ type: "video", src: "assets/materials/002-workshop-b-05.mp4", poster: "assets/materials/002-workshop-b-05.jpg", caption: "Workshop B 05", chapters: [["Pinch",  1],  ["Press",  21],  ["Squeeze",  35]] }] },
-  { id: "003", no: "003", name: "Aluminium Foil", type: "Household kitchen foil", group: "Metal Foils", shape: "stand", tex: "foil",
+  { id: "003", photo: true, cutout: true, refImage: true, no: "003", name: "Aluminium Foil", type: "Household kitchen foil", group: "Metal Foils", shape: "stand", tex: "foil",
     response: "Creases and deforms under pressure, retaining its altered shape after release.",
     traits: "Thin · Flexible · Foldable · Metallic",
     identity: { name: "The One Who Remembers", note: "Holds on to experiences and carries traces of past interactions.", card: "I02" },
@@ -108,7 +108,7 @@ export const FOUNDING = [
     media: [{ type: "video", src: "assets/materials/012-workshop-b-06.mp4", poster: "assets/materials/012-workshop-b-06.jpg", caption: "Workshop B 06", chapters: [["Pinch",  0],  ["Press",  18],  ["Squeeze",  42]] }] },
   { id: "013", no: "010", name: "Cabbage Leaf", shape: "stand", tex: "cabbage", words: [], experiments: [{ id: "E01", type: "Pinch, press, squeeze", date: "Not recorded", context: "Workshop B 03 (改), vegetable leaf" }],
     media: [{ type: "video", src: "assets/materials/013-workshop-b-03-leaf.mp4", poster: "assets/materials/013-workshop-b-03-leaf.jpg", caption: "Workshop B 03 (改), vegetable leaf", chapters: [["Pinch",  2],  ["Press",  13],  ["Squeeze",  35]] }] },
-  { id: "014", no: "011", name: "Madeleine", shape: "stand", tex: "madeleine", words: [], experiments: [], media: [] }
+  { id: "014", photo: true, cutout: true, refImage: true, no: "011", name: "Madeleine", shape: "stand", tex: "madeleine", words: [], experiments: [], media: [] }
 ];
 
 // Earlier archive entries that are not in the founding collection. Kept so their records and any saved meanings still resolve.
