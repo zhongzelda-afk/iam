@@ -213,7 +213,7 @@ export const MATS = {
 export function material(c, o = {}) {
   return new THREE.MeshPhysicalMaterial({ color: c, vertexColors: !!o.vc, roughness: o.ice ? 0.4 : o.metal ? 0.26 : 0.7, metalness: o.metal ? 0.9 : 0,
     clearcoat: 0.35, clearcoatRoughness: 0.75, sheen: o.metal ? 0 : 0.3, sheenColor: col("#ffffff"), transmission: o.ice ? 0.1 : 0, thickness: 1,
-    envMap: o.metal ? studioEnv() : null, envMapIntensity: 1.4, side: o.side || THREE.FrontSide });
+    envMap: studioEnv(), envMapIntensity: o.metal ? 1.4 : 0.3, side: o.side || THREE.FrontSide });
 }
 
 const satColor = (c, s) => { const h = {}; c.getHSL(h); return new THREE.Color().setHSL(h.h, clamp(h.s * s, 0, 1), h.l); };

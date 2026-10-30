@@ -4,19 +4,35 @@
 // Face and hand tracking run locally in the browser (MediaPipe, files in lib/ and models/).
 
 import { FilesetResolver, FaceDetector, GestureRecognizer } from "./lib/vision_bundle.mjs";
-import { LiveHeads } from "./heads-live.js";
+import { LiveHeads } from "./heads-live.js?v=3";
 
 const CFG = window.IAM_SCREEN;
 const $ = (id) => document.getElementById(id);
 const video = $("video"), canvas = $("stage"), ctx = canvas.getContext("2d"); // camera
 const ui = $("ui"), uctx = ui.getContext("2d"); // voices, counter, hint, above the heads
 const live = new LiveHeads($("gl"), CFG.maxHeads); // 3D heads between the two
+live.depth = CFG.pressDepth ?? 0.5; live.bulge = CFG.bulge ?? 0.14;
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
 const DYN = { instant: { press: 14, release: 9 }, delayed: { press: 3, release: 1.5 }, "": { press: 7, release: 4 } };
+// squeeze springs: instant materials snap and wobble like jelly, delayed ones sink and settle slowly
+const SPRING = { instant: { k: 170, c: 9 }, delayed: { k: 26, c: 9 }, "": { k: 70, c: 10 } };
+
+// One Euro filter: steady when the face is still, quick when it moves (removes tracking jitter)
+function euro(minCut, beta) {
+  let x = null, dx = 0;
+  const a = (cut, dt) => 1 / (1 + 1 / (2 * Math.PI * cut * dt));
+  return (v, dt) => {
+    if (x === null) { x = v; return v; }
+    const d = (v - x) / dt; dx += (d - dx) * a(1, dt);
+    x += (v - x) * a(minCut + beta * Math.abs(dx), dt);
+    return x;
+  };
+}
+const filters = () => ({ x: euro(1.2, 2.5), y: euro(1.2, 2.5), w: euro(0.6, 1.5), angle: euro(1, 0.6) });
 const SEED = [ // Response Cards R01 to R05, shown only while no visitor voice exists
   ["retain", "Retain", "I can't just go back to how things were."],
   ["recover", "Recover", "Give me a moment, I'll be back."],
@@ -30,7 +46,7 @@ let mirror = store.get("iam.mirror", true);
 let faceDetector, gestures, running = false, lastVideoTime = -1, lastT = 0;
 let faces = [], hands = [], showDebug = false, lastSqueeze = 0, fps = 0, testPress = -1e9;
 const heads = Array.from({ length: CFG.maxHeads }, (_, slot) => ({ slot, active: false, alpha: 0, x: .5, y: .5, w: .1, angle: 0, mat: null,
-  seen: 0, squash: 0, closure: 0, dx: 1, dy: 0, pressed: false, lastPress: -99, presses: 0 }));
+  seen: 0, squash: 0, vel: 0, f: filters(), closure: 0, dx: 1, dy: 0, pressed: false, lastPress: -99, presses: 0 }));
 const subs = [];
 const recent = [];
 const ALL_NAMES = Object.fromEntries(CFG.materials.map((m) => [m.id, m.name]));
@@ -147,7 +163,7 @@ function pickMaterial() {
 }
 
 function updateHeads(now, dt) {
-  const k = Math.min(1, dt * 12), asp = video.videoWidth / video.videoHeight || 16 / 9, taken = new Set();
+  const asp = video.videoWidth / video.videoHeight || 16 / 9, taken = new Set();
   for (const h of heads) {
     if (!h.active) continue;
     let best = -1, bd = 0.25;
@@ -155,14 +171,14 @@ function updateHeads(now, dt) {
     if (best < 0) continue;
     taken.add(best);
     const f = faces[best];
-    for (const key of ["x", "y", "w", "angle"]) h[key] += (f[key] - h[key]) * k;
+    for (const key of ["x", "y", "w", "angle"]) h[key] = h.f[key](f[key], Math.max(dt, 1e-3));
     h.seen = now;
   }
   faces.forEach((f, j) => {
     if (taken.has(j)) return;
     const h = heads.find((x) => !x.active && x.alpha < 0.05);
     if (!h || !MATS.length) return;
-    Object.assign(h, { active: true, x: f.x, y: f.y, w: f.w, angle: f.angle, mat: pickMaterial(), seen: now,
+    Object.assign(h, { active: true, x: f.x, y: f.y, w: f.w, angle: f.angle, mat: pickMaterial(), seen: now, f: filters(), vel: 0,
       squash: 0, closure: 0, dx: 1, dy: 0, pressed: false, presses: 0 });
     live.setHead(h.slot, h.mat.id); // a new visitor starts with an untouched head
   });
@@ -188,7 +204,8 @@ function updateHeads(now, dt) {
     h.alpha += ((h.active ? 1 : 0) - h.alpha) * Math.min(1, dt * 6);
     if (!h.active) { if (h.mat && h.alpha < 0.02) { live.clear(h.slot); h.mat = null; } continue; }
     const dyn = DYN[h.mat.speed || ""] || DYN[""], c = h.closure;
-    h.squash += (c - h.squash) * Math.min(1, dt * (c > h.squash ? dyn.press : dyn.release));
+    const sp = SPRING[h.mat.speed || ""] || SPRING[""]; // spring toward the hand's closure, so release overshoots and wobbles
+    for (let i = 0, n = 4, st = dt / n; i < n; i++) { h.vel += (sp.k * (c - h.squash) - sp.c * h.vel) * st; h.squash += h.vel * st; }
     live.press(h.slot, live.contactDir(h.slot, h.dx, h.dy), c, dt, dyn);
     if (!h.pressed && c >= CFG.pressThreshold) {
       h.pressed = true;
@@ -253,6 +270,33 @@ function videoRect() { // the camera fills the screen ("cover"), so normalised p
   return { x: (W - vw * s) / 2, y: (H - vh * s) / 2, w: vw * s, h: vh * s };
 }
 
+let lastLight = 0, grainTile = null;
+const probe = document.createElement("canvas"); probe.width = probe.height = 8;
+function sampleLight() { // the room's average colour tints the heads' ambient light
+  const p = probe.getContext("2d", { willReadFrequently: true });
+  p.drawImage(video, 0, 0, 8, 8);
+  const d = p.getImageData(0, 0, 8, 8).data; let r = 0, g = 0, b = 0;
+  for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+  live.setRoom(r / 64 / 255, g / 64 / 255, b / 64 / 255, CFG.matchLight);
+}
+function grain(now) {
+  if (!grainTile) {
+    grainTile = document.createElement("canvas"); grainTile.width = grainTile.height = 256;
+    const g = grainTile.getContext("2d"), img = g.createImageData(256, 256);
+    for (let i = 0; i < img.data.length; i += 4) { const v = 128 + (Math.random() - 0.5) * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+    g.putImageData(img, 0, 0);
+  }
+  uctx.save();
+  uctx.globalAlpha = CFG.grain; uctx.globalCompositeOperation = "overlay";
+  const ox = Math.floor(Math.random() * 256), oy = Math.floor(Math.random() * 256);
+  uctx.translate(-ox, -oy); uctx.fillStyle = uctx.createPattern(grainTile, "repeat"); uctx.fillRect(0, 0, W + 256, H + 256);
+  uctx.restore();
+  uctx.save(); // gentle vignette
+  const v = uctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.75);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.38)");
+  uctx.fillStyle = v; uctx.fillRect(0, 0, W, H); uctx.restore();
+}
+
 function draw(now) {
   const r = videoRect(), P = (x, y) => [r.x + x * r.w, r.y + y * r.h];
   ctx.fillStyle = "#050505"; ctx.fillRect(0, 0, W, H);
@@ -263,6 +307,21 @@ function draw(now) {
     ctx.restore();
   }
 
+  // soft shadows the heads cast on the person, so they sit in the picture rather than on top of it
+  for (const h of heads) {
+    if (!h.mat || h.alpha < 0.02) continue;
+    const size = h.w * r.w * CFG.headScale, [cx, cy] = P(h.x, h.y), hy = cy - CFG.headOffsetY * size;
+    const blob = (x, y, rx, ry, a) => {
+      ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, 7); ctx.fill(); ctx.restore();
+    };
+    blob(cx + size * 0.06, hy + size * 0.08, size * 0.66, size * 0.62, 0.32 * h.alpha * CFG.shadow);
+    blob(cx + size * 0.04, hy + size * 0.5, size * 0.42, size * 0.14, 0.55 * h.alpha * CFG.shadow);
+  }
+  if (now - lastLight > 400 && video.readyState >= 2) { lastLight = now; sampleLight(); }
+
   // 3D heads
   for (const h of heads) {
     if (!h.mat) continue;
@@ -271,6 +330,7 @@ function draw(now) {
   }
   live.render();
   uctx.clearRect(0, 0, W, H);
+  if (CFG.grain > 0) grain(now); // one film grain over camera and heads, so both read as one image
 
   // floating voices
   const life = CFG.subtitleSeconds * 1000, fs = Math.round(Math.max(20, H * 0.042)), cs = Math.round(fs * 0.48);

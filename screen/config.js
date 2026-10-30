@@ -33,6 +33,11 @@ window.IAM_SCREEN = {
   headOffsetY: 0.12,   // move the head up (+) or down, relative to its size
   tilt: 1,             // follow head tilt; 0 switches it off
   squash: 0.5,         // how much the whole head flattens while pressed (0 to 1)
+  pressDepth: 0.5,     // how deep a press dents the surface, relative to head size
+  bulge: 0.14,         // how much the surface swells out around a press
+  shadow: 1,           // soft shadow the head casts on the person (0 switches it off)
+  matchLight: 0.6,     // how much the room's colour tints the heads (0 to 1)
+  grain: 0.06,         // film grain over the whole picture (0 switches it off)
   // Traces: share of each press that stays on the head until the visitor leaves.
   traceKeeps: 0.45,    // materials that keep the change
   traceReturns: 0,     // materials that return to their form

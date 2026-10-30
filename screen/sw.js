@@ -1,6 +1,6 @@
 // Keeps the screen working offline: every file of the page is cached after the first visit.
 // Supabase requests are not cached here (the page keeps its own copy of the voices).
-const CACHE = "iam-screen-v2";
+const CACHE = "iam-screen-v3";
 const FILES = ["./", "index.html", "config.js", "screen.js", "lib/vision_bundle.mjs",
   "lib/wasm/vision_wasm_internal.js", "lib/wasm/vision_wasm_internal.wasm",
   "lib/wasm/vision_wasm_nosimd_internal.js", "lib/wasm/vision_wasm_nosimd_internal.wasm",
