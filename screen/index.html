@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I.A.M. Screen</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg: #050505; --ink: #efe7d8; --muted: #8d877e; --ice: #b9d6e3; --line: #2a2a2a; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); overflow: hidden;
+    font-family: "Geist", "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  video { display: none; }
+  .panel { position: fixed; z-index: 5; background: rgba(5,5,5,.92); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px 22px; font-size: 14px; line-height: 1.5; }
+  #start { inset: 0; margin: auto; width: min(460px, calc(100% - 32px)); height: fit-content; text-align: left; }
+  #start h1 { font-size: 15px; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 4px; font-weight: 600; }
+  #start p { color: var(--muted); margin: 0 0 16px; }
+  label { display: block; color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin: 12px 0 6px; }
+  select, button { font: inherit; color: var(--ink); background: #121212; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px 10px; width: 100%; }
+  button { cursor: pointer; margin-top: 16px; background: var(--ink); color: #050505; border: 0; font-weight: 600; }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid #3a3a3a; font-weight: 400; }
+  .row { display: flex; gap: 8px; } .row > * { flex: 1; }
+  #status { color: var(--ice); min-height: 1.5em; margin-top: 12px; font-size: 13px; }
+  kbd { border: 1px solid #3a3a3a; border-radius: 4px; padding: 0 5px; font-size: 12px; }
+  #keys { color: var(--muted); font-size: 12px; margin-top: 14px; }
+  #debug { left: 12px; top: 12px; font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre; display: none; max-width: 46vw; overflow: hidden; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<video id="video" playsinline muted></video>
+<canvas id="stage"></canvas>
+<canvas id="gl"></canvas>
+<canvas id="ui"></canvas>
+
+<div id="start" class="panel">
+  <h1>Institute of Animate Matter</h1>
+  <p>Screen for the graduation show. Choose the camera, then start.</p>
+  <label for="camera">Camera</label>
+  <select id="camera"><option value="">Allow camera access first</option></select>
+  <div class="row">
+    <button id="go">Start full screen</button>
+    <button id="goWindow" class="ghost">Start in window</button>
+  </div>
+  <div id="status"></div>
+  <div id="keys"><kbd>F</kbd> full screen &nbsp; <kbd>C</kbd> camera &nbsp; <kbd>D</kbd> debug &nbsp; <kbd>S</kbd> test press &nbsp; <kbd>N</kbd> next head &nbsp; <kbd>M</kbd> mirror</div>
+</div>
+<div id="debug" class="panel"></div>
+
+<script src="config.js"></script>
+<script type="module" src="screen.js"></script>
+</body>
+</html>
