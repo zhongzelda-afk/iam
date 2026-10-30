@@ -1,13 +1,16 @@
-// I.A.M. screen: a passerby gets a material head; closing a hand beside it squeezes the head
-// the way that material responds, and floats up one imagined voice written on the website.
+// I.A.M. screen: a passerby gets a 3D material head; closing a hand beside it presses the head where
+// the hand is, the way that material responds, and floats up one imagined voice written on the website.
+// Materials that keep a change hold part of every press, so each visitor shapes their own head.
 // Face and hand tracking run locally in the browser (MediaPipe, files in lib/ and models/).
 
 import { FilesetResolver, FaceDetector, GestureRecognizer } from "./lib/vision_bundle.mjs";
+import { LiveHeads } from "./heads-live.js";
 
 const CFG = window.IAM_SCREEN;
 const $ = (id) => document.getElementById(id);
-const video = $("video"), canvas = $("stage"), ctx = canvas.getContext("2d");
-const layer = document.createElement("canvas"), lctx = layer.getContext("2d"); // heads, so holes can be cut
+const video = $("video"), canvas = $("stage"), ctx = canvas.getContext("2d"); // camera
+const ui = $("ui"), uctx = ui.getContext("2d"); // voices, counter, hint, above the heads
+const live = new LiveHeads($("gl"), CFG.maxHeads); // 3D heads between the two
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -25,14 +28,13 @@ const SEED = [ // Response Cards R01 to R05, shown only while no visitor voice e
 let W = 0, H = 0, DPR = 1;
 let mirror = store.get("iam.mirror", true);
 let faceDetector, gestures, running = false, lastVideoTime = -1, lastT = 0;
-let faces = [], hands = [], showDebug = false, lastSqueeze = 0, fps = 0;
-const heads = Array.from({ length: CFG.maxHeads }, () => ({ active: false, alpha: 0, x: .5, y: .5, w: .1, angle: 0, mat: null,
-  seen: 0, squash: 0, dent: 0, peak: 0, closure: 0, pressed: false, lastPress: -99, holes: null }));
+let faces = [], hands = [], showDebug = false, lastSqueeze = 0, fps = 0, testPress = -1e9;
+const heads = Array.from({ length: CFG.maxHeads }, (_, slot) => ({ slot, active: false, alpha: 0, x: .5, y: .5, w: .1, angle: 0, mat: null,
+  seen: 0, squash: 0, closure: 0, dx: 1, dy: 0, pressed: false, lastPress: -99, presses: 0 }));
 const subs = [];
 const recent = [];
-const images = {};
 const ALL_NAMES = Object.fromEntries(CFG.materials.map((m) => [m.id, m.name]));
-const MATS = CFG.materials.filter((m) => m.png);
+const MATS = CFG.materials;
 
 // ---------- data: public voices from the website, cached for offline use ----------
 
@@ -120,7 +122,7 @@ function track(now) {
     const x = (k[0].x + k[1].x + k[2].x + k[3].x) / 4, y = (k[0].y + k[1].y + k[2].y + k[3].y) / 4;
     const [a, b] = k[0].x < k[1].x ? [k[0], k[1]] : [k[1], k[0]];
     const angle = Math.atan2((b.y - a.y) * video.videoHeight, (b.x - a.x) * video.videoWidth);
-    return { x, y, w: Math.max(Math.abs(k[4].x - k[5].x), 0.03), angle, holes: [[k[0].x, k[0].y], [k[1].x, k[1].y], [k[3].x, k[3].y]] };
+    return { x, y, w: Math.max(Math.abs(k[4].x - k[5].x), 0.03), angle };
   });
   const gr = gestures.recognizeForVideo(video, now);
   const asp = video.videoWidth / video.videoHeight;
@@ -154,7 +156,6 @@ function updateHeads(now, dt) {
     taken.add(best);
     const f = faces[best];
     for (const key of ["x", "y", "w", "angle"]) h[key] += (f[key] - h[key]) * k;
-    h.holes.forEach((p, i) => { p[0] += (f.holes[i][0] - p[0]) * k; p[1] += (f.holes[i][1] - p[1]) * k; });
     h.seen = now;
   }
   faces.forEach((f, j) => {
@@ -162,32 +163,39 @@ function updateHeads(now, dt) {
     const h = heads.find((x) => !x.active && x.alpha < 0.05);
     if (!h || !MATS.length) return;
     Object.assign(h, { active: true, x: f.x, y: f.y, w: f.w, angle: f.angle, mat: pickMaterial(), seen: now,
-      squash: 0, dent: 0, peak: 0, closure: 0, pressed: false, holes: f.holes.map((p) => p.slice()) });
+      squash: 0, closure: 0, dx: 1, dy: 0, pressed: false, presses: 0 });
+    live.setHead(h.slot, h.mat.id); // a new visitor starts with an untouched head
   });
   for (const h of heads) if (h.active && now - h.seen > 1500) h.active = false; // the person has left
 
-  // squeeze: each hand works on the nearest head
+  // pressing: each hand works on the nearest head, at the side where the hand is
   for (const h of heads) h.closure = 0;
+  const radius = (h) => Math.max(h.w * CFG.headScale / 2, 0.01); // head radius in video widths
   for (const hand of hands) {
-    const live = heads.filter((h) => h.active);
-    if (!live.length) break;
-    const near = live.reduce((a, b) => (Math.hypot((hand.x - a.x) * asp, hand.y - a.y) < Math.hypot((hand.x - b.x) * asp, hand.y - b.y) ? a : b));
-    near.closure = Math.max(near.closure, hand.closure);
+    const on = heads.filter((h) => h.active);
+    if (!on.length) break;
+    const near = on.reduce((a, b) => (Math.hypot((hand.x - a.x) * asp, hand.y - a.y) < Math.hypot((hand.x - b.x) * asp, hand.y - b.y) ? a : b));
+    if (hand.closure >= near.closure) {
+      near.closure = hand.closure;
+      near.dx = (hand.x - near.x) / radius(near);
+      near.dy = (hand.y - near.y) / asp / radius(near);
+    }
   }
+  const test = heads.find((h) => h.active), tt = (now - testPress) / 1600; // key S: a pretend squeeze from the right
+  if (test && tt >= 0 && tt < 1) Object.assign(test, { closure: Math.sin(tt * Math.PI), dx: 1.1, dy: -0.15 });
+
   for (const h of heads) {
     h.alpha += ((h.active ? 1 : 0) - h.alpha) * Math.min(1, dt * 6);
-    if (!h.active) continue;
+    if (!h.active) { if (h.mat && h.alpha < 0.02) { live.clear(h.slot); h.mat = null; } continue; }
     const dyn = DYN[h.mat.speed || ""] || DYN[""], c = h.closure;
-    if (c > h.squash) h.squash += (c - h.squash) * Math.min(1, dt * dyn.press);
-    else h.squash += (Math.max(c, h.dent) - h.squash) * Math.min(1, dt * dyn.release);
-    h.peak = Math.max(h.peak, h.squash);
+    h.squash += (c - h.squash) * Math.min(1, dt * (c > h.squash ? dyn.press : dyn.release));
+    live.press(h.slot, live.contactDir(h.slot, h.dx, h.dy), c, dt, dyn);
     if (!h.pressed && c >= CFG.pressThreshold) {
       h.pressed = true;
       if (now - h.lastPress > CFG.cooldownSeconds * 1000) { h.lastPress = now; spawnSubtitle(h, now); }
     } else if (h.pressed && c <= CFG.releaseThreshold) {
-      h.pressed = false;
-      if (CFG.keepDent && h.mat.after === "keeps") h.dent = Math.min(0.35, Math.max(h.dent, h.peak * 0.4)); // stays a little changed
-      h.peak = 0;
+      h.pressed = false; h.presses++;
+      live.release(h.slot, h.mat.after === "keeps" ? CFG.traceKeeps : h.mat.after === "returns" ? CFG.traceReturns : CFG.traceUnknown); // the trace
     }
   }
 }
@@ -235,8 +243,9 @@ function wrap(c, text, maxW) {
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
   W = innerWidth; H = innerHeight;
-  for (const c of [canvas, layer]) { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); }
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); lctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  for (const c of [canvas, ui]) { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); uctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  live.resize(W, H, DPR);
 }
 
 function videoRect() { // the camera fills the screen ("cover"), so normalised points map through this rectangle
@@ -254,42 +263,14 @@ function draw(now) {
     ctx.restore();
   }
 
-  // heads on their own layer, then eye and mouth holes cut out of it
-  lctx.clearRect(0, 0, W, H);
+  // 3D heads
   for (const h of heads) {
-    if (h.alpha < 0.01 || !h.mat) continue;
-    const img = images[h.mat.png];
-    if (!img || !img.complete || !img.naturalWidth) continue;
-    const size = h.w * r.w * CFG.headScale, s = size / Math.max(img.naturalWidth, img.naturalHeight), q = h.squash;
-    const [cx, cy] = P(h.x, h.y);
-    lctx.save();
-    lctx.globalAlpha = h.alpha;
-    lctx.translate(cx, cy - CFG.headOffsetY * size);
-    lctx.rotate(h.angle * CFG.tilt);
-    lctx.scale(s * (1 + 0.32 * q), s * (1 - 0.42 * q));
-    lctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-    lctx.restore();
+    if (!h.mat) continue;
+    const size = h.w * r.w * CFG.headScale, [cx, cy] = P(h.x, h.y);
+    live.place(h.slot, cx, cy - CFG.headOffsetY * size, size, h.angle * CFG.tilt, h.squash * CFG.squash, h.alpha, now);
   }
-  if (CFG.holes) {
-    lctx.save();
-    lctx.globalCompositeOperation = "destination-out";
-    for (const h of heads) {
-      if (h.alpha < 0.01 || !h.holes) continue;
-      const fw = h.w * r.w;
-      h.holes.forEach(([x, y], i) => {
-        const [px, py] = P(x, y), mouth = i === 2;
-        const rx = (mouth ? CFG.mouthSize : CFG.eyeSize) * fw / 2, ry = rx * (mouth ? 0.55 : 0.72);
-        lctx.save();
-        lctx.translate(px, py); lctx.rotate(h.angle * CFG.tilt); lctx.scale(rx, ry);
-        const g = lctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-        g.addColorStop(0, `rgba(0,0,0,${h.alpha})`); g.addColorStop(0.6, `rgba(0,0,0,${h.alpha})`); g.addColorStop(1, "rgba(0,0,0,0)");
-        lctx.fillStyle = g; lctx.fillRect(-1, -1, 2, 2);
-        lctx.restore();
-      });
-    }
-    lctx.restore();
-  }
-  ctx.drawImage(layer, 0, 0, W, H);
+  live.render();
+  uctx.clearRect(0, 0, W, H);
 
   // floating voices
   const life = CFG.subtitleSeconds * 1000, fs = Math.round(Math.max(20, H * 0.042)), cs = Math.round(fs * 0.48);
@@ -298,42 +279,42 @@ function draw(now) {
     if (t > life) { subs.splice(i, 1); continue; }
     const a = Math.min(1, t / 800, (life - t) / 1500);
     const x = s.x * W + Math.sin(s.phase + t / 1100) * 12, y = s.y * H - t * 0.018;
-    ctx.save();
-    ctx.globalAlpha = a; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.shadowColor = "rgba(0,0,0,.65)"; ctx.shadowBlur = 18;
-    ctx.font = `500 ${fs}px Geist, Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
-    ctx.fillStyle = "#efe7d8";
-    const lines = wrap(ctx, s.text, Math.min(W * 0.72, 980));
-    lines.forEach((ln, j) => ctx.fillText(ln, x, y - (lines.length - 1 - j) * fs * 1.18));
-    ctx.font = `400 ${cs}px Geist, Inter, "Segoe UI", sans-serif`;
-    ctx.fillStyle = "#b9d6e3"; ctx.globalAlpha = a * 0.85;
-    ctx.fillText(s.cap, x, y + cs * 1.9);
-    ctx.restore();
+    uctx.save();
+    uctx.globalAlpha = a; uctx.textAlign = "center"; uctx.textBaseline = "alphabetic";
+    uctx.shadowColor = "rgba(0,0,0,.65)"; uctx.shadowBlur = 18;
+    uctx.font = `500 ${fs}px Geist, Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
+    uctx.fillStyle = "#efe7d8";
+    const lines = wrap(uctx, s.text, Math.min(W * 0.72, 980));
+    lines.forEach((ln, j) => uctx.fillText(ln, x, y - (lines.length - 1 - j) * fs * 1.18));
+    uctx.font = `400 ${cs}px Geist, Inter, "Segoe UI", sans-serif`;
+    uctx.fillStyle = "#b9d6e3"; uctx.globalAlpha = a * 0.85;
+    uctx.fillText(s.cap, x, y + cs * 1.9);
+    uctx.restore();
   }
 
   // counter and hint
-  ctx.save();
-  ctx.font = `400 ${Math.round(Math.max(12, H * 0.018))}px Geist, Inter, "Segoe UI", sans-serif`;
-  ctx.fillStyle = "rgba(239,231,216,.62)"; ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 8;
+  uctx.save();
+  uctx.font = `400 ${Math.round(Math.max(12, H * 0.018))}px Geist, Inter, "Segoe UI", sans-serif`;
+  uctx.fillStyle = "rgba(239,231,216,.62)"; uctx.shadowColor = "rgba(0,0,0,.6)"; uctx.shadowBlur = 8;
   const n = pool().filter((v) => v.who !== "iam").length;
-  if (CFG.showCounter && n) ctx.fillText(`${n} imagined voices from ${peopleCount()} different people`, 24, H - 24);
+  if (CFG.showCounter && n) uctx.fillText(`${n} imagined voices from ${peopleCount()} different people`, 24, H - 24);
   if (CFG.hint && heads.some((h) => h.active) && now - lastSqueeze > CFG.hintAfterSeconds * 1000 && !subs.length) {
-    ctx.textAlign = "center"; ctx.globalAlpha = 0.55 + 0.25 * Math.sin(now / 600);
-    ctx.fillText(CFG.hint, W / 2, H - 28);
+    uctx.textAlign = "center"; uctx.globalAlpha = 0.55 + 0.25 * Math.sin(now / 600);
+    uctx.fillText(CFG.hint, W / 2, H - 28);
   }
-  ctx.restore();
+  uctx.restore();
 
   if (showDebug) {
-    ctx.save();
+    uctx.save();
     for (const hand of hands) {
-      ctx.fillStyle = `rgba(185,214,227,${0.4 + 0.6 * hand.closure})`;
-      for (const [x, y] of hand.pts) { const [px, py] = P(x, y); ctx.beginPath(); ctx.arc(px, py, 3, 0, 7); ctx.fill(); }
+      uctx.fillStyle = `rgba(185,214,227,${0.4 + 0.6 * hand.closure})`;
+      for (const [x, y] of hand.pts) { const [px, py] = P(x, y); uctx.beginPath(); uctx.arc(px, py, 3, 0, 7); uctx.fill(); }
     }
-    ctx.restore();
+    uctx.restore();
     $("debug").textContent = [
       `fps ${fps.toFixed(0)}   camera ${video.videoWidth}x${video.videoHeight}   mirror ${mirror}`,
       `faces ${faces.length}   hands ${hands.map((h) => `closure ${h.closure.toFixed(2)} (ratio ${h.ratio.toFixed(2)})`).join(", ") || 0}`,
-      `heads ${heads.filter((h) => h.active).map((h) => `${h.mat.name} squash ${h.squash.toFixed(2)}`).join(", ") || "none"}`,
+      `heads ${heads.filter((h) => h.active).map((h) => `${h.mat.name} press ${h.closure.toFixed(2)} at ${h.dx.toFixed(1)},${h.dy.toFixed(1)}, ${h.presses} presses`).join(", ") || "none"}`,
       `voices ${n} from ${peopleCount()} people   data ${data.source}${data.updated ? ", updated " + data.updated : ""}${data.error ? "   " + data.error : ""}`,
       ...subs.map((s) => `shown id ${s.id}`),
     ].join("\n");
@@ -369,7 +350,6 @@ async function start(full) {
 
 async function init() {
   resize(); addEventListener("resize", resize);
-  for (const m of MATS) { const i = new Image(); i.src = m.png; images[m.png] = i; }
   $("go").onclick = () => start(true);
   $("goWindow").onclick = () => start(false);
   $("camera").onchange = () => store.set("iam.camera", $("camera").value);
@@ -378,8 +358,12 @@ async function init() {
     if (k === "f") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {});
     if (k === "d") { showDebug = !showDebug; $("debug").style.display = showDebug ? "block" : "none"; }
     if (k === "c") { $("start").classList.toggle("hidden"); listCameras(); }
+    if (k === "n") { // next material on the first head, to look through all eleven
+      const h = heads.find((x) => x.active);
+      if (h) { h.mat = MATS[(MATS.indexOf(h.mat) + 1) % MATS.length]; live.setHead(h.slot, h.mat.id); }
+    }
     if (k === "m") { mirror = !mirror; store.set("iam.mirror", mirror); }
-    if (k === "s") spawnSubtitle(heads.find((h) => h.active) || { x: 0.5, y: 0.5, w: 0.1, mat: null }, performance.now());
+    if (k === "s") { testPress = performance.now(); if (!heads.some((h) => h.active)) spawnSubtitle({ x: 0.5, y: 0.5, w: 0.1, mat: null }, testPress); }
   });
   fetchVoices(); setInterval(fetchVoices, Math.max(15, CFG.refreshSeconds) * 1000);
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});

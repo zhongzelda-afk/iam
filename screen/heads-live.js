@@ -47,7 +47,7 @@ export class LiveHeads {
       dir[v * 3] = x / l; dir[v * 3 + 1] = y / l; dir[v * 3 + 2] = z / l;
     }
     group.userData.baseRotZ = group.rotation.z;
-    group.userData.baseRotY = group.rotation.y;
+    group.userData.baseRotY = 0.05; // nearly face on; the design sheet used a three quarter turn
     this.scene.add(group);
     this.slots[i] = { id, group, mesh, base, baseN, dir, live: new Float32Array(count), perm: new Float32Array(count), dirty: false };
   }
@@ -91,6 +91,7 @@ export class LiveHeads {
     g.position.set(x, -y, 0);
     const k = (size / 2) * Math.max(0.001, pop);
     g.scale.set(k * (1 + 0.28 * squash), k * (1 - 0.36 * squash), k);
+    g.rotation.x = 0.28; // lean forward a little so the top of each head (stem, crown, calyx) shows
     g.rotation.z = g.userData.baseRotZ - roll;
     g.rotation.y = g.userData.baseRotY + Math.sin(now / 1700 + i) * 0.12; // a slow idle turn, so it reads as a solid
     g.visible = appear > 0.01;

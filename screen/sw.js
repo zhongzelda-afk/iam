@@ -1,12 +1,11 @@
 // Keeps the screen working offline: every file of the page is cached after the first visit.
 // Supabase requests are not cached here (the page keeps its own copy of the voices).
-const CACHE = "iam-screen-v1";
+const CACHE = "iam-screen-v2";
 const FILES = ["./", "index.html", "config.js", "screen.js", "lib/vision_bundle.mjs",
   "lib/wasm/vision_wasm_internal.js", "lib/wasm/vision_wasm_internal.wasm",
   "lib/wasm/vision_wasm_nosimd_internal.js", "lib/wasm/vision_wasm_nosimd_internal.wasm",
   "models/face_detector.tflite", "models/gesture_recognizer.task",
-  "heads/001_sponge.png", "heads/002_ice.png", "heads/003_foil.png", "heads/004_orange.png",
-  "heads/006_tomato.png", "heads/007_pear.png", "heads/009_cream.png", "heads/014_madeleine.png"];
+  "lib/three.module.min.js", "heads3d.js", "heads-live.js"];
 
 self.addEventListener("install", (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener("activate", (e) => e.waitUntil(caches.keys()
