@@ -1,7 +1,7 @@
 // 01 Home: one isolated object in a nearly white room, tiny labels, manual arrows (Reference A).
-import { esc, $ } from "../lib/util.js?v=202611041513";
-import { PUBLISHED, href } from "../lib/library.js?v=202611041513";
-import { objectFigure } from "../components/figure.js?v=202611041513";
+import { esc, $ } from "../lib/util.js?v=202611041523";
+import { PUBLISHED, href } from "../lib/library.js?v=202611041523";
+import { objectFigure } from "../components/figure.js?v=202611041523";
 
 let at = 0;
 export function render(main) {

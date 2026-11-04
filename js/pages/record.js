@@ -1,9 +1,9 @@
 // Personal Translation Detail: one of the visitor's own records, full text first.
-import { esc, fmtDate, $, announce } from "../lib/util.js?v=202611041513";
-import { href, byKey } from "../lib/library.js?v=202611041513";
-import * as col from "../lib/collection.js?v=202611041513";
-import { withdraw } from "../lib/contributions.js?v=202611041513";
-import { submissionStatus } from "../components/status.js?v=202611041513";
+import { esc, fmtDate, $, announce } from "../lib/util.js?v=202611041523";
+import { href, byKey } from "../lib/library.js?v=202611041523";
+import * as col from "../lib/collection.js?v=202611041523";
+import { withdraw } from "../lib/contributions.js?v=202611041523";
+import { submissionStatus } from "../components/status.js?v=202611041523";
 
 export function render(main, id, { editing = false, flash = "" } = {}) {
   const t = col.get(id);

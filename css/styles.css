@@ -204,10 +204,12 @@ a.g-link:hover .g-name { color: var(--accent); }
 /* the object's own arrangement behind the hero (full bleed) */
 .d-hero { isolation: isolate; }
 .d-pattern { position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(50% - 50vw); width: 100vw; pointer-events: none;
-  background-size: 150px 150px; background-repeat: repeat; opacity: .42; animation: pat-drift 80s linear infinite;
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%, #000 82%, transparent); mask-image: linear-gradient(180deg, transparent, #000 12%, #000 82%, transparent); }
-@keyframes pat-drift { to { background-position: 150px 150px; } }
-.d-pattern::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 30% 46% at 34% 50%, var(--bg) 35%, transparent 80%); }
+  display: flex; align-items: center; justify-content: center; gap: clamp(24px, 20vw, 320px); opacity: .32; }
+.d-pattern img { width: clamp(120px, 15vw, 230px); height: auto; object-fit: contain; animation: pat-float 9s ease-in-out infinite alternate; }
+.d-pattern img:nth-child(2) { animation-delay: -3s; }
+.d-pattern img:nth-child(3) { animation-delay: -6s; }
+@keyframes pat-float { to { transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { .d-pattern img { animation: none; } }
 .lg-defs { position: absolute; width: 0; height: 0; }
 /* liquid glass: clear fill, strong blur and saturation, bright rim, inner light, soft depth */
 .lg { border-radius: 26px; background: linear-gradient(135deg, rgba(255,255,255,.42), rgba(255,255,255,.16)); border: 1px solid rgba(255,255,255,.7);
@@ -218,7 +220,7 @@ a.g-link:hover .g-name { color: var(--accent); }
   background: radial-gradient(120% 60% at 15% 0%, rgba(255,255,255,.55), transparent 45%), radial-gradient(80% 40% at 100% 100%, rgba(255,255,255,.25), transparent 60%); mix-blend-mode: soft-light; }
 .lg > * { position: relative; }
 .lg .kv { border-bottom-color: rgba(23,21,19,.1); }
-@media (max-width: 900px) { .d-pattern { background-size: 104px 104px; opacity: .32; } .d-pattern::after { background: radial-gradient(ellipse 60% 30% at 50% 30%, var(--bg) 35%, transparent 80%); } .lg { border-radius: 20px; } }
+@media (max-width: 900px) { .d-pattern { align-items: flex-start; padding-top: 14svh; gap: 6vw; opacity: .28; } .d-pattern img { width: 26vw; } .lg { border-radius: 20px; } }
 .back { display: inline-block; text-decoration: none; color: var(--ink-3); margin-bottom: 18px; }
 .back:hover { color: var(--ink); }
 .d-obj { margin: 0; color: var(--accent); }
