@@ -3,39 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>The Library of Found Materials</title>
-  <meta name="description" content="Eleven ordinary things, pressed by hand. Borrow one, watch it change, and leave a line about what you saw.">
-  <meta name="theme-color" content="#050505">
+  <title>I.A.M. · The Living Material Library</title>
+  <meta name="description" content="I.A.M., Institute of Animate Matter. The Living Material Library: one material, many meanings.">
+  <meta name="theme-color" content="#F5F3EF">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=202611030050">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=202611040018">
 </head>
 <body class="booting">
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-head">
-    <div class="wrap head-inner">
-      <a class="brand" href="#">I.A.M. <span class="muted">Library</span></a>
-      <nav class="nav" aria-label="Main">
-        <a href="#library" data-nav="library">Library</a>
-        <a href="#about" data-nav="about">About</a>
-      </nav>
-    </div>
+    <a class="brand" href="#/" aria-label="I.A.M. home"><span class="brand-mark">I.A.M.</span><span class="brand-sub mono">Institute of Animate Matter</span></a>
+    <nav class="nav mono" aria-label="Main">
+      <a href="#/" data-nav="home">Home</a>
+      <a href="#/library" data-nav="library">Material Library</a>
+      <a href="#/collection" data-nav="collection">My Collection <span class="nav-count" data-col-count hidden></span></a>
+    </nav>
   </header>
 
-  <main id="main" tabindex="-1"><p class="wrap page muted" role="status">Opening the library…</p></main>
+  <main id="main" tabindex="-1"><p class="narrow mono" role="status">Opening the library…</p></main>
+  <p id="live" class="visually-hidden" aria-live="polite"></p>
 
-  <noscript><div class="wrap page"><p>The library needs JavaScript to open.</p></div></noscript>
+  <noscript><div class="narrow"><p>The Living Material Library needs JavaScript to open.</p></div></noscript>
 
-  <footer class="site-foot">
-    <div class="wrap foot-inner">
-      <span>The Library of Found Materials · Institute of Animate Matter · Lynn Zhong, MA UX Design, UAL</span>
-      <a href="#about">About &amp; privacy</a>
-    </div>
+  <footer class="site-foot mono">
+    <span>I.A.M. · The Living Material Library · One Material. Many Meanings.</span>
+    <span><a href="#/about">About &amp; privacy</a> · Lynn Zhong · MA UX Design · LCC, UAL</span>
   </footer>
 
-  <script src="config.js?v=202611030050"></script>
-  <script type="module" src="js/app.js?v=202611030050"></script>
+  <script src="config.js?v=202611040018"></script>
+  <script type="module" src="js/app.js?v=202611040018"></script>
 </body>
 </html>
