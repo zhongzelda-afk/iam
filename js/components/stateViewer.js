@@ -1,7 +1,7 @@
 // Physical State Viewer: the four states as a small concertina booklet, like the printed State Booklet.
 // Folded, the sheets stack and "Trace through" shows every state at once so the change is visible.
 // Unfolded, the sheets open side by side (or in a column on small screens).
-import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611040018";
+import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611041335";
 
 export function stateViewer(o) {
   if (!o.states || !o.states.length) return `<p class="missing">States not yet documented.</p>`;

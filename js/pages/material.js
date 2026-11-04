@@ -1,12 +1,12 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611040018";
-import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611040018";
-import { publishedFor } from "../lib/contributions.js?v=202611040018";
-import { archiveStatus } from "../components/status.js?v=202611040018";
-import { objectFigure } from "../components/figure.js?v=202611040018";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611040018";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611040018";
-import { translationRecord } from "../components/translationRecord.js?v=202611040018";
+import { esc, $, $$ } from "../lib/util.js?v=202611041335";
+import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611041335";
+import { publishedFor } from "../lib/contributions.js?v=202611041335";
+import { archiveStatus } from "../components/status.js?v=202611041335";
+import { objectFigure } from "../components/figure.js?v=202611041335";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611041335";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611041335";
+import { translationRecord } from "../components/translationRecord.js?v=202611041335";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
