@@ -1,6 +1,6 @@
 // Translation Record: one quotation with its archival source label.
-import { esc, fmtDate } from "../lib/util.js?v=202611042201";
-import { SOURCE_TYPES } from "../data/translations.js?v=202611042201";
+import { esc, fmtDate } from "../lib/util.js?v=202611042302";
+import { SOURCE_TYPES } from "../data/translations.js?v=202611042302";
 
 export function translationRecord(t, o) {
   const st = o.states && t.state ? o.states.find(s => s.n === t.state) : null;

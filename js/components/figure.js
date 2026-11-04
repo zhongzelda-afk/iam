@@ -1,5 +1,5 @@
 // Object image: a cut-out photograph, a dotted tracing outline (no footage yet), or an empty reserved slot.
-import { esc } from "../lib/util.js?v=202611042201";
+import { esc } from "../lib/util.js?v=202611042302";
 
 const OUTLINES = {
   sheet: '<path d="M22 70 L38 34 L61 41 L80 27 L97 47 L88 72 L63 80 L44 74 Z M38 34 L44 74 M61 41 L63 80 M80 27 L88 72"/>',

@@ -1,5 +1,5 @@
 // About: the method, what the translations are (and are not), and where data lives.
-import { href } from "../lib/library.js?v=202611042201";
+import { href } from "../lib/library.js?v=202611042302";
 
 export function render(main) {
   main.innerHTML = `
@@ -14,7 +14,7 @@ export function render(main) {
     <h2>Your translations and privacy</h2>
     <p>What you write in Become a Material is saved only in your own browser, in My Collection. Nothing is sent anywhere unless you choose Contribute to the Lab and tick the consent box. Contributions are reviewed before they appear, can be anonymous, and can be withdrawn from My Collection at any time.</p>
     <h2>Images</h2>
-    <p>Object images are cut out from 4K studio footage and photographs of the actual objects (Tomato is still a temporary cut-out). Physical states are real frames from the Workshop B videos.</p>
+    <p>Object images are cut out from 4K studio footage and photographs of the actual objects. Physical states are real frames from the Workshop B videos.</p>
     <p class="mono small muted">A graduation project by Lynn Zhong · MA User Experience Design · London College of Communication, UAL · 2026</p>
     <p><a class="cta" href="${href.library}">Explore the Library <span aria-hidden="true">→</span></a></p>
   </article>`;

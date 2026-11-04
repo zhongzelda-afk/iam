@@ -12,6 +12,7 @@ SESS = ort.InferenceSession(sys.argv[1]); SRC = sys.argv[2]
 TMP = os.path.join(tempfile.gettempdir(), 'iam-hd-frame.png')
 J = {  # slug: (file, time in s for videos, optional region (x0, y0, x1, y1) to search in)
   'orange': ('DJI_20261001164834_0742_D.MP4', 0, None),
+  'tomato': ('DJI_20261001165058_0748_D.MP4', 0.5, None),
   'pear': ('DJI_20261001164752_0741_D.MP4', 0, None),
   'cream-foam': ('DJI_20261001170040_0755_D.MP4', 0.5, None),
   'cabbage-leaf': ('DJI_20261021155626_0776_D.MP4', 0.5, None),
