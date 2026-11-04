@@ -1,9 +1,9 @@
 // 05 My Collection: the visitor's own translations, a private reading room (voice-led, not object-led).
-import { $ } from "../lib/util.js?v=202611041335";
-import { href } from "../lib/library.js?v=202611041335";
-import * as col from "../lib/collection.js?v=202611041335";
-import { sync } from "../lib/contributions.js?v=202611041335";
-import { recordCard } from "../components/recordCard.js?v=202611041335";
+import { $ } from "../lib/util.js?v=202611041513";
+import { href } from "../lib/library.js?v=202611041513";
+import * as col from "../lib/collection.js?v=202611041513";
+import { sync } from "../lib/contributions.js?v=202611041513";
+import { recordCard } from "../components/recordCard.js?v=202611041513";
 
 export function render(main) {
   const items = col.list();

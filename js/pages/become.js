@@ -1,10 +1,10 @@
 // 04 Become a Material: watch, then write as the material. One text box, one button.
 // After saving, sharing with the Library is one optional step on the same screen.
-import { esc, $, announce } from "../lib/util.js?v=202611041335";
-import { href } from "../lib/library.js?v=202611041335";
-import * as col from "../lib/collection.js?v=202611041335";
-import { videoPlayer } from "../components/videoPlayer.js?v=202611041335";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611041335";
+import { esc, $, announce } from "../lib/util.js?v=202611041513";
+import { href } from "../lib/library.js?v=202611041513";
+import * as col from "../lib/collection.js?v=202611041513";
+import { videoPlayer } from "../components/videoPlayer.js?v=202611041513";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611041513";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };

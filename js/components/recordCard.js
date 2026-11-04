@@ -1,7 +1,7 @@
 // My Collection record card: text led, the visitor's voice is the hero.
-import { esc, fmtDate } from "../lib/util.js?v=202611041335";
-import { href } from "../lib/library.js?v=202611041335";
-import { submissionStatus } from "./status.js?v=202611041335";
+import { esc, fmtDate } from "../lib/util.js?v=202611041513";
+import { href } from "../lib/library.js?v=202611041513";
+import { submissionStatus } from "./status.js?v=202611041513";
 
 export function recordCard(t) {
   return `
