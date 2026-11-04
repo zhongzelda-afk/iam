@@ -9,7 +9,7 @@
 //
 // IMAGES: every object has a folder assets/objects/<slug>/
 //   cutout.webp      gallery and hero image, cut out of Lynn's 4K studio videos and photographs
-//                    (tools/extract-hd.py). Tomato is still a temporary Workshop B cut-out.
+//                    (tools/extract-hd.py).
 //                    To use a final photograph, save it over this file (square, transparent
 //                    background, about 1200 px) or point heroImage/galleryImage to the new file,
 //                    and set imageTemporary to false.
@@ -68,7 +68,7 @@ export const MATERIALS = {
   },
   tomato: {
     name: "Tomato", category: "Organic", primaryAction: "Compression",
-    heroImage: O("tomato") + "cutout.webp", galleryImage: O("tomato") + "cutout.webp", imageTemporary: true,
+    heroImage: O("tomato") + "cutout.webp", galleryImage: O("tomato") + "cutout.webp", imageTemporary: false,
     physicalProfile: {
       colour: "Red",
       shape: "Round, with smooth, taut and glossy skin.",
@@ -115,7 +115,7 @@ export const MATERIALS = {
     name: "Cabbage Leaf", category: "Organic", primaryAction: "Compression",
     heroImage: O("cabbage-leaf") + "cutout.webp", galleryImage: O("cabbage-leaf") + "cutout.webp", imageTemporary: false,
     physicalProfile: { colour: "Green leaf, pale stalk", shape: "Broad smooth leaf on a thick, crisp stalk.", lifespan: "Perishable; wilts as it dries.", pressure: null },
-    states: states("cabbage-leaf", [0.3, 6, 22, 45]),
+    states: states("cabbage-leaf", [0.3, 8, 22, 45]),
     experimentVideo: { src: V + "013-workshop-b-03-leaf.mp4", poster: V + "013-workshop-b-03-leaf.jpg", caption: "Workshop B 03 (改) · Vegetable leaf · pinch, press, squeeze", description: "A hand pinches a leaf, presses it flat with the palm, then picks it up and crushes it in the hand. 55 seconds, no sound." },
     bodyPerformanceVideo: null,
     observation: { action: ACTION_APPLIED, response: null, interpretation: null }
