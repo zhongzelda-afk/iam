@@ -37,6 +37,7 @@ Opening `index.html` straight from the file system does not work (browsers block
 | `assets/objects/<slug>/` | `cutout.webp` (gallery and hero) and `state-01..04.jpg` |
 | `assets/materials/` | Research videos and earlier images |
 | `tools/extract-assets.py` | Re-cuts objects and state frames from the videos |
+| `tools/extract-hd.py` | Re-cuts the object images from the 4K studio videos and photos |
 | `supabase/contributions.sql` | Contribution queue with moderation (run once) |
 | `screen/` | Show screen (parked, untouched) |
 
