@@ -1,15 +1,17 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611041335";
-import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611041335";
-import { publishedFor } from "../lib/contributions.js?v=202611041335";
-import { archiveStatus } from "../components/status.js?v=202611041335";
-import { objectFigure } from "../components/figure.js?v=202611041335";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611041335";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611041335";
-import { translationRecord } from "../components/translationRecord.js?v=202611041335";
+import { esc, $, $$ } from "../lib/util.js?v=202611041523";
+import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611041523";
+import { publishedFor } from "../lib/contributions.js?v=202611041523";
+import { archiveStatus } from "../components/status.js?v=202611041523";
+import { objectFigure } from "../components/figure.js?v=202611041523";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611041523";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611041523";
+import { translationRecord } from "../components/translationRecord.js?v=202611041523";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
+// SVG refraction inside backdrop-filter only renders in Chromium browsers; others get the frosted glass alone
+const refractOK = () => /Chrome\//.test(navigator.userAgent);
 
 export function render(main, o) {
   const p = o.physicalProfile || {}, obs = o.observation || {};
@@ -23,12 +25,18 @@ export function render(main, o) {
   main.innerHTML = `
   <article class="detail" aria-labelledby="d-title">
     <section class="d-hero">
+      ${o.heroImage ? `<div class="d-pattern" aria-hidden="true">${[0, 1, 2].map(() => `<img src="${esc(o.heroImage)}" alt="" loading="eager">`).join("")}</div>` : ""}
+      <svg class="lg-defs" aria-hidden="true" focusable="false" width="0" height="0"><filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="n"/>
+        <feGaussianBlur in="n" stdDeviation="2" result="nb"/>
+        <feDisplacementMap in="SourceGraphic" in2="nb" scale="38" xChannelSelector="R" yChannelSelector="G"/>
+      </filter></svg>
       <div class="d-stage" data-stage>
         ${images.map((im, i) => `<figure class="d-img${im.cut ? " is-cut" : ""}${i ? "" : " is-on"}" data-img="${i}" ${i ? "aria-hidden=\"true\"" : ""}>${im.cut ? objectFigure(o, { eager: true, alt: im.alt }) : `<img src="${esc(im.src)}" alt="${esc(im.alt)}" loading="lazy">`}<figcaption class="mono">${esc(im.cap)}</figcaption></figure>`).join("")}
         ${images.length > 1 ? `<div class="d-stage-nav"><button type="button" class="arrow" data-img-step="-1" aria-label="Previous image">‹</button><span class="mono" data-img-count>01 / ${String(images.length).padStart(2, "0")}</span><button type="button" class="arrow" data-img-step="1" aria-label="Next image">›</button></div>` : ""}
         <p class="d-bignum" aria-hidden="true">${o.no}</p>
       </div>
-      <div class="d-panel">
+      <div class="d-panel lg${refractOK() ? " lg--refract" : ""}">
         <a class="mono back" href="${href.library}">← Material Library</a>
         <p class="mono d-obj">Object ${o.no}</p>
         <h1 id="d-title" class="d-title">${esc(o.name)}</h1>
