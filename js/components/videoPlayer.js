@@ -1,5 +1,5 @@
 // Video Evidence Player: native controls, poster, caption, text description, state chapters.
-import { esc, fmtTime } from "../lib/util.js?v=202611040018";
+import { esc, fmtTime } from "../lib/util.js?v=202611041335";
 
 export function videoPlayer(v, { id, states = [], label = "Experiment video" } = {}) {
   if (!v) return "";
