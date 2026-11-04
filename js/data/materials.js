@@ -124,14 +124,18 @@ export const MATERIALS = {
     name: "Aluminium Foil", category: "Metal", primaryAction: "Compression", outline: "sheet",
     heroImage: O("aluminium-foil") + "cutout.webp", galleryImage: O("aluminium-foil") + "cutout.webp", imageTemporary: false,
     physicalProfile: { colour: "Silver", shape: "Thin, smooth sheet, one side brighter than the other.", lifespan: "Long lasting.", pressure: "Creases and deforms under pressure, keeping its altered shape after release." },
-    states: [], experimentVideo: null, bodyPerformanceVideo: null,
+    states: states("aluminium-foil", [1, 11, 35, 52]),
+    experimentVideo: { src: V + "foil-workshop-b.mp4", poster: V + "foil-workshop-b.jpg", caption: "Workshop B · Aluminium Foil · pinch, press, squeeze", description: "A finger pinches a flat sheet of foil, a hand folds it and presses it flat with the palm, then crushes it into a ball in the fist. Dark table, fixed camera. 62 seconds, no sound." },
+    bodyPerformanceVideo: null,
     observation: { action: "Open palm press (bodystorming phase 1, Sept 2026).", response: "Folds at the lightest touch and keeps every crease. Smoothing it out leaves a map of where it was pressed.", interpretation: "Identity card I02, The One Who Remembers: holds on to experiences and carries traces of past interactions." }
   },
   "cleaning-sponge": {
     name: "Cleaning Sponge", category: "Synthetic foam", primaryAction: "Compression", outline: "block",
     heroImage: O("cleaning-sponge") + "cutout.webp", galleryImage: O("cleaning-sponge") + "cutout.webp", imageTemporary: false,
-    physicalProfile: { colour: null, shape: "Rectangular block with an open, porous surface.", lifespan: "Long lasting; wears with use.", pressure: "Compresses under pressure and returns towards its original shape after release." },
-    states: [], experimentVideo: null, bodyPerformanceVideo: null,
+    physicalProfile: { colour: "Yellow, with a green scouring layer", shape: "Rectangular block with an open, porous surface.", lifespan: "Long lasting; wears with use.", pressure: "Compresses under pressure and returns towards its original shape after release." },
+    states: states("cleaning-sponge", [1, 13, 29, 55]),
+    experimentVideo: { src: V + "sponge-workshop-b.mp4", poster: V + "sponge-workshop-b.jpg", caption: "Workshop B · Cleaning Sponge · pinch, press, squeeze", description: "Fingers pinch a sponge standing on its end, a flat palm presses it down on the table, then a hand picks it up and squeezes it. Dark table, fixed camera. 65 seconds, no sound." },
+    bodyPerformanceVideo: null,
     observation: { action: "Open palm press (bodystorming phase 1, Sept 2026).", response: "Gives way the moment a palm presses down, pushes air out of its pores, then rises back to almost its first shape within a second or two of release.", interpretation: "Identity card I05, The Adapter: flexible and resilient, able to adjust and recover after pressure." }
   },
   pear: {
