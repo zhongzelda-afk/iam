@@ -17,8 +17,8 @@ export const NUMBERING_CONFIRMED = ["001"];
 
 export const CATALOGUE = [
   { key: "004", slug: "orange",         no: "001", status: "published" },
-  { key: "003", slug: "aluminium-foil", no: "002", status: "under-observation", note: "Photographed · record being written" },
-  { key: "001", slug: "cleaning-sponge",no: "003", status: "under-observation", note: "Photographed · record being written" },
+  { key: "003", slug: "aluminium-foil", no: "002", status: "published" },
+  { key: "001", slug: "cleaning-sponge",no: "003", status: "published" },
   { key: "002", slug: "ice",            no: "004", status: "published" },
   { key: "006", slug: "tomato",         no: "005", status: "published" },
   { key: "009", slug: "cream-foam",     no: "006", status: "published" },

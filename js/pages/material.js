@@ -1,12 +1,12 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611042152";
-import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611042152";
-import { publishedFor } from "../lib/contributions.js?v=202611042152";
-import { archiveStatus } from "../components/status.js?v=202611042152";
-import { objectFigure } from "../components/figure.js?v=202611042152";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611042152";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611042152";
-import { translationRecord } from "../components/translationRecord.js?v=202611042152";
+import { esc, $, $$ } from "../lib/util.js?v=202611042201";
+import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611042201";
+import { publishedFor } from "../lib/contributions.js?v=202611042201";
+import { archiveStatus } from "../components/status.js?v=202611042201";
+import { objectFigure } from "../components/figure.js?v=202611042201";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611042201";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611042201";
+import { translationRecord } from "../components/translationRecord.js?v=202611042201";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
@@ -25,7 +25,7 @@ export function render(main, o) {
   main.innerHTML = `
   <article class="detail" aria-labelledby="d-title">
     <section class="d-hero">
-      ${o.heroImage ? `<div class="d-pattern" aria-hidden="true">${[0, 1, 2].map(() => `<img src="${esc(o.heroImage)}" alt="" loading="eager">`).join("")}</div>` : ""}
+      ${o.heroImage ? `<div class="d-pattern" aria-hidden="true"><div class="d-pattern-track">${Array.from({ length: 8 }, () => `<span><img src="${esc(o.heroImage)}" alt=""></span>`).join("")}</div></div>` : ""}
       <svg class="lg-defs" aria-hidden="true" focusable="false" width="0" height="0"><filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
         <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="n"/>
         <feGaussianBlur in="n" stdDeviation="2" result="nb"/>
