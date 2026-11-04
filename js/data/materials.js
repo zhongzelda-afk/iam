@@ -8,7 +8,8 @@
 // A field that was never recorded is null and the page says so.
 //
 // IMAGES: every object has a folder assets/objects/<slug>/
-//   cutout.webp      gallery and hero image. Temporary: cut out of a Workshop B video frame.
+//   cutout.webp      gallery and hero image, cut out of Lynn's 4K studio videos and photographs
+//                    (tools/extract-hd.py). Tomato is still a temporary Workshop B cut-out.
 //                    To use a final photograph, save it over this file (square, transparent
 //                    background, about 1200 px) or point heroImage/galleryImage to the new file,
 //                    and set imageTemporary to false.
@@ -26,7 +27,7 @@ const ACTION_APPLIED = "Pinch, press and squeeze by hand, on camera (Workshop B)
 export const MATERIALS = {
   orange: {
     name: "Orange", category: "Organic", primaryAction: "Compression",
-    heroImage: O("orange") + "cutout.webp", galleryImage: O("orange") + "cutout.webp", imageTemporary: true,
+    heroImage: O("orange") + "cutout.webp", galleryImage: O("orange") + "cutout.webp", imageTemporary: false,
     physicalProfile: {
       colour: "Orange",
       shape: "Approximately spherical with a slightly rough, dimpled peel.",
@@ -49,7 +50,7 @@ export const MATERIALS = {
   },
   ice: {
     name: "Ice", category: "Frozen water", primaryAction: "Compression",
-    heroImage: O("ice") + "cutout.webp", galleryImage: O("ice") + "cutout.webp", imageTemporary: true,
+    heroImage: O("ice") + "cutout.webp", galleryImage: O("ice") + "cutout.webp", imageTemporary: false,
     physicalProfile: {
       colour: "Clear to cloudy white.",
       shape: "Irregular block with a smooth, wet surface.",
@@ -85,7 +86,7 @@ export const MATERIALS = {
   },
   "cream-foam": {
     name: "Cream Foam", category: "Food foam", primaryAction: "Compression",
-    heroImage: O("cream-foam") + "cutout.webp", galleryImage: O("cream-foam") + "cutout.webp", imageTemporary: true,
+    heroImage: O("cream-foam") + "cutout.webp", galleryImage: O("cream-foam") + "cutout.webp", imageTemporary: false,
     physicalProfile: {
       colour: "Off white",
       shape: "Soft piped mound of folds and peaks.",
@@ -103,7 +104,7 @@ export const MATERIALS = {
   },
   rose: {
     name: "Rose", category: "Organic", primaryAction: "Compression",
-    heroImage: O("rose") + "cutout.webp", galleryImage: O("rose") + "cutout.webp", imageTemporary: true,
+    heroImage: O("rose") + "cutout.webp", galleryImage: O("rose") + "cutout.webp", imageTemporary: false,
     physicalProfile: { colour: "Deep pink", shape: "Layered petals on a long stem.", lifespan: "Perishable; wilts within days of cutting.", pressure: null },
     states: states("rose", [0.3, 6, 28, 52]),
     experimentVideo: { src: V + "012-workshop-b-06.mp4", poster: V + "012-workshop-b-06.jpg", caption: "Workshop B 06 · Rose · pinch, press, squeeze", description: "A hand pinches the rose head, presses it with the palm, then lifts it by the stem and squeezes the petals. 63 seconds, no sound." },
@@ -112,7 +113,7 @@ export const MATERIALS = {
   },
   "cabbage-leaf": {
     name: "Cabbage Leaf", category: "Organic", primaryAction: "Compression",
-    heroImage: O("cabbage-leaf") + "cutout.webp", galleryImage: O("cabbage-leaf") + "cutout.webp", imageTemporary: true,
+    heroImage: O("cabbage-leaf") + "cutout.webp", galleryImage: O("cabbage-leaf") + "cutout.webp", imageTemporary: false,
     physicalProfile: { colour: "Green leaf, pale stalk", shape: "Broad smooth leaf on a thick, crisp stalk.", lifespan: "Perishable; wilts as it dries.", pressure: null },
     states: states("cabbage-leaf", [0.3, 6, 22, 45]),
     experimentVideo: { src: V + "013-workshop-b-03-leaf.mp4", poster: V + "013-workshop-b-03-leaf.jpg", caption: "Workshop B 03 (改) · Vegetable leaf · pinch, press, squeeze", description: "A hand pinches a leaf, presses it flat with the palm, then picks it up and crushes it in the hand. 55 seconds, no sound." },
@@ -121,21 +122,21 @@ export const MATERIALS = {
   },
   "aluminium-foil": {
     name: "Aluminium Foil", category: "Metal", primaryAction: "Compression", outline: "sheet",
-    heroImage: null, galleryImage: null,
+    heroImage: O("aluminium-foil") + "cutout.webp", galleryImage: O("aluminium-foil") + "cutout.webp", imageTemporary: false,
     physicalProfile: { colour: "Silver", shape: "Thin, smooth sheet, one side brighter than the other.", lifespan: "Long lasting.", pressure: "Creases and deforms under pressure, keeping its altered shape after release." },
     states: [], experimentVideo: null, bodyPerformanceVideo: null,
     observation: { action: "Open palm press (bodystorming phase 1, Sept 2026).", response: "Folds at the lightest touch and keeps every crease. Smoothing it out leaves a map of where it was pressed.", interpretation: "Identity card I02, The One Who Remembers: holds on to experiences and carries traces of past interactions." }
   },
   "cleaning-sponge": {
     name: "Cleaning Sponge", category: "Synthetic foam", primaryAction: "Compression", outline: "block",
-    heroImage: null, galleryImage: null,
+    heroImage: O("cleaning-sponge") + "cutout.webp", galleryImage: O("cleaning-sponge") + "cutout.webp", imageTemporary: false,
     physicalProfile: { colour: null, shape: "Rectangular block with an open, porous surface.", lifespan: "Long lasting; wears with use.", pressure: "Compresses under pressure and returns towards its original shape after release." },
     states: [], experimentVideo: null, bodyPerformanceVideo: null,
     observation: { action: "Open palm press (bodystorming phase 1, Sept 2026).", response: "Gives way the moment a palm presses down, pushes air out of its pores, then rises back to almost its first shape within a second or two of release.", interpretation: "Identity card I05, The Adapter: flexible and resilient, able to adjust and recover after pressure." }
   },
   pear: {
     name: "Pear", category: "Organic", primaryAction: "Compression", outline: "pear",
-    heroImage: null, galleryImage: null,
+    heroImage: O("pear") + "cutout.webp", galleryImage: O("pear") + "cutout.webp", imageTemporary: false,
     physicalProfile: { colour: null, shape: "Rounded base narrowing to the stem, thin skin.", lifespan: "Perishable · storage dependent.", pressure: "Looks unchanged right after a press; over the next hours the pressed area softens and browns." },
     states: [], experimentVideo: null, bodyPerformanceVideo: null,
     observation: { action: "Open palm press (studio experiment, 1 Oct 2026).", response: "Looks unchanged right after a press. Over the next hours the pressed area softens and turns brown.", interpretation: null }

@@ -17,14 +17,14 @@ export const NUMBERING_CONFIRMED = ["001"];
 
 export const CATALOGUE = [
   { key: "004", slug: "orange",         no: "001", status: "published" },
-  { key: "003", slug: "aluminium-foil", no: "002", status: "under-observation", note: "Not yet filmed" },
-  { key: "001", slug: "cleaning-sponge",no: "003", status: "under-observation", note: "Not yet filmed" },
+  { key: "003", slug: "aluminium-foil", no: "002", status: "under-observation", note: "Photographed · record being written" },
+  { key: "001", slug: "cleaning-sponge",no: "003", status: "under-observation", note: "Photographed · record being written" },
   { key: "002", slug: "ice",            no: "004", status: "published" },
   { key: "006", slug: "tomato",         no: "005", status: "published" },
   { key: "009", slug: "cream-foam",     no: "006", status: "published" },
   { key: "012", slug: "rose",           no: "007", status: "under-observation", note: "Filmed · record being written" },
   { key: "013", slug: "cabbage-leaf",   no: "008", status: "under-observation", note: "Filmed · record being written" },
-  { key: "007", slug: "pear",           no: "009", status: "under-observation", note: "Not yet filmed" },
+  { key: "007", slug: "pear",           no: "009", status: "under-observation", note: "Filmed · record being written" },
   { key: "008", slug: "shaving-foam",   no: "010", status: "under-observation", note: "Not yet filmed" },
   { key: "014", slug: "madeleine",      no: "011", status: "under-observation", note: "Not yet filmed" }
 ];

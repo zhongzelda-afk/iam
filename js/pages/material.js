@@ -1,12 +1,12 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611041523";
-import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611041523";
-import { publishedFor } from "../lib/contributions.js?v=202611041523";
-import { archiveStatus } from "../components/status.js?v=202611041523";
-import { objectFigure } from "../components/figure.js?v=202611041523";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611041523";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611041523";
-import { translationRecord } from "../components/translationRecord.js?v=202611041523";
+import { esc, $, $$ } from "../lib/util.js?v=202611042152";
+import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611042152";
+import { publishedFor } from "../lib/contributions.js?v=202611042152";
+import { archiveStatus } from "../components/status.js?v=202611042152";
+import { objectFigure } from "../components/figure.js?v=202611042152";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611042152";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611042152";
+import { translationRecord } from "../components/translationRecord.js?v=202611042152";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
@@ -17,7 +17,7 @@ export function render(main, o) {
   const p = o.physicalProfile || {}, obs = o.observation || {};
   const { prev, next } = neighbours(o.slug);
   const images = [
-    o.heroImage && { src: o.heroImage, alt: `${o.name}, object ${o.no}`, cap: o.imageTemporary ? "Temporary cut-out from a Workshop B video frame" : "Object photograph", cut: true },
+    o.heroImage && { src: o.heroImage, alt: `${o.name}, object ${o.no}`, cap: o.imageTemporary ? "Temporary cut-out from a Workshop B video frame" : "Studio photograph, cut out from 4K footage", cut: true },
     o.experimentVideo && o.experimentVideo.poster && { src: o.experimentVideo.poster, alt: `${o.name} on the experiment table`, cap: "Experiment set-up, Workshop B" }
   ].filter(Boolean);
   const tr = workshopTranslations(o.slug);
