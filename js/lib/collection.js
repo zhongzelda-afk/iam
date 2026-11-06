@@ -1,7 +1,7 @@
 // My Collection: the translations a visitor writes, kept privately in THIS browser (localStorage).
 // Limitation, stated on the page: nothing here is uploaded unless the visitor chooses
 // "Contribute to the Lab". Clearing browser data or switching device loses the collection.
-import { LS } from "./util.js?v=202611042302";
+import { LS } from "./util.js?v=202611061240";
 
 const KEY = "iam.collection.v1";
 const load = () => { const d = LS.get(KEY, null); return d && Array.isArray(d.items) ? d : { seq: 0, items: [] }; };
