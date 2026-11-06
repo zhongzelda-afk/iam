@@ -6,8 +6,8 @@
 // If the database cannot be reached (or the SQL has not been run yet), the submission is held in this
 // browser, labelled honestly, and sent the next time My Collection opens. Nothing is ever shown as
 // published until Lynn has approved it.
-import { uuid, token } from "./util.js?v=202611042302";
-import * as col from "./collection.js?v=202611042302";
+import { uuid, token } from "./util.js?v=202611061240";
+import * as col from "./collection.js?v=202611061240";
 
 const cfg = window.IAM_CONFIG || {};
 const TABLE = "library_contributions";
