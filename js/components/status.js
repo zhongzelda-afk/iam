@@ -1,5 +1,5 @@
 // Archive status labels: record status (library) and submission status (personal translations).
-import { statusLabel } from "../lib/library.js?v=202611061240";
+import { statusLabel } from "../lib/library.js?v=202611061414";
 
 export const archiveStatus = s => `<span class="status status--${s}"><span class="status-dot" aria-hidden="true"></span>${statusLabel(s)}</span>`;
 
