@@ -1,16 +1,16 @@
 // I.A.M. The Living Material Library. Hash router and site navigation.
 // HOME > MATERIAL LIBRARY > MATERIAL DETAIL > BECOME A MATERIAL > MY COLLECTION > CONTRIBUTE TO THE LAB
-import { $, $$, reduceMotion } from "./lib/util.js?v=202611061414";
-import { bySlug, byKey, isOpen, href } from "./lib/library.js?v=202611061414";
-import * as col from "./lib/collection.js?v=202611061414";
-import * as Home from "./pages/home.js?v=202611061414";
-import * as Library from "./pages/library.js?v=202611061414";
-import * as Material from "./pages/material.js?v=202611061414";
-import * as Become from "./pages/become.js?v=202611061414";
-import * as Collection from "./pages/collection.js?v=202611061414";
-import * as Record from "./pages/record.js?v=202611061414";
-import * as Contribute from "./pages/contribute.js?v=202611061414";
-import * as About from "./pages/about.js?v=202611061414";
+import { $, $$, reduceMotion } from "./lib/util.js?v=202611082312";
+import { bySlug, byKey, isOpen, href } from "./lib/library.js?v=202611082312";
+import * as col from "./lib/collection.js?v=202611082312";
+import * as Home from "./pages/home.js?v=202611082312";
+import * as Library from "./pages/library.js?v=202611082312";
+import * as Material from "./pages/material.js?v=202611082312";
+import * as Become from "./pages/become.js?v=202611082312";
+import * as Collection from "./pages/collection.js?v=202611082312";
+import * as Record from "./pages/record.js?v=202611082312";
+import * as Contribute from "./pages/contribute.js?v=202611082312";
+import * as About from "./pages/about.js?v=202611082312";
 
 const main = $("#main");
 let cleanup = null;
@@ -43,7 +43,7 @@ function route() {
     const o = bySlug(b);
     if (!o) notFound("There is no object at this address.");
     else if (!isOpen(o)) notFound(`Object ${o.no}, ${o.name}, is under observation. Its record is not yet available.`);
-    else if (c === "become") { title = `Become the ${o.name} · I.A.M.`; Become.render(main, o); }
+    else if (c === "become") { title = `Become the ${o.name} · I.A.M.`; cleanup = Become.render(main, o); }
     else { title = `Object ${o.no} ${o.name} · I.A.M.`; cleanup = Material.render(main, o); }
   }
   else if (a === "collection") {
