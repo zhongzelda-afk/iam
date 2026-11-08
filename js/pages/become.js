@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611082344";
-import { href } from "../lib/library.js?v=202611082344";
-import * as col from "../lib/collection.js?v=202611082344";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611082344";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611082344";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611082356";
+import { href } from "../lib/library.js?v=202611082356";
+import * as col from "../lib/collection.js?v=202611082356";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611082356";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611082356";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -25,6 +25,24 @@ const SETS = {
   V: { label: "Voice", acc: "#2B231F", light: true },
   B: { label: "Your voice", acc: "#2B231F", light: true }
 };
+
+// The human's lines. The cards give the meaning; the human improvises around it, like dialogue in a film.
+const LINES = {
+  "A 01": ["Hold still. This won't take long.", "Let's see how much you can take.", "I'm only pressing a little. You'll be fine."],
+  "A 02": ["Come on. Show me what's inside.", "Tighter. I want to see you change.", "Don't make this harder than it is."],
+  "A 03": ["Come here. You're coming with me.", "Let go of the table.", "Stretch a little more for me."],
+  "A 04": ["Let's try you another way.", "You'll take a better shape like this.", "Don't fight it. Turn."],
+  "A 05": ["Fine. I'm done with you.", "That's enough. I have other things to hold.", "There. Keep whatever's left."]
+};
+const READ = { // [mocking, comforting]
+  "T 01": ["Still holding on to that? Let it go already.", "It's alright to keep the mark. I won't rush you."],
+  "T 02": ["Falling apart over a little pressure?", "Too much? Breathe. I'll ease off. For now."],
+  "T 03": ["How much longer do you need? I can't wait forever.", "Take your time. I'll still be here."],
+  "T 04": ["Pretending you're fine? I can see the bruise.", "You don't have to show it. I know something changed."],
+  "T 05": ["Stop clinging to my hand.", "You don't want me to leave, do you?"]
+};
+const BACKTALK = ["Oh, now you talk back?", "Hm. I didn't know you could speak.", "Nobody asked you.", "Say that again. Slowly.", "Interesting. Go on, then."];
+const LEAVING = ["I'm finished here.", "Someone will clear this up.", "Don't take it personally. It's what I do with things."];
 
 function planActions() {
   const total = 3 + Math.floor(Math.random() * (MAX_ROUNDS - 2));
@@ -52,6 +70,8 @@ const cR = r => ({ set: "R", n: r.n, file: CARD_IMG(r.n), word: r.word, text: `�
 const cT = t => ({ set: "T", n: t.n, file: CARD_IMG(t.n), word: t.word, text: t.question, more: [["Meaning", t.meaning]] });
 const cV = v => ({ set: "V", n: v.n, file: CARD_IMG(v.n), word: "", text: `“${v.text}”`, plain: v.text, more: [] });
 const cB = () => ({ set: "B", n: "Blank", file: CARD_IMG(pick(BLANKS)), word: "", text: "Write your own.", more: [] });
+const cSpeak = () => ({ set: "B", n: "Own words", file: CARD_IMG("B02"), word: "", text: "Answer in your own words.", speak: true, more: [] });
+const cOwn = t => ({ set: "B", n: "Own words", file: CARD_IMG("B02"), word: "", text: "“" + t + "”", own: t, more: [] });
 
 // Lynn's printed cards (PDF PRINT 11, cut to one image per card in assets/cards/)
 const CARD_IMG = n => `assets/cards/${n.replace(" ", "")}.webp`;
@@ -59,7 +79,7 @@ const BLANKS = Array.from({ length: 10 }, (_, i) => `B${String(i + 1).padStart(2
 
 function face(c, k, o) {
   const s = SETS[c.set];
-  if (c.file) return `<div class="pc-face pc-front pc-face--img"><img src="${esc(c.file)}" alt="" draggable="false"></div>`;
+  if (c.file) return `<div class="pc-face pc-front pc-face--img"><img src="${esc(c.file)}" alt="" draggable="false">${c.own ? `<p class="pc-own">${esc(c.own)}</p>` : c.speak ? `<p class="pc-own pc-own--hint">Your own words</p>` : ""}</div>`;
   const art = c.img ? `<img src="${esc(c.img)}" alt="">` : star(s.acc, k, s.light);
   return `<div class="pc-face pc-front"><div class="pc-panel">
       <div class="pc-top"><span class="pc-no">${esc(c.n)}</span><span class="pc-set">${esc(s.label)}</span></div>
@@ -105,10 +125,10 @@ export function render(main, o) {
 
       <div class="felt">
         <p class="turn mono" data-turn aria-live="polite">Two seats. One of you will be handled.</p>
+        <p class="say" data-say aria-live="polite" hidden></p>
         <div class="slots" data-slots>
-          <div class="slot" data-slot="A"><span class="mono">Action</span></div>
-          <div class="slot" data-slot="R"><span class="mono">Your response</span></div>
-          <div class="slot" data-slot="T"><span class="mono">Translation</span></div>
+          <div class="slot" data-slot="H"><span class="mono">The human played</span></div>
+          <div class="slot" data-slot="Y"><span class="mono">You played</span></div>
         </div>
         <div class="voice" data-voice hidden>
           <div class="slot slot--voice" data-slot="V"><span class="mono">Your card</span></div>
@@ -136,18 +156,20 @@ export function render(main, o) {
           <div class="hand hand--up" data-hand role="group" aria-label="Your hand"></div>
           <div class="hand-bar">
             <p class="hand-hint" data-hint aria-live="polite"></p>
+            <input type="text" class="own-input" data-own maxlength="140" placeholder="Say it as the ${esc(name)}. Start with “I”." aria-label="Your own words" hidden>
             <button type="button" class="cta cta--big" data-play hidden>Play this card <span aria-hidden="true">↑</span></button>
           </div>
         </div>
       </div>
     </section>
 
-    <p class="muted small tb-note">At most ${MAX_ROUNDS} rounds. The human decides when it ends. Tap any card on the table to read it closely.</p>
+    <p class="muted small tb-note">Answer first with a Response card. After that you may also answer in your own words. The human attacks at most ${MAX_ROUNDS} times and decides when it ends. Tap any card on the table to read it closely.</p>
     <dialog class="zoom" data-zoom aria-label="Card"><div class="zoom-in"></div><button type="button" class="cta" data-zoom-close>Close</button></dialog>
   </article>`;
 
   const table = $("[data-table]", main), turn = $("[data-turn]", main), hstate = $("[data-hstate]", main);
   const hhand = $("[data-hhand]", main), hand = $("[data-hand]", main), hint = $("[data-hint]", main), playBtn = $("[data-play]", main);
+  const own = $("[data-own]", main), say = $("[data-say]", main);
   const slots = $("[data-slots]", main), played = $("[data-played]", main), startBtn = $("[data-start]", main);
   const voice = $("[data-voice]", main), zoom = $("[data-zoom]", main);
   const slot = k => $(`[data-slot="${k}"]`, main);
@@ -211,7 +233,9 @@ export function render(main, o) {
     const c = el._card;
     hint.innerHTML = c.set === "R"
       ? `<b>${esc(c.n)} ${esc(c.word)}</b> ${esc(c.text)} <span>${esc(c.more[0][1])}</span>`
-      : c.set === "B" ? `<b>Blank card</b> Write your own voice.` : `<b>${esc(c.n)}</b> ${esc(c.text)}`;
+      : c.speak ? `<b>Your own words</b> Type what the ${esc(name)} says back.` : c.set === "B" ? `<b>Blank card</b> Write your own voice.` : `<b>${esc(c.n)}</b> ${esc(c.text)}`;
+    own.hidden = !c.speak;
+    if (c.speak) own.focus();
     playBtn.hidden = false;
   }
   hand.addEventListener("click", ev => {
@@ -220,9 +244,11 @@ export function render(main, o) {
     select(el);
   });
   playBtn.addEventListener("click", () => playSelected());
+  own.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); playSelected(); } });
   function playSelected() {
     if (!selected || !resolvePick) return;
-    const r = resolvePick; resolvePick = null; playBtn.hidden = true;
+    if (selected._card.speak && !own.value.trim()) { hint.innerHTML = `<b>Your own words</b> Type something first.`; own.focus(); return; }
+    const r = resolvePick; resolvePick = null; playBtn.hidden = true; table.dataset.turn = "wait";
     r(selected);
   }
   function yourTurn(text) {
@@ -237,40 +263,71 @@ export function render(main, o) {
     startBtn.hidden = true;
     table.classList.add("is-on");
     table.scrollIntoView({ behavior: motion() ? "smooth" : "auto", block: "start" });
-    const plan = planActions(), trail = [];
+    const plan = planActions(), trail = [{ human: plan[0].n }];
     setTurn("Dealing.", "deal");
     fillHand(RESPONSES.map(cR));
     if (motion()) $$(".pc", hand).forEach((el, i) => el.animate([{ transform: "translateY(-60vh) rotate(-20deg)", opacity: 0 }, { opacity: 1 }], { duration: 520, delay: i * 90, easing: "cubic-bezier(.2,.7,.2,1)", fill: "backwards" }));
     await wait(1000); if (gone()) return;
 
-    for (let i = 0; i < plan.length; i++) {
-      const a = plan[i];
-      setTurn(`Round ${i + 1}. The human plays.`, "human");
-      await humanPlays(cA(a), "A", i); if (gone()) return;
-      announce(`The human plays ${a.word}. ${a.text} Your turn.`);
-      const el = await yourTurn(`The human: ${a.word.toUpperCase()}. Your turn. How does the ${name} respond?`); if (gone()) return;
-      el.classList.remove("is-sel"); el.setAttribute("aria-pressed", "false");
-      hint.textContent = "";
-      // your hand never runs out: a copy goes to the table, the card stays in your hand
-      const copy = cardEl(el._card, { tag: "button" }); copy.setAttribute("aria-label", label(el._card));
-      await fly(copy, slot("R"), el.getBoundingClientRect());
-      const r = RESPONSES.find(x => x.n === copy._card.n), t = TRANSLATIONS.find(x => x.n === r.t);
-      setTurn("The human reads you.", "human");
-      await wait(500); if (gone()) return;
-      await humanPlays(cT(t), "T", i + 2); if (gone()) return;
-      announce(`The human reads you as ${t.word}. ${t.question}`);
-      trail.push({ action: a.n, response: r.n, translation: t.n });
-      await wait(2600); if (gone()) return;
-      // sweep the round into the played row
-      const li = document.createElement("li");
-      li.innerHTML = `<span class="mono">${String(i + 1).padStart(2, "0")}</span>`;
-      played.appendChild(li);
-      for (const k of ["A", "R", "T"]) { const c = $(".pc", slot(k)); c && await fly(c, li); }
-      if (i < plan.length - 1) { setTurn("The human is not finished with you.", "human"); await wait(1200); if (gone()) return; }
+    // a card lands in a slot; the card that was there moves to the played row
+    async function land(el, key, fromRect) {
+      const old = $(".pc", slot(key));
+      if (old) { const li = document.createElement("li"); played.appendChild(li); await fly(old, li); }
+      await fly(el, slot(key), fromRect);
+    }
+    async function speak(line) {
+      say.hidden = false; say.classList.remove("is-in"); void say.offsetWidth;
+      say.textContent = "“" + line + "”"; say.classList.add("is-in");
+      announce("The human says: " + line);
+      await wait(Math.min(3400, 1000 + line.length * 40));
+    }
+    async function human(c, line) {
+      setTurn("The human plays.", "human");
+      const backs = $$(".pc", hhand); const from = backs[Math.floor(backs.length / 2)];
+      from.classList.add("is-lift"); await wait(450); from.classList.remove("is-lift");
+      const el = cardEl(c, { down: true, tag: "button" }); el.setAttribute("aria-label", label(c));
+      await land(el, "H", from.getBoundingClientRect());
+      await wait(250); el.classList.remove("is-down"); await wait(500);
+      await speak(line);
     }
 
+    let ai = 0, prev = "A", humanCards = 1, moves = 0;
+    await human(cA(plan[0]), pick(LINES[plan[0].n]));
+    for (;;) {
+      if (gone()) return;
+      const released = plan[ai].n === "A 05" && prev === "A";
+      // your turn: Response cards always; your own words from the second answer on
+      fillHand(moves ? [...RESPONSES.map(cR), cSpeak()] : RESPONSES.map(cR));
+      own.value = ""; own.hidden = true;
+      const el = await yourTurn(moves ? "Your turn. Play a Response card, or answer in your own words." : `Your turn. How does the ${name} respond? Play a Response card.`); if (gone()) return;
+      el.classList.remove("is-sel"); el.setAttribute("aria-pressed", "false"); hint.textContent = "";
+      const c = el._card.speak ? cOwn(own.value.trim()) : el._card;
+      own.hidden = true;
+      const copy = cardEl(c, { tag: "button" }); copy.setAttribute("aria-label", label(c));
+      await land(copy, "Y", el.getBoundingClientRect()); if (gone()) return;
+      moves++;
+      const lastR = c.set === "R" ? RESPONSES.find(x => x.n === c.n) : null;
+      trail.push(lastR ? { you: lastR.n } : { you: "own", text: c.own });
+      if (!lastR) await speak(pick(BACKTALK));
+      if (released) break;
+      // the human chooses: read you (mock or comfort), or attack again
+      const readNext = humanCards < 9 && (prev === "A" ? Math.random() < .65 : Math.random() < .25);
+      if (readNext) {
+        const t = lastR ? TRANSLATIONS.find(x => x.n === lastR.t) : pick(TRANSLATIONS);
+        await human(cT(t), READ[t.n][Math.random() < .55 ? 0 : 1]); prev = "T";
+        trail.push({ human: t.n });
+      } else {
+        ai++; await human(cA(plan[ai]), pick(LINES[plan[ai].n])); prev = "A";
+        trail.push({ human: plan[ai].n });
+      }
+      humanCards++;
+    }
+    // after RELEASE and your last answer the human has the last word, then leaves
+    await speak(pick(LEAVING)); if (gone()) return;
+    say.hidden = true;
+    const rounds = ai + 1;
     // the human leaves; the player gets their voice
-    setTurn(`The human let go after ${plan.length} rounds and left the table. They decided when it ended. You did not.`, "gone");
+    setTurn(`The human let go after ${rounds} attacks and left the table. They decided when it ended. You did not.`, "gone");
     announce("The human ended the game and left the table.");
     table.classList.add("is-left");
     await wait(2400); if (gone()) return;

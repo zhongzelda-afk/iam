@@ -637,7 +637,18 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-even
   .seat--you { grid-template-columns: 1fr; justify-items: center; }
   .you-id { display: flex; align-items: center; gap: 10px; }
   .you-id .pc { --cw: 58px; }
-  .hand--up .pc { margin: 0 -9px; }
+  .hand--up .pc { margin: 0 -15px; }
+  .say { font-size: 18px; padding: 10px 14px; }
   .hand-hint { font-size: 13px; }
   .slot > .mono { font-size: 8.5px; }
 }
+
+/* the human speaks: improvised lines around the cards */
+.say { position: relative; z-index: 2; margin: 0; max-width: min(520px, 92%); padding: 12px 18px; text-align: center; font-family: var(--f-voice); font-size: clamp(19px, 2vw, 24px); line-height: 1.2; color: var(--navy); background: #F6F0E8; border-radius: 14px; box-shadow: 0 0 0 1px var(--red), 0 10px 24px rgba(0, 0, 0, .3); }
+.say::before { content: ""; position: absolute; left: 50%; top: -7px; width: 12px; height: 12px; background: #F6F0E8; transform: translateX(-50%) rotate(45deg); box-shadow: -1px -1px 0 var(--red); }
+.say.is-in { animation: say-in .35s var(--ease); }
+@keyframes say-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } }
+/* your own words, written on a blank card */
+.pc-own { position: absolute; left: 12%; right: 12%; bottom: 13%; height: 30%; margin: 0; display: flex; align-items: center; justify-content: center; text-align: center; font-family: "EB Garamond", Georgia, serif; font-style: italic; font-size: 8.4cqw; line-height: 1.15; color: #2B231F; overflow: hidden; }
+.pc-own--hint { color: var(--red); font-style: normal; font-family: var(--f-mono); font-size: 6cqw; letter-spacing: .08em; text-transform: uppercase; }
+.own-input { max-width: 420px; background: #F6F0E8; color: var(--ink); border: 0; box-shadow: 0 0 0 1px var(--red); font-family: var(--f-voice); font-size: 19px; padding: 10px 14px; }
