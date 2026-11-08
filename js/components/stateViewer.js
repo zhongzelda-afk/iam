@@ -1,7 +1,7 @@
 // Physical State Viewer: the four states as a small concertina booklet, like the printed State Booklet.
 // Folded, the sheets stack and "Trace through" shows every state at once so the change is visible.
 // Unfolded, the sheets open side by side (or in a column on small screens).
-import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611061414";
+import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611082312";
 
 export function stateViewer(o) {
   if (!o.states || !o.states.length) return `<p class="missing">States not yet documented.</p>`;
@@ -11,12 +11,12 @@ export function stateViewer(o) {
       <button type="button" class="sheet-tab" data-select="${i}" aria-pressed="${i === 0}" style="--tab:${i}">${s.n} ${esc(s.name)}</button>
       <div class="sheet-paper">
         <div class="sheet-head mono"><span>Object ${o.no}</span><span>${esc(o.name)}</span><span>State ${s.n} / ${String(n).padStart(2, "0")}</span></div>
-        <div class="sheet-window">
+        <div class="sheet-window brackets">
           <img src="${esc(s.image)}" alt="${esc(o.name)}, state ${s.n}, ${esc(s.name.toLowerCase())}. Frame from the experiment video at ${fmtTime(s.t)}." loading="lazy" decoding="async">
           ${o.states.filter((_, j) => j !== i).map(g => `<img class="ghost" src="${esc(g.image)}" alt="" loading="lazy" decoding="async">`).join("")}
         </div>
         <div class="sheet-body">
-          <p class="sheet-state"><span class="mono">${s.n} /</span> ${esc(s.name)}</p>
+          <p class="sheet-state"><span class="num-box">${s.n}</span> ${esc(s.name)}<span class="sheet-dots" aria-hidden="true">${o.states.map((_, j) => `<i${j <= i ? ' class="on"' : ""}></i>`).join("")}</span></p>
           ${s.observation ? `<p class="sheet-obs">${esc(s.observation)}</p>` : `<p class="sheet-obs muted">Observation not yet written.</p>`}
           <p class="sheet-src mono">Video frame · ${fmtTime(s.t)}</p>
         </div>
@@ -24,15 +24,24 @@ export function stateViewer(o) {
     </article>`).join("");
   return `
   <div class="states" data-states>
-    <div class="states-bar">
-      <div class="seg" role="group" aria-label="Booklet">
-        <button type="button" class="seg-btn" data-fold-to="0" aria-pressed="true">Folded</button>
-        <button type="button" class="seg-btn" data-fold-to="1" aria-pressed="false">Unfolded</button>
-      </div>
-      <label class="fold-range mono"><span>Fold</span><input type="range" min="0" max="100" value="0" aria-label="Fold or unfold the state booklet"><span>Open</span></label>
-      <label class="trace mono"><input type="checkbox" data-trace> Trace through</label>
-    </div>
     <div class="booklet" data-booklet>${sheets}</div>
+    <div class="states-bar">
+      <label class="fold-range">
+        <span class="fold-k mono">Drag to unfold the booklet</span>
+        <span class="fold-track">
+          <span class="fold-end mono" aria-hidden="true">Folded</span>
+          <input type="range" min="0" max="100" value="0" aria-label="Fold or unfold the state booklet" style="--p:0%">
+          <span class="fold-end mono" aria-hidden="true">Open</span>
+        </span>
+      </label>
+      <div class="states-opts">
+        <div class="seg" role="group" aria-label="Booklet">
+          <button type="button" class="seg-btn" data-fold-to="0" aria-pressed="true">Folded</button>
+          <button type="button" class="seg-btn" data-fold-to="1" aria-pressed="false">Unfolded</button>
+        </div>
+        <label class="trace mono"><input type="checkbox" data-trace> Trace through</label>
+      </div>
+    </div>
     <p class="states-hint mono" aria-live="polite"></p>
   </div>`;
 }
@@ -76,7 +85,7 @@ export function mountStateViewer(root, o, { onSelect } = {}) {
     box.classList.toggle("is-folded", e < 0.02);
     box.classList.toggle("is-open", e > 0.98);
     segs[0].setAttribute("aria-pressed", e < 0.02); segs[1].setAttribute("aria-pressed", e > 0.98);
-    range.value = Math.round(e * 100);
+    range.value = Math.round(e * 100); range.style.setProperty("--p", Math.round(e * 100) + "%");
   }
 
   function animateTo(target) {

@@ -1,5 +1,5 @@
 // Video Evidence Player: native controls, poster, caption, text description, state chapters.
-import { esc, fmtTime } from "../lib/util.js?v=202611061414";
+import { esc, fmtTime, reduceMotion } from "../lib/util.js?v=202611082312";
 
 export function videoPlayer(v, { id, states = [], label = "Experiment video" } = {}) {
   if (!v) return "";
@@ -7,7 +7,7 @@ export function videoPlayer(v, { id, states = [], label = "Experiment video" } =
   return `
   <figure class="video">
     <div class="video-frame">
-      <video id="${id}" controls playsinline preload="metadata" poster="${esc(v.poster || "")}" aria-describedby="${did}" muted>
+      <video id="${id}" controls playsinline ${reduceMotion() ? 'preload="metadata"' : "autoplay loop preload=\"auto\""} poster="${esc(v.poster || "")}" aria-describedby="${did}" muted>
         <source src="${esc(v.src)}" type="video/mp4">
         Your browser cannot play this video. <a href="${esc(v.src)}">Download it</a>.
       </video>
