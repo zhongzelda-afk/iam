@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611082333";
-import { href } from "../lib/library.js?v=202611082333";
-import * as col from "../lib/collection.js?v=202611082333";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611082333";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611082333";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611082344";
+import { href } from "../lib/library.js?v=202611082344";
+import * as col from "../lib/collection.js?v=202611082344";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611082344";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611082344";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -29,7 +29,7 @@ const SETS = {
 function planActions() {
   const total = 3 + Math.floor(Math.random() * (MAX_ROUNDS - 2));
   const pool = ACTIONS.filter(a => a.n !== "A 05"), out = [];
-  for (let i = 0; i < total - 1; i++) out.push(pick(pool.filter(a => a !== out[i - 1])));
+  for (let i = 0; i < total - 1; i++) out.push(pick(pool)); // the human may repeat a card
   out.push(ACTIONS.find(a => a.n === "A 05"));
   return out;
 }
@@ -249,10 +249,12 @@ export function render(main, o) {
       await humanPlays(cA(a), "A", i); if (gone()) return;
       announce(`The human plays ${a.word}. ${a.text} Your turn.`);
       const el = await yourTurn(`The human: ${a.word.toUpperCase()}. Your turn. How does the ${name} respond?`); if (gone()) return;
-      el.classList.remove("is-sel"); el.removeAttribute("aria-pressed");
+      el.classList.remove("is-sel"); el.setAttribute("aria-pressed", "false");
       hint.textContent = "";
-      await fly(el, slot("R")); layoutHand();
-      const r = RESPONSES.find(x => x.n === el._card.n), t = TRANSLATIONS.find(x => x.n === r.t);
+      // your hand never runs out: a copy goes to the table, the card stays in your hand
+      const copy = cardEl(el._card, { tag: "button" }); copy.setAttribute("aria-label", label(el._card));
+      await fly(copy, slot("R"), el.getBoundingClientRect());
+      const r = RESPONSES.find(x => x.n === copy._card.n), t = TRANSLATIONS.find(x => x.n === r.t);
       setTurn("The human reads you.", "human");
       await wait(500); if (gone()) return;
       await humanPlays(cT(t), "T", i + 2); if (gone()) return;
