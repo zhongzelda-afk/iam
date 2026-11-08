@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611082325";
-import { href } from "../lib/library.js?v=202611082325";
-import * as col from "../lib/collection.js?v=202611082325";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611082325";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611082325";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611082333";
+import { href } from "../lib/library.js?v=202611082333";
+import * as col from "../lib/collection.js?v=202611082333";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611082333";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611082333";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -47,14 +47,19 @@ function star(acc, k = 0, light) {
 }
 
 // card data → { set, n, word, text, more[] }
-const cA = a => ({ set: "A", n: a.n, word: a.word, text: a.text, more: [] });
-const cR = r => ({ set: "R", n: r.n, word: r.word, text: `“${r.voice}”`, more: [["Physical", r.physical], ["Human", r.human]] });
-const cT = t => ({ set: "T", n: t.n, word: t.word, text: t.question, more: [["Meaning", t.meaning]] });
-const cV = v => ({ set: "V", n: v.n, word: "", text: `“${v.text}”`, plain: v.text, more: [] });
-const cB = () => ({ set: "B", n: "V __", word: "", text: "Write your own.", more: [] });
+const cA = a => ({ set: "A", n: a.n, file: CARD_IMG(a.n), word: a.word, text: a.text, more: [] });
+const cR = r => ({ set: "R", n: r.n, file: CARD_IMG(r.n), word: r.word, text: `“${r.voice}”`, more: [["Physical", r.physical], ["Human", r.human]] });
+const cT = t => ({ set: "T", n: t.n, file: CARD_IMG(t.n), word: t.word, text: t.question, more: [["Meaning", t.meaning]] });
+const cV = v => ({ set: "V", n: v.n, file: CARD_IMG(v.n), word: "", text: `“${v.text}”`, plain: v.text, more: [] });
+const cB = () => ({ set: "B", n: "Blank", file: CARD_IMG(pick(BLANKS)), word: "", text: "Write your own.", more: [] });
+
+// Lynn's printed cards (PDF PRINT 11, cut to one image per card in assets/cards/)
+const CARD_IMG = n => `assets/cards/${n.replace(" ", "")}.webp`;
+const BLANKS = Array.from({ length: 10 }, (_, i) => `B${String(i + 1).padStart(2, "0")}`);
 
 function face(c, k, o) {
   const s = SETS[c.set];
+  if (c.file) return `<div class="pc-face pc-front pc-face--img"><img src="${esc(c.file)}" alt="" draggable="false"></div>`;
   const art = c.img ? `<img src="${esc(c.img)}" alt="">` : star(s.acc, k, s.light);
   return `<div class="pc-face pc-front"><div class="pc-panel">
       <div class="pc-top"><span class="pc-no">${esc(c.n)}</span><span class="pc-set">${esc(s.label)}</span></div>
@@ -64,8 +69,8 @@ function face(c, k, o) {
     </div></div>`;
 }
 function back(set) {
-  const s = SETS[set];
-  return `<div class="pc-face pc-back"><div class="pc-panel"><div class="pc-art">${star(s.acc, 0, s.light)}</div><p class="pc-set pc-back-t">${esc(s.label)}</p></div></div>`;
+  const bk = { A: "A", R: "R", T: "T", I: "I", V: "V", B: "V" }[set];
+  return `<div class="pc-face pc-back pc-face--img"><img src="assets/cards/back-${bk}.webp" alt="" draggable="false"></div>`;
 }
 function cardEl(c, { down = false, tag = "div", k = 0 } = {}) {
   const el = document.createElement(tag);
@@ -81,7 +86,7 @@ export function render(main, o) {
   const name = o.name.toLowerCase();
   const idc = IDENTITIES[o.slug];
   const identity = idc
-    ? { set: "I", n: idc.n, word: idc.name, text: idc.note, img: o.heroImage, more: [["Physical", idc.physical], ["Response", idc.response]] }
+    ? { set: "I", n: idc.n, file: CARD_IMG(idc.n), word: idc.name, text: idc.note, more: [["Physical", idc.physical], ["Response", idc.response]] }
     : { set: "I", n: "I —", word: `The ${o.name}`, text: "No Identity card yet. You play it as you find it.", img: o.heroImage, more: [] };
 
   main.innerHTML = `
