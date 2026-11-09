@@ -1,12 +1,13 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611082356";
-import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611082356";
-import { publishedFor } from "../lib/contributions.js?v=202611082356";
-import { archiveStatus } from "../components/status.js?v=202611082356";
-import { objectFigure } from "../components/figure.js?v=202611082356";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611082356";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611082356";
-import { translationRecord } from "../components/translationRecord.js?v=202611082356";
+import { esc, $, $$ } from "../lib/util.js?v=202611091123";
+import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611091123";
+import { publishedFor } from "../lib/contributions.js?v=202611091123";
+import { archiveStatus } from "../components/status.js?v=202611091123";
+import { objectFigure } from "../components/figure.js?v=202611091123";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611091123";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611091123";
+import { identityFile } from "../components/identityFile.js?v=202611091123";
+import { translationRecord } from "../components/translationRecord.js?v=202611091123";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
@@ -60,18 +61,23 @@ export function render(main, o) {
       </div>
     </section>
 
+    <section class="d-sec" aria-labelledby="sid">
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">03</span></p><h2 id="sid">Identity file</h2><p class="muted">An imagined identity for the ${esc(o.name.toLowerCase())} in a human-centred world. The same file is printed on its acrylic plate in the exhibition. Its physical states follow below.</p></header>
+      ${identityFile(o)}
+    </section>
+
     <section class="d-sec" aria-labelledby="sc">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">03</span></p><h2 id="sc">Physical states</h2><p class="muted">Four documented states from the experiment video. Fold the booklet to stack them, unfold to read them side by side.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">04</span></p><h2 id="sc">Physical states</h2><p class="muted">Four documented states from the experiment video. Fold the booklet to stack them, unfold to read them side by side.</p></header>
       ${stateViewer(o)}
     </section>
 
     <section class="d-sec" aria-labelledby="sd">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">04</span></p><h2 id="sd">Video evidence</h2><p class="muted">Documentation of the actual material being handled.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">05</span></p><h2 id="sd">Video evidence</h2><p class="muted">Documentation of the actual material being handled.</p></header>
       ${o.experimentVideo ? videoPlayer(o.experimentVideo, { id: "exp-video", states: o.states }) : `<p class="missing">Experiment video not yet filmed.</p>`}
     </section>
 
     <section class="d-sec" aria-labelledby="se">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">05</span></p><h2 id="se">I.A.M. observation</h2><p class="muted">Observed facts first, interpretation kept apart.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">06</span></p><h2 id="se">I.A.M. observation</h2><p class="muted">Observed facts first, interpretation kept apart.</p></header>
       <div class="report">
         <div class="report-row"><h3 class="mono">Action applied</h3><p>${obs.action ? esc(obs.action) : '<span class="muted">Not recorded</span>'}</p></div>
         <div class="report-row"><h3 class="mono">Physical response</h3><p>${obs.response ? esc(obs.response) : '<span class="muted">Not yet written</span>'}</p></div>
@@ -80,7 +86,7 @@ export function render(main, o) {
     </section>
 
     <section class="d-sec" id="d-translations" tabindex="-1" aria-labelledby="sf">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">06</span></p><h2 id="sf">Material translations</h2><p class="muted">People imagining they are the ${esc(o.name.toLowerCase())} and speaking as it. Human voices, not the material's.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">07</span></p><h2 id="sf">Material translations</h2><p class="muted">People imagining they are the ${esc(o.name.toLowerCase())} and speaking as it. Human voices, not the material's.</p></header>
       <ul class="trs" data-trs>${tr.map(t => translationRecord(t, o)).join("") || `<li class="missing" data-empty>No translations recorded yet.</li>`}</ul>
     </section>
 
