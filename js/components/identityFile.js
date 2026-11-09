@@ -1,8 +1,8 @@
 // Material Identity Archive: the same file as the acrylic plate for this material, so the online
 // record and the plate in the exhibition match. Content lives in js/data/archive.js (generated).
-import { esc } from "../lib/util.js?v=202611091133";
-import { ARCHIVE } from "../data/archive.js?v=202611091133";
-import { IDENTITIES } from "../data/cards.js?v=202611091133";
+import { esc } from "../lib/util.js?v=202611091312";
+import { ARCHIVE } from "../data/archive.js?v=202611091312";
+import { IDENTITIES } from "../data/cards.js?v=202611091312";
 
 const rows = list => list.map(([k, v]) => `<div class="if-row"><dt class="mono">${esc(k)}</dt><dd>${k === "Response" ? `<span class="if-resp">${esc(v)}</span>` : esc(v)}</dd></div>`).join("");
 

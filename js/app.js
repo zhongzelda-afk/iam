@@ -1,16 +1,16 @@
 // I.A.M. The Living Material Library. Hash router and site navigation.
 // HOME > MATERIAL LIBRARY > MATERIAL DETAIL > BECOME A MATERIAL > MY COLLECTION > CONTRIBUTE TO THE LAB
-import { $, $$, reduceMotion } from "./lib/util.js?v=202611091133";
-import { bySlug, byKey, isOpen, href } from "./lib/library.js?v=202611091133";
-import * as col from "./lib/collection.js?v=202611091133";
-import * as Home from "./pages/home.js?v=202611091133";
-import * as Library from "./pages/library.js?v=202611091133";
-import * as Material from "./pages/material.js?v=202611091133";
-import * as Become from "./pages/become.js?v=202611091133";
-import * as Collection from "./pages/collection.js?v=202611091133";
-import * as Record from "./pages/record.js?v=202611091133";
-import * as Contribute from "./pages/contribute.js?v=202611091133";
-import * as About from "./pages/about.js?v=202611091133";
+import { $, $$, reduceMotion } from "./lib/util.js?v=202611091312";
+import { bySlug, byKey, isOpen, href } from "./lib/library.js?v=202611091312";
+import * as col from "./lib/collection.js?v=202611091312";
+import * as Home from "./pages/home.js?v=202611091312";
+import * as Library from "./pages/library.js?v=202611091312";
+import * as Material from "./pages/material.js?v=202611091312";
+import * as Become from "./pages/become.js?v=202611091312";
+import * as Collection from "./pages/collection.js?v=202611091312";
+import * as Record from "./pages/record.js?v=202611091312";
+import * as Contribute from "./pages/contribute.js?v=202611091312";
+import * as About from "./pages/about.js?v=202611091312";
 
 const main = $("#main");
 let cleanup = null;

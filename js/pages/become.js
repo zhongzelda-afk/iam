@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091133";
-import { href } from "../lib/library.js?v=202611091133";
-import * as col from "../lib/collection.js?v=202611091133";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091133";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091133";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091312";
+import { href } from "../lib/library.js?v=202611091312";
+import * as col from "../lib/collection.js?v=202611091312";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091312";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091312";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -27,22 +27,59 @@ const SETS = {
 };
 
 // The human's lines. The cards give the meaning; the human improvises around it, like dialogue in a film.
-const LINES = {
-  "A 01": ["Hold still. This won't take long.", "Let's see how much you can take.", "I'm only pressing a little. You'll be fine."],
-  "A 02": ["Come on. Show me what's inside.", "Tighter. I want to see you change.", "Don't make this harder than it is."],
-  "A 03": ["Come here. You're coming with me.", "Let go of the table.", "Stretch a little more for me."],
-  "A 04": ["Let's try you another way.", "You'll take a better shape like this.", "Don't fight it. Turn."],
-  "A 05": ["Fine. I'm done with you.", "That's enough. I have other things to hold.", "There. Keep whatever's left."]
-};
-const READ = { // [mocking, comforting]
-  "T 01": ["Still holding on to that? Let it go already.", "It's alright to keep the mark. I won't rush you."],
-  "T 02": ["Falling apart over a little pressure?", "Too much? Breathe. I'll ease off. For now."],
-  "T 03": ["How much longer do you need? I can't wait forever.", "Take your time. I'll still be here."],
-  "T 04": ["Pretending you're fine? I can see the bruise.", "You don't have to show it. I know something changed."],
-  "T 05": ["Stop clinging to my hand.", "You don't want me to leave, do you?"]
-};
-const BACKTALK = ["Oh, now you talk back?", "Hm. I didn't know you could speak.", "Nobody asked you.", "Say that again. Slowly.", "Interesting. Go on, then."];
-const LEAVING = ["I'm finished here.", "Someone will clear this up.", "Don't take it personally. It's what I do with things."];
+// The human has a different temper each game (never the same one twice in a row in this browser).
+// Cards give the meaning; the human improvises around them, like dialogue in a film.
+const PERSONAS = [
+  { mood: "cruel", read: .6,
+    A: { "A 01": ["Hold still. This won't take long.", "Let's see how much you can take."],
+         "A 02": ["Come on. Show me what's inside.", "Tighter. I want to see you change."],
+         "A 03": ["Come here. You're coming with me.", "Let go of the table."],
+         "A 04": ["Let's try you another way.", "Don't fight it. Turn."],
+         "A 05": ["Fine. I'm done with you.", "There. Keep whatever's left."] },
+    T: { "T 01": ["Still holding on to that? Let it go already."], "T 02": ["Falling apart over a little pressure?"],
+         "T 03": ["How much longer do you need? I can't wait forever."], "T 04": ["Pretending you're fine? I can see the bruise."],
+         "T 05": ["Stop clinging to my hand."] },
+    back: ["Oh, now you talk back?", "Nobody asked you.", "Say that again. Slowly."],
+    leave: ["I'm finished here.", "Someone will clear this up.", "Don't take it personally. It's what I do with things."] },
+  { mood: "careless", read: .45,
+    A: { "A 01": ["Oh, were you there? I was just leaning on you.", "Sorry, I needed something to press on."],
+         "A 02": ["Just squeezing. It's a habit.", "I wasn't really looking."],
+         "A 03": ["I'll take you with me. Or not. We'll see."],
+         "A 04": ["Let's see what this does."],
+         "A 05": ["Whatever. You can go.", "I've lost interest."] },
+    T: { "T 01": ["Still holding that? Didn't notice."], "T 02": ["Too much? Everything is too much for something."],
+         "T 03": ["Take your time. I'm on my phone anyway."], "T 04": ["You look fine to me."], "T 05": ["You're sticking to me. Weird."] },
+    back: ["Huh? Did you say something?", "Sorry, wasn't listening.", "Okay. Anyway."],
+    leave: ["I'll grab another one.", "There are plenty more like you."] },
+  { mood: "thoughtful", read: .75,
+    A: { "A 01": ["I'm pressing you. I've never asked myself why.", "My hand does this without thinking. Does yours?"],
+         "A 02": ["I squeeze things every morning. I never once watched what happens.", "How hard is too hard? Tell me."],
+         "A 03": ["I keep taking things with me. Do they ever want to come?"],
+         "A 04": ["I wanted you in a better shape. Better for whom?"],
+         "A 05": ["I'm letting go. I don't know if that is kindness or neglect.", "I'll stop. I should have asked first."] },
+    T: { "T 01": ["You keep the mark I left. I leave marks everywhere, don't I?"], "T 02": ["Was that too much? I couldn't tell where your limit was."],
+         "T 03": ["You need time. I rarely give anything time."], "T 04": ["Nothing shows. That doesn't mean nothing happened."],
+         "T 05": ["You hold on to me. Maybe I hold on to you too."] },
+    back: ["You can speak. I never thought to listen.", "Say more. I'm listening now.", "I didn't expect an answer. I should have."],
+    leave: ["I shape things all day. I wonder what they have shaped in me.", "Next time I'll look before I press."] },
+  { mood: "curious", read: .6,
+    A: { "A 01": ["Let's record what happens under the palm.", "Hold still. I'm only observing."],
+         "A 02": ["Interesting. Again, a little harder.", "Resistance first, then giving way. Noted."],
+         "A 03": ["How far can you stretch before you let go?"],
+         "A 04": ["Rotation test. Don't move."],
+         "A 05": ["End of experiment. Releasing the specimen.", "Let's see what stays when I let go."] },
+    T: { "T 01": ["The mark remains. Fascinating."], "T 02": ["Collapse under load. As expected."],
+         "T 03": ["Recovery time unknown. I'll wait and measure."], "T 04": ["No visible change. Something changed anyway."],
+         "T 05": ["Adhesion to the hand. Noted."] },
+    back: ["The specimen speaks. That's not in my notes.", "Please don't talk, I'm measuring."],
+    leave: ["Thank you, specimen.", "Data collected. You may go."] }
+];
+function pickPersona() {
+  let last = null; try { last = localStorage.getItem("iam.persona.last"); } catch {}
+  const p = pick(PERSONAS.filter(x => x.mood !== last));
+  try { localStorage.setItem("iam.persona.last", p.mood); } catch {}
+  return p;
+}
 
 function planActions() {
   const total = 3 + Math.floor(Math.random() * (MAX_ROUNDS - 2));
@@ -119,7 +156,7 @@ export function render(main, o) {
 
     <section class="table" aria-label="Card table" data-table>
       <div class="seat seat--human">
-        <div class="seat-tag"><span class="seat-dot" aria-hidden="true"></span><span class="mono">The Human</span><span class="mono muted" data-hstate>waiting</span></div>
+        <div class="seat-tag"><span class="seat-dot" aria-hidden="true"></span><span class="mono">The Human</span><span class="mono seat-mood" data-mood></span><span class="mono muted" data-hstate>waiting</span></div>
         <div class="hand hand--down" data-hhand aria-label="The human's hand, face down">${Array.from({ length: 5 }, (_, i) => `<div class="pc pc--A is-down" style="--i:${i}"><div class="pc-in">${face(cA(ACTIONS[0]), 0)}${back(i % 2 ? "T" : "A")}</div></div>`).join("")}</div>
       </div>
 
@@ -269,7 +306,8 @@ export function render(main, o) {
     startBtn.hidden = true;
     table.classList.add("is-on");
     table.scrollIntoView({ behavior: motion() ? "smooth" : "auto", block: "start" });
-    const plan = planActions(), trail = [{ human: plan[0].n }];
+    const plan = planActions(), P = pickPersona(), trail = [{ human: plan[0].n, mood: P.mood }];
+    $("[data-mood]", main).textContent = `in a ${P.mood} mood`;
     setTurn("Dealing.", "deal");
     fillHand(RESPONSES.map(cR));
     if (motion()) $$(".pc", hand).forEach((el, i) => el.animate([{ transform: "translateY(-60vh) rotate(-20deg)", opacity: 0 }, { opacity: 1 }], { duration: 520, delay: i * 90, easing: "cubic-bezier(.2,.7,.2,1)", fill: "backwards" }));
@@ -298,7 +336,7 @@ export function render(main, o) {
     }
 
     let ai = 0, prev = "A", humanCards = 1, moves = 0;
-    await human(cA(plan[0]), pick(LINES[plan[0].n]));
+    await human(cA(plan[0]), pick(P.A[plan[0].n]));
     for (;;) {
       if (gone()) return;
       const released = plan[ai].n === "A 05" && prev === "A";
@@ -314,22 +352,22 @@ export function render(main, o) {
       moves++;
       const lastR = c.set === "R" ? RESPONSES.find(x => x.n === c.n) : null;
       trail.push(lastR ? { you: lastR.n } : c.set === "V" ? { you: c.n } : { you: "own", text: c.own });
-      if (!lastR) await speak(pick(BACKTALK));
+      if (!lastR) await speak(pick(P.back));
       if (released) break;
       // the human chooses: read you (mock or comfort), or attack again
-      const readNext = humanCards < 9 && (prev === "A" ? Math.random() < .65 : Math.random() < .25);
+      const readNext = humanCards < 9 && (prev === "A" ? Math.random() < P.read : Math.random() < .25);
       if (readNext) {
         const t = lastR ? TRANSLATIONS.find(x => x.n === lastR.t) : pick(TRANSLATIONS);
-        await human(cT(t), READ[t.n][Math.random() < .55 ? 0 : 1]); prev = "T";
+        await human(cT(t), pick(P.T[t.n])); prev = "T";
         trail.push({ human: t.n });
       } else {
-        ai++; await human(cA(plan[ai]), pick(LINES[plan[ai].n])); prev = "A";
+        ai++; await human(cA(plan[ai]), pick(P.A[plan[ai].n])); prev = "A";
         trail.push({ human: plan[ai].n });
       }
       humanCards++;
     }
     // after RELEASE and your last answer the human has the last word, then leaves
-    await speak(pick(LEAVING)); if (gone()) return;
+    await speak(pick(P.leave)); if (gone()) return;
     say.hidden = true;
     const rounds = ai + 1;
     // the human leaves; the player gets their voice
