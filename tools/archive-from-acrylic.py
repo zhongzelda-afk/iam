@@ -7,6 +7,10 @@ c = runpy.run_path(src)
 out = {}
 for s in c["SUBJECTS"]:
     out[s["slug"]] = {k: s[k] for k in ("no", "name", "latin", "identity", "motto", "assignment", "agency", "statement", "on_record", "credit") if k in s}
+# 9 Nov 2026 Lynn: the "on record" lines were all said by workshop participants, not by her.
+CREDIT = {"I.A.M. · Lynn Zhong": "Workshop participant", "Lynn Zhong, Olivia, Rena": "Olivia, Rena"}
+for v in out.values():
+    if v.get("credit") in CREDIT: v["credit"] = CREDIT[v["credit"]]
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(f"{root}/js/data/archive.js", "w") as f:
     f.write(f"// MATERIAL IDENTITY ARCHIVE, the same content as the acrylic plates ({os.path.basename(src)}).\n")

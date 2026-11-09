@@ -119,7 +119,7 @@ export const ARCHIVE = {
   ],
   "statement": "You wrap your leftovers in me and throw me away. I still keep the shape of every hand that held me.",
   "on_record": "Every time you fold me, I remember.",
-  "credit": "I.A.M. · Lynn Zhong"
+  "credit": "Workshop participant"
  },
  "cleaning-sponge": {
   "no": "003",
@@ -178,7 +178,7 @@ export const ARCHIVE = {
   ],
   "statement": "Every night you leave your mess with me. I give it back to the sink, and still find my way back to my shape.",
   "on_record": "Go on, squeeze me. I'll find my way back.",
-  "credit": "I.A.M. · Lynn Zhong"
+  "credit": "Workshop participant"
  },
  "ice": {
   "no": "004",
@@ -237,7 +237,7 @@ export const ARCHIVE = {
   ],
   "statement": "You only notice me when your drink is cold. When I am gone, you say I melted, as if it were my choice.",
   "on_record": "You think I'm cold, but your warmth is changing everything.",
-  "credit": "Lynn Zhong, Olivia, Rena"
+  "credit": "Olivia, Rena"
  },
  "tomato": {
   "no": "005",
@@ -296,7 +296,7 @@ export const ARCHIVE = {
   ],
   "statement": "You argue about what I am, then crush me into sauce anyway.",
   "on_record": "My skin was holding everything together. Not anymore.",
-  "credit": "I.A.M. · Lynn Zhong"
+  "credit": "Workshop participant"
  },
  "cream-foam": {
   "no": "006",
@@ -355,7 +355,7 @@ export const ARCHIVE = {
   ],
   "statement": "You shaped me into a perfect swirl, just to watch me disappear.",
   "on_record": "Just one little poke, and you've ruined my perfect swirl.",
-  "credit": "Lynn Zhong, Olivia, Rena"
+  "credit": "Olivia, Rena"
  },
  "rose": {
   "no": "007",
@@ -414,6 +414,6 @@ export const ARCHIVE = {
   ],
   "statement": "You give me away to say what you cannot say yourself.",
   "on_record": "Please don't mistake my softness for permission.",
-  "credit": "I.A.M. · Lynn Zhong"
+  "credit": "Workshop participant"
  }
 };
