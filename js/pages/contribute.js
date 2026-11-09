@@ -1,8 +1,8 @@
 // 06 Contribute to the Lab: the same one-step share form, opened from a saved translation.
-import { esc, $ } from "../lib/util.js?v=202611091312";
-import { href } from "../lib/library.js?v=202611091312";
-import * as col from "../lib/collection.js?v=202611091312";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091312";
+import { esc, $ } from "../lib/util.js?v=202611091321";
+import { href } from "../lib/library.js?v=202611091321";
+import * as col from "../lib/collection.js?v=202611091321";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091321";
 
 export function render(main, id) {
   const t = col.get(id);

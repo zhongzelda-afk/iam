@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091312";
-import { href } from "../lib/library.js?v=202611091312";
-import * as col from "../lib/collection.js?v=202611091312";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091312";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091312";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091321";
+import { href } from "../lib/library.js?v=202611091321";
+import * as col from "../lib/collection.js?v=202611091321";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091321";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091321";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -84,7 +84,7 @@ function pickPersona() {
 function planActions() {
   const total = 3 + Math.floor(Math.random() * (MAX_ROUNDS - 2));
   const pool = ACTIONS.filter(a => a.n !== "A 05"), out = [];
-  for (let i = 0; i < total - 1; i++) out.push(pick(pool)); // the human may repeat a card
+  for (let i = 0; i < total - 1; i++) out.push(pick(pool.filter(a => a !== out[i - 1]))); // never the same card twice in a row
   out.push(ACTIONS.find(a => a.n === "A 05"));
   return out;
 }
@@ -335,15 +335,29 @@ export function render(main, o) {
       await speak(line);
     }
 
-    let ai = 0, prev = "A", humanCards = 1, moves = 0;
-    await human(cA(plan[0]), pick(P.A[plan[0].n]));
-    for (;;) {
+    // one round = the human acts (Action), you answer, the human reads you (Translation)
+    const used = new Set();
+    const line = (opts, fallback) => {
+      const fresh = opts.filter(x => !used.has(x));
+      const l = fresh.length ? pick(fresh) : fallback;
+      used.add(l); return l;
+    };
+    const ECHO = {
+      cruel: w => `"${w}" again? You're predictable.`,
+      careless: w => `"${w}." Again. Sure.`,
+      thoughtful: w => `"${w}" again. Maybe I keep doing the same thing to you.`,
+      curious: w => `"${w}", second observation. Consistent.`
+    };
+    let lastT = null, moves = 0;
+    const rounds = plan.length;
+    for (let r = 0; r < rounds; r++) {
       if (gone()) return;
-      const released = plan[ai].n === "A 05" && prev === "A";
-      // your turn: Response cards always; your own words from the second answer on
+      const a = plan[r];
+      await human(cA(a), line(P.A[a.n], a.word || "Again.")); trail.push({ human: a.n }); if (gone()) return;
       fillHand(moves ? [...RESPONSES.map(cR), ...VOICES.map(cV), cSpeak()] : RESPONSES.map(cR));
       own.value = ""; own.hidden = true;
-      const el = await yourTurn(moves ? "Your turn. Play a Response or Voice card, or answer in your own words." : `Your turn. How does the ${name} respond? Play a Response card.`); if (gone()) return;
+      const tag = `Round ${r + 1}. `;
+      const el = await yourTurn(tag + (moves ? "Your turn. Play a Response or Voice card, or answer in your own words." : `Your turn. How does the ${name} respond? Play a Response card.`)); if (gone()) return;
       el.classList.remove("is-sel"); el.setAttribute("aria-pressed", "false"); hint.textContent = "";
       const c = el._card.speak ? cOwn(own.value.trim()) : el._card;
       own.hidden = true;
@@ -352,24 +366,16 @@ export function render(main, o) {
       moves++;
       const lastR = c.set === "R" ? RESPONSES.find(x => x.n === c.n) : null;
       trail.push(lastR ? { you: lastR.n } : c.set === "V" ? { you: c.n } : { you: "own", text: c.own });
-      if (!lastR) await speak(pick(P.back));
-      if (released) break;
-      // the human chooses: read you (mock or comfort), or attack again
-      const readNext = humanCards < 9 && (prev === "A" ? Math.random() < P.read : Math.random() < .25);
-      if (readNext) {
-        const t = lastR ? TRANSLATIONS.find(x => x.n === lastR.t) : pick(TRANSLATIONS);
-        await human(cT(t), pick(P.T[t.n])); prev = "T";
-        trail.push({ human: t.n });
-      } else {
-        ai++; await human(cA(plan[ai]), pick(P.A[plan[ai].n])); prev = "A";
-        trail.push({ human: plan[ai].n });
-      }
-      humanCards++;
+      if (!lastR && Math.random() < .5) { const b = P.back.filter(x => !used.has(x)); if (b.length) await speak(line(b)); }
+      // the human reads you: kindly or not, never the same card twice in a row
+      let t = lastR ? TRANSLATIONS.find(x => x.n === lastR.t) : null;
+      if (!t || t === lastT) t = pick(TRANSLATIONS.filter(x => x !== lastT));
+      await human(cT(t), line(P.T[t.n], ECHO[P.mood](t.word))); trail.push({ human: t.n }); lastT = t;
     }
-    // after RELEASE and your last answer the human has the last word, then leaves
-    await speak(pick(P.leave)); if (gone()) return;
+    // after RELEASE the human has the last word, then leaves
+    if (gone()) return;
+    await speak(line(P.leave)); if (gone()) return;
     say.hidden = true;
-    const rounds = ai + 1;
     // the human leaves; the player gets their voice
     setTurn(`The human let go after ${rounds} attacks and left the table. They decided when it ended. You did not.`, "gone");
     announce("The human ended the game and left the table.");
