@@ -544,7 +544,8 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-even
 .you-id .pc { --cw: clamp(84px, 9vw, 120px); cursor: zoom-in; }
 .you-hand { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; }
 .hand--up { min-height: calc(var(--cw) * 1.4 + 14px); padding-top: 14px; }
-.hand--up .pc { margin: 0 calc(var(--cw) * -.12); transform: translateY(var(--dy, 0)) rotate(var(--rot, 0)); transform-origin: 50% 120%; transition: transform .3s var(--ease), filter .3s, opacity .4s; cursor: pointer; }
+.hand--up { width: 100%; }
+.hand--up .pc { margin: 0; transform: translateY(var(--dy, 0)) rotate(var(--rot, 0)); transform-origin: 50% 120%; transition: transform .3s var(--ease), filter .3s, opacity .4s; cursor: pointer; }
 .table:not([data-turn="you"]) .hand--up .pc { filter: brightness(.82); cursor: default; }
 .table[data-turn="you"] .hand--up .pc:hover { transform: translateY(-14px) rotate(var(--rot, 0)); z-index: 2; }
 .hand--up .pc.is-sel { transform: translateY(-34px) scale(1.14) !important; z-index: 3; }
@@ -637,7 +638,6 @@ body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-even
   .seat--you { grid-template-columns: 1fr; justify-items: center; }
   .you-id { display: flex; align-items: center; gap: 10px; }
   .you-id .pc { --cw: 58px; }
-  .hand--up .pc { margin: 0 -15px; }
   .say { font-size: 18px; padding: 10px 14px; }
   .hand-hint { font-size: 13px; }
   .slot > .mono { font-size: 8.5px; }

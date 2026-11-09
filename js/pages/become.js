@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091128";
-import { href } from "../lib/library.js?v=202611091128";
-import * as col from "../lib/collection.js?v=202611091128";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091128";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091128";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091133";
+import { href } from "../lib/library.js?v=202611091133";
+import * as col from "../lib/collection.js?v=202611091133";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091133";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091133";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -224,8 +224,15 @@ export function render(main, o) {
   }
   function layoutHand() {
     const els = $$(".pc", hand), n = els.length;
-    els.forEach((el, i) => { el.style.setProperty("--rot", `${(i - (n - 1) / 2) * 4}deg`); el.style.setProperty("--dy", `${Math.abs(i - (n - 1) / 2) * 6}px`); });
+    const spread = n > 6 ? 2 : 4, cw = els[0] ? els[0].offsetWidth : 0, avail = hand.clientWidth - 24;
+    const step = n > 1 ? Math.min(cw * .78, (avail - cw) / (n - 1)) : 0;
+    els.forEach((el, i) => {
+      el.style.setProperty("--rot", `${(i - (n - 1) / 2) * spread}deg`);
+      el.style.setProperty("--dy", `${Math.abs(i - (n - 1) / 2) * (n > 6 ? 3 : 6)}px`);
+      el.style.marginLeft = i ? `${step - cw}px` : "0";
+    });
   }
+  const handRO = new ResizeObserver(() => layoutHand()); handRO.observe(hand);
   function select(el) {
     selected = el;
     $$(".pc", hand).forEach(x => { x.classList.toggle("is-sel", x === el); x.setAttribute("aria-pressed", x === el); });
@@ -296,9 +303,9 @@ export function render(main, o) {
       if (gone()) return;
       const released = plan[ai].n === "A 05" && prev === "A";
       // your turn: Response cards always; your own words from the second answer on
-      fillHand(moves ? [...RESPONSES.map(cR), cSpeak()] : RESPONSES.map(cR));
+      fillHand(moves ? [...RESPONSES.map(cR), ...VOICES.map(cV), cSpeak()] : RESPONSES.map(cR));
       own.value = ""; own.hidden = true;
-      const el = await yourTurn(moves ? "Your turn. Play a Response card, or answer in your own words." : `Your turn. How does the ${name} respond? Play a Response card.`); if (gone()) return;
+      const el = await yourTurn(moves ? "Your turn. Play a Response or Voice card, or answer in your own words." : `Your turn. How does the ${name} respond? Play a Response card.`); if (gone()) return;
       el.classList.remove("is-sel"); el.setAttribute("aria-pressed", "false"); hint.textContent = "";
       const c = el._card.speak ? cOwn(own.value.trim()) : el._card;
       own.hidden = true;
@@ -306,7 +313,7 @@ export function render(main, o) {
       await land(copy, "Y", el.getBoundingClientRect()); if (gone()) return;
       moves++;
       const lastR = c.set === "R" ? RESPONSES.find(x => x.n === c.n) : null;
-      trail.push(lastR ? { you: lastR.n } : { you: "own", text: c.own });
+      trail.push(lastR ? { you: lastR.n } : c.set === "V" ? { you: c.n } : { you: "own", text: c.own });
       if (!lastR) await speak(pick(BACKTALK));
       if (released) break;
       // the human chooses: read you (mock or comfort), or attack again
@@ -383,5 +390,5 @@ export function render(main, o) {
     announce(`Kept in My Collection as ${t.id}.`);
     if (give) { mountContributionForm(done, t); const c = $("[data-consent]", done); c && c.focus(); }
   });
-  return () => { alive = false; };
+  return () => { alive = false; handRO.disconnect(); };
 }
