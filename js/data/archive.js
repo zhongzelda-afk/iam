@@ -237,7 +237,7 @@ export const ARCHIVE = {
   ],
   "statement": "You only notice me when your drink is cold. When I am gone, you say I melted, as if it were my choice.",
   "on_record": "You think I'm cold, but your warmth is changing everything.",
-  "credit": "Olivia, Rena"
+  "credit": "Workshop participant"
  },
  "tomato": {
   "no": "005",
@@ -355,7 +355,7 @@ export const ARCHIVE = {
   ],
   "statement": "You shaped me into a perfect swirl, just to watch me disappear.",
   "on_record": "Just one little poke, and you've ruined my perfect swirl.",
-  "credit": "Olivia, Rena"
+  "credit": "Workshop participant"
  },
  "rose": {
   "no": "007",
