@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091126";
-import { href } from "../lib/library.js?v=202611091126";
-import * as col from "../lib/collection.js?v=202611091126";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091126";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091126";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091128";
+import { href } from "../lib/library.js?v=202611091128";
+import * as col from "../lib/collection.js?v=202611091128";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091128";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091128";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -114,20 +114,8 @@ export function render(main, o) {
     <div class="tb-head">
       <a class="mono back" href="${href.object(o)}">← Object ${o.no} ${esc(o.name)}</a>
       <h1 id="b-title" class="tb-title">Become the ${esc(o.name)}.</h1>
-      <p class="mono muted tb-sub">A card game for two. You play the ${esc(name)}. The other player is human.</p>
+      <p class="tb-sub">You are the ${esc(name)}. Someone else decides how you are handled, and when it ends. Answer anyway.</p>
     </div>
-
-    <section class="tb-rules" aria-labelledby="tb-rules-h">
-      <h2 id="tb-rules-h" class="mono">How to play</h2>
-      <ol>
-        <li><span class="num-box">01</span><p><b>You are the ${esc(name)}.</b> Your Identity card is dealt to you. The other player is human, and you cannot see their hand.</p></li>
-        <li><span class="num-box">02</span><p><b>The human acts on you.</b> They play an Action card and say something. The words on the card are only a prompt.</p></li>
-        <li><span class="num-box">03</span><p><b>You respond.</b> First with a Response card. From then on, you may also answer in your own words. Cards can be played again.</p></li>
-        <li><span class="num-box">04</span><p><b>The human decides.</b> They may attack again, or read you with a Translation, kindly or not. At most ${MAX_ROUNDS} attacks. Only the human can end the game.</p></li>
-        <li><span class="num-box">05</span><p><b>Your voice stays.</b> Your last card becomes your entry. Keep it in My Collection, or give it to the Material Library.</p></li>
-      </ol>
-      <p class="tb-rules-tip mono">Tap any card on the table to read it closely.</p>
-    </section>
 
     <section class="table" aria-label="Card table" data-table>
       <div class="seat seat--human">
