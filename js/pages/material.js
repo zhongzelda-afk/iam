@@ -1,13 +1,13 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611091337";
-import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611091337";
-import { publishedFor } from "../lib/contributions.js?v=202611091337";
-import { archiveStatus } from "../components/status.js?v=202611091337";
-import { objectFigure } from "../components/figure.js?v=202611091337";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611091337";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611091337";
-import { identityFile } from "../components/identityFile.js?v=202611091337";
-import { translationRecord } from "../components/translationRecord.js?v=202611091337";
+import { esc, $, $$ } from "../lib/util.js?v=202611101153";
+import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611101153";
+import { publishedFor } from "../lib/contributions.js?v=202611101153";
+import { archiveStatus } from "../components/status.js?v=202611101153";
+import { objectFigure } from "../components/figure.js?v=202611101153";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611101153";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611101153";
+import { identityFile } from "../components/identityFile.js?v=202611101153";
+import { translationRecord } from "../components/translationRecord.js?v=202611101153";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
@@ -38,8 +38,12 @@ export function render(main, o) {
         ${images.length > 1 ? `<div class="d-stage-nav"><button type="button" class="arrow" data-img-step="-1" aria-label="Previous image">‹</button><span class="mono" data-img-count>01 / ${String(images.length).padStart(2, "0")}</span><button type="button" class="arrow" data-img-step="1" aria-label="Next image">›</button></div>` : ""}
         <p class="d-bignum" aria-hidden="true">${o.no}</p>
       </div>
+      <div class="d-side">
+      <nav class="d-index" aria-label="Material Library index">
+        <a class="d-index-back lg" href="${href.library}"><span class="dot-ring" aria-hidden="true"></span><span class="d-index-k">← Back to index</span><span class="d-index-t">Material Library</span></a>
+        <ol class="d-index-nos">${PUBLISHED.map(x => `<li><a class="lg" href="${href.object(x)}"${x.slug === o.slug ? ' aria-current="page"' : ""} title="Object ${x.no} ${esc(x.name)}">${x.no}</a></li>`).join("")}</ol>
+      </nav>
       <div class="d-panel lg${refractOK() ? " lg--refract" : ""}">
-        <a class="mono back" href="${href.library}">← Material Library</a>
         <p class="mono d-obj">Object ${o.no}</p>
         <h1 id="d-title" class="d-title">${esc(o.name)}</h1>
         <section aria-labelledby="sa"><h2 id="sa" class="mono sec-k"><span class="num-box">01</span> Catalogue metadata</h2>
@@ -59,20 +63,22 @@ export function render(main, o) {
           <a class="mono panel-jump" href="#d-translations" data-jump>Read ${tr.length ? tr.length + " " : ""}translations ↓</a>
         </div>
       </div>
+      </div>
     </section>
 
-    <section class="d-sec" aria-labelledby="sid">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">03</span></p><h2 id="sid">Identity file</h2><p class="muted">An imagined identity for the ${esc(o.name.toLowerCase())} in a human-centred world. The same file is printed on its acrylic plate in the exhibition. Its physical states follow below.</p></header>
+    <section class="d-sec d-sec--glass" aria-labelledby="sid">
+      ${o.heroImage ? `<div class="d-pattern" aria-hidden="true"><div class="d-pattern-track">${Array.from({ length: 8 }, () => `<span><img src="${esc(o.heroImage)}" alt="" loading="lazy"></span>`).join("")}</div></div>` : ""}
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">03</span></p><h2 id="sid">Identity file</h2><p class="muted">Who the ${esc(o.name.toLowerCase())} is in a human-centred world. The same file as its acrylic plate.</p></header>
       ${identityFile(o)}
     </section>
 
     <section class="d-sec" aria-labelledby="sc">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">04</span></p><h2 id="sc">Physical states</h2><p class="muted">Four documented states from the experiment video. Fold the booklet to stack them, unfold to read them side by side.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">04</span></p><h2 id="sc">Physical states</h2><p class="muted">Four states, where the force went. Fold to stack them, unfold to compare.</p></header>
       ${stateViewer(o)}
     </section>
 
     <section class="d-sec" aria-labelledby="sd">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">05</span></p><h2 id="sd">Video evidence</h2><p class="muted">Documentation of the actual material being handled.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">05</span></p><h2 id="sd">Video evidence</h2><p class="muted">The real material, handled on camera.</p></header>
       ${o.experimentVideo ? videoPlayer(o.experimentVideo, { id: "exp-video", states: o.states }) : `<p class="missing">Experiment video not yet filmed.</p>`}
     </section>
 

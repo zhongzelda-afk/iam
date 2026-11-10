@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611091337";
-import { href } from "../lib/library.js?v=202611091337";
-import * as col from "../lib/collection.js?v=202611091337";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611091337";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611091337";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611101153";
+import { href } from "../lib/library.js?v=202611101153";
+import * as col from "../lib/collection.js?v=202611101153";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611101153";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611101153";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -147,9 +147,9 @@ export function render(main, o) {
     : { set: "I", n: "I —", word: `The ${o.name}`, text: "No Identity card yet. You play it as you find it.", img: o.heroImage, more: [] };
 
   main.innerHTML = `
-  <article class="become become--table" aria-labelledby="b-title">
+  <article class="become become--table become--immersive" aria-labelledby="b-title">
     <div class="tb-head">
-      <a class="mono back" href="${href.object(o)}">← Object ${o.no} ${esc(o.name)}</a>
+      <a class="tb-exit" href="${href.object(o)}" aria-label="Leave the table and go back to Object ${o.no} ${esc(o.name)}"><span aria-hidden="true">←</span> Leave the table</a>
       <h1 id="b-title" class="tb-title">Become the ${esc(o.name)}.</h1>
       <p class="tb-sub">You are the ${esc(name)}. Someone else decides how you are handled, and when it ends. Answer anyway.</p>
     </div>
@@ -212,6 +212,10 @@ export function render(main, o) {
   const motion = () => !reduceMotion();
   const wait = ms => new Promise(r => setTimeout(r, motion() ? ms : 0));
   let alive = true;
+  // full screen table; Escape leaves it (unless a card is zoomed)
+  document.body.classList.add("is-immersive");
+  const onEsc = ev => { if (ev.key === "Escape" && !zoom.open && !ev.target.closest("input, textarea")) location.hash = href.object(o); };
+  document.addEventListener("keydown", onEsc);
   const gone = () => !alive || !main.contains(table);
 
   // the identity card is dealt face up to the player's seat
@@ -305,7 +309,6 @@ export function render(main, o) {
   async function play() {
     startBtn.hidden = true;
     table.classList.add("is-on");
-    table.scrollIntoView({ behavior: motion() ? "smooth" : "auto", block: "start" });
     const plan = planActions(), P = pickPersona(), trail = [{ human: plan[0].n, mood: P.mood }];
     $("[data-mood]", main).textContent = `in a ${P.mood} mood`;
     setTurn("Dealing.", "deal");
@@ -434,5 +437,5 @@ export function render(main, o) {
     announce(`Kept in My Collection as ${t.id}.`);
     if (give) { mountContributionForm(done, t); const c = $("[data-consent]", done); c && c.focus(); }
   });
-  return () => { alive = false; handRO.disconnect(); };
+  return () => { alive = false; handRO.disconnect(); document.body.classList.remove("is-immersive"); document.removeEventListener("keydown", onEsc); };
 }

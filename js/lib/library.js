@@ -1,7 +1,7 @@
 // Joins the catalogue (numbers, status) with the material records (content).
-import { CATALOGUE, RESERVED, STATUS, COLLECTION_NAME } from "../data/catalogue.js?v=202611091337";
-import { MATERIALS } from "../data/materials.js?v=202611091337";
-import { TRANSLATIONS } from "../data/translations.js?v=202611091337";
+import { CATALOGUE, RESERVED, STATUS, COLLECTION_NAME } from "../data/catalogue.js?v=202611101153";
+import { MATERIALS } from "../data/materials.js?v=202611101153";
+import { TRANSLATIONS } from "../data/translations.js?v=202611101153";
 
 export const OBJECTS = CATALOGUE.map(c => ({ ...MATERIALS[c.slug], ...c, collection: COLLECTION_NAME }));
 export const RESERVED_SLOTS = RESERVED.map(no => ({ no, status: "awaiting-cataloguing", reserved: true }));

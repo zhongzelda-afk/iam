@@ -1,7 +1,25 @@
 // Physical State Viewer: the four states as a small concertina booklet, like the printed State Booklet.
 // Folded, the sheets stack and "Trace through" shows every state at once so the change is visible.
 // Unfolded, the sheets open side by side (or in a column on small screens).
-import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611091337";
+import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611101153";
+
+// where the force went in each state, drawn like the booklet: red rings with a glossy core (x, y, size in % of the window)
+const FORCE = {
+  Before: [],
+  Pinched: [[42, 64, 13], [58, 64, 13]],
+  Pressed: [[50, 60, 24]],
+  Squeezed: [[50, 66, 34], [30, 68, 12], [70, 68, 12]]
+};
+const CONTACT = { Before: 'None  # untouched', Pinched: '"fingers + thumb"', Pressed: '"flat palm"', Squeezed: '"whole hand"' };
+const ring = ([x, y, d], k) => `<span class="force" style="left:${x}%;top:${y}%;--d:${d}%;--k:${k}"></span>`;
+const code = (o, s, i, n) => [
+  `#I.A.M. ${o.no}  ${o.name.toUpperCase()}  state ${s.n} ${s.name.toUpperCase()}`,
+  `${o.slug.replace(/-/g, "_")}=Material(no="${o.no}",action="${(o.primaryAction || "compression").toLowerCase()}")`,
+  `frame= still("WORKSHOP_B", t="${fmtTime(s.t)}")`,
+  `contact= ${CONTACT[s.name] || '"hand"'}`,
+  `press= ${i ? "observed  # not measured, read by eye" : "None"}`,
+  `stack.add(state)  #sheet ${i + 1} of ${n}`
+].map(esc).join("\n");
 
 export function stateViewer(o) {
   if (!o.states || !o.states.length) return `<p class="missing">States not yet documented.</p>`;
@@ -14,9 +32,12 @@ export function stateViewer(o) {
         <div class="sheet-window brackets">
           <img src="${esc(s.image)}" alt="${esc(o.name)}, state ${s.n}, ${esc(s.name.toLowerCase())}. Frame from the experiment video at ${fmtTime(s.t)}." loading="lazy" decoding="async">
           ${o.states.filter((_, j) => j !== i).map(g => `<img class="ghost" src="${esc(g.image)}" alt="" loading="lazy" decoding="async">`).join("")}
+          <pre class="sheet-code" aria-hidden="true">${code(o, s, i, n)}</pre>
+          <span class="forces" aria-hidden="true">${(FORCE[s.name] || []).map(ring).join("") || '<span class="force force--none" style="left:50%;top:66%;--d:10%"></span>'}</span>
         </div>
         <div class="sheet-body">
-          <p class="sheet-state"><span class="num-box">${s.n}</span> ${esc(s.name)}<span class="sheet-dots" aria-hidden="true">${o.states.map((_, j) => `<i${j <= i ? ' class="on"' : ""}></i>`).join("")}</span></p>
+          <ol class="sheet-list" aria-hidden="true">${o.states.map((g, j) => `<li${j === i ? ' class="on"' : ""}>${g.n} / ${esc(g.name.toUpperCase())}</li>`).join("")}</ol>
+          <p class="visually-hidden">State ${s.n}, ${esc(s.name)}</p>
           ${s.observation ? `<p class="sheet-obs">${esc(s.observation)}</p>` : `<p class="sheet-obs muted">Observation not yet written.</p>`}
           <p class="sheet-src mono">Video frame · ${fmtTime(s.t)}</p>
         </div>
