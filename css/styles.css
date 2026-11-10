@@ -13,8 +13,10 @@
   --accent: #6B1D24;
   --accent-soft: rgba(107, 29, 36, .08);
   --glass: rgba(251, 250, 247, .72);
-  --f-sans: "Geist", "Helvetica Neue", Arial, sans-serif;
-  --f-mono: "Source Code Pro", ui-monospace, Menlo, monospace;
+  --f-sans: "Geist", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --f-mono: var(--f-sans);
+  /* only the barely legible code drawn on the booklet photos stays monospaced */
+  --f-code: "Source Code Pro", ui-monospace, Menlo, monospace;
   /* quotes and voices: plain light sans (Lynn 10 Nov: the condensed serif was not liked) */
   --f-voice: "Geist", "Helvetica Neue", Arial, sans-serif;
   /* display caps, a free stand-in for Bank Gothic in the main elements sheet */
@@ -1074,15 +1076,54 @@ body::before { background: none; }
 .h-drift { -webkit-mask-image: linear-gradient(90deg, #000 0 30%, transparent 37% 63%, #000 70%); mask-image: linear-gradient(90deg, #000 0 30%, transparent 37% 63%, #000 70%); }
 @media (max-width: 760px) { .h-drift { display: none; } }
 /* home way in: a glass pill, a glossy red marker, navy text, the arrow in a red force ring */
-.h-plate .h-cta--home { gap: 12px; min-height: 46px; padding: 0 6px 0 18px; border-radius: 999px; border: 1px solid rgba(210, 82, 79, .55);
+:is(.h-plate, .mycol) .h-cta--home { gap: 12px; min-height: 46px; padding: 0 6px 0 18px; border-radius: 999px; border: 1px solid rgba(210, 82, 79, .55);
   background: rgba(255, 255, 255, .45); color: var(--navy); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 10px 24px -14px rgba(28, 38, 92, .45);
   font: 500 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; transform: none; }
 .h-cta-ball { width: 9px; height: 9px; border-radius: 50%; flex: none; background: radial-gradient(circle closest-side at 40% 38%, #FFB3AD, #D2524F 55%, #8E2622 92%, transparent 100%); }
-.h-plate .h-cta--home .h-cta-t { font-size: inherit; transform: none; }
-.h-plate .h-cta--home .h-cta-arr { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 14px; color: var(--red);
+:is(.h-plate, .mycol) .h-cta--home .h-cta-t { font-size: inherit; transform: none; }
+:is(.h-plate, .mycol) .h-cta--home .h-cta-arr { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-size: 14px; color: var(--red);
   background: radial-gradient(circle closest-side, transparent 0 62%, rgba(210, 82, 79, .5) 64% 67%, transparent 69%); box-shadow: 0 0 0 1px var(--red);
   transition: background .25s, color .25s, transform .25s var(--ease); }
-.h-plate .h-cta--home:hover, .h-plate .h-cta--home:focus-visible { background: rgba(255, 255, 255, .7); color: var(--navy); border-color: var(--red); transform: none;
+:is(.h-plate, .mycol) .h-cta--home:hover, :is(.h-plate, .mycol) .h-cta--home:focus-visible { background: rgba(255, 255, 255, .7); color: var(--navy); border-color: var(--red); transform: none;
   box-shadow: inset 0 1px 0 #fff, 0 0 0 6px rgba(210, 82, 79, .08), 0 12px 28px -14px rgba(28, 38, 92, .5); }
-.h-plate .h-cta--home:hover .h-cta-arr, .h-plate .h-cta--home:focus-visible .h-cta-arr { background: var(--red); color: #fff; transform: translateX(3px); }
-@media (max-width: 640px) { .h-plate .h-cta--home { font-size: 10px; letter-spacing: .08em; white-space: nowrap; padding-left: 14px; gap: 9px; } .h-plate .h-cta--home .h-cta-arr { width: 30px; height: 30px; } }
+:is(.h-plate, .mycol) .h-cta--home:hover .h-cta-arr, :is(.h-plate, .mycol) .h-cta--home:focus-visible .h-cta-arr { background: var(--red); color: #fff; transform: translateX(3px); }
+@media (max-width: 640px) { :is(.h-plate, .mycol) .h-cta--home { font-size: 10px; letter-spacing: .08em; white-space: nowrap; padding-left: 14px; gap: 9px; } :is(.h-plate, .mycol) .h-cta--home .h-cta-arr { width: 30px; height: 30px; } }
+
+/* ---- round 6, 10 Nov evening: one plain sans (黑体) everywhere, no serif, no italic ---- */
+.sheet-code { font-family: var(--f-code); }
+.pc-no, .pc-set, .pc-word, .pc-txt, .pc-own { font-family: var(--f-sans); font-style: normal; }
+.pc-no, .pc-word { font-weight: 700; }
+.pc-txt, .pc-own { font-weight: 400; }
+em, i, cite, blockquote, q { font-style: normal; }
+/* home plate */
+.h-inst { font-family: var(--f-sans); font-weight: 400; color: var(--ink-2); letter-spacing: .06em; text-transform: none; font-size: 12px; }
+.h-title { font-family: var(--f-sans); font-weight: 700; font-size: clamp(20px, 1.9vw, 26px); letter-spacing: -.01em; text-transform: none; -webkit-text-stroke: 0; color: var(--navy); }
+.h-motto { font-family: var(--f-sans); font-weight: 400; font-size: 13px; letter-spacing: .02em; text-transform: none; color: var(--ink-2); }
+:is(.h-plate, .mycol) .h-cta--home { font: 600 13px/1 var(--f-sans); letter-spacing: .02em; text-transform: none; }
+@media (max-width: 640px) { :is(.h-plate, .mycol) .h-cta--home { font-size: 12.5px; letter-spacing: 0; } }
+
+/* entrance: slide in, no fade */
+@keyframes in-left { from { transform: translateX(-90px); } to { transform: none; } }
+@keyframes in-up { from { transform: translateY(80px); } to { transform: none; } }
+.lib-head, .lib-rail, .c-head { animation: in-left .8s cubic-bezier(.2, .8, .2, 1) both; }
+.gallery, .lib-main, .rcs, .c-empty, .c-more { animation: in-up .85s cubic-bezier(.2, .8, .2, 1) both; }
+@media (prefers-reduced-motion: reduce) { .lib-head, .lib-rail, .c-head, .gallery, .lib-main, .rcs, .c-empty, .c-more { animation: none; } }
+
+/* My Collection: the drifting library behind, liquid glass in front */
+.c-drift { position: fixed; inset: 64px 0 0; z-index: 0; display: grid; grid-template-rows: 1fr; align-items: center; }
+.mycol { position: relative; z-index: 1; }
+.c-head.lg { padding: 26px 30px 22px; border-radius: 22px; border-bottom: 1px solid rgba(255, 255, 255, .7); margin-bottom: 26px; }
+.c-head.lg::before { content: ""; position: absolute; inset: 6px; border: 1px dashed rgba(210, 82, 79, .5); border-radius: 17px; pointer-events: none; }
+.c-head.lg, .c-empty.lg { position: relative; -webkit-backdrop-filter: blur(7px) saturate(1.5); backdrop-filter: blur(7px) saturate(1.5); }
+.c-head.lg.lg--refract, .c-empty.lg.lg--refract { backdrop-filter: url(#lg-refract) blur(6px) saturate(1.5); }
+.rc-link { background: linear-gradient(135deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .18)); border: 1px solid rgba(255, 255, 255, .75); border-radius: 18px;
+  -webkit-backdrop-filter: blur(8px) saturate(1.5); backdrop-filter: blur(8px) saturate(1.5);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 0 18px rgba(255, 255, 255, .35), 0 12px 28px -14px rgba(28, 38, 92, .35); }
+.rc-link::before { border-radius: 13px; }
+.rc-link:hover { background: linear-gradient(135deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .3)); }
+@media (max-width: 760px) { .c-drift { opacity: .6; } .c-head.lg { padding: 20px 18px 18px; } }
+.c-drift { -webkit-mask-image: none; mask-image: none; }
+@media (max-width: 760px) { .c-drift { display: grid; } }
+/* no cross fade between pages: the new page is simply there, and its parts slide in */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+main.enter { animation: none; }

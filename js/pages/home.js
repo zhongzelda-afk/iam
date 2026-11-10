@@ -1,7 +1,7 @@
 // 01 Home: one material at the centre, held in a ring of force (after the hero image),
 // the rest drifting past behind it; a small glass plate carries the name and the way in.
-import { esc, reduceMotion } from "../lib/util.js?v=202611101559";
-import { PUBLISHED, href } from "../lib/library.js?v=202611101559";
+import { esc, reduceMotion } from "../lib/util.js?v=202611102048";
+import { PUBLISHED, href } from "../lib/library.js?v=202611102048";
 
 const refractOK = () => /Chrome\//.test(navigator.userAgent);
 let at = 0;
