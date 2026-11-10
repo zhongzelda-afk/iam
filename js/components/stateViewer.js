@@ -1,7 +1,7 @@
 // Physical State Viewer: the four states as a small concertina booklet, like the printed State Booklet.
 // Folded, the sheets stack and "Trace through" shows every state at once so the change is visible.
 // Unfolded, the sheets open side by side (or in a column on small screens).
-import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611101153";
+import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611101219";
 
 // where the force went in each state, drawn like the booklet: red rings with a glossy core (x, y, size in % of the window)
 const FORCE = {
@@ -33,12 +33,12 @@ export function stateViewer(o) {
           <img src="${esc(s.image)}" alt="${esc(o.name)}, state ${s.n}, ${esc(s.name.toLowerCase())}. Frame from the experiment video at ${fmtTime(s.t)}." loading="lazy" decoding="async">
           ${o.states.filter((_, j) => j !== i).map(g => `<img class="ghost" src="${esc(g.image)}" alt="" loading="lazy" decoding="async">`).join("")}
           <pre class="sheet-code" aria-hidden="true">${code(o, s, i, n)}</pre>
-          <span class="forces" aria-hidden="true">${(FORCE[s.name] || []).map(ring).join("") || '<span class="force force--none" style="left:50%;top:66%;--d:10%"></span>'}</span>
+          <span class="forces" aria-hidden="true">${(FORCE[s.name] || []).map(ring).join("") || '<span class="force force--none" style="left:50%;top:76%;--d:9%"></span>'}</span>
         </div>
         <div class="sheet-body">
           <ol class="sheet-list" aria-hidden="true">${o.states.map((g, j) => `<li${j === i ? ' class="on"' : ""}>${g.n} / ${esc(g.name.toUpperCase())}</li>`).join("")}</ol>
           <p class="visually-hidden">State ${s.n}, ${esc(s.name)}</p>
-          ${s.observation ? `<p class="sheet-obs">${esc(s.observation)}</p>` : `<p class="sheet-obs muted">Observation not yet written.</p>`}
+          ${s.observation ? `<p class="sheet-obs">${esc(s.observation)}</p>` : ""}
           <p class="sheet-src mono">Video frame · ${fmtTime(s.t)}</p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export function mountStateViewer(root, o, { onSelect } = {}) {
     sheets.forEach(s => { s.style.width = pw + "px"; s.style.height = "auto"; });
     const ph = Math.max(...sheets.map(s => $(".sheet-paper", s).offsetHeight));
     sheets.forEach(s => s.style.height = ph + "px");
-    const s0 = cols === 4 ? Math.min(1.55, (W * 0.48) / pw) : cols === 2 ? Math.min(1.6, (W * 0.8) / pw) : 1;
+    const s0 = cols === 4 ? Math.min(1.25, (W * 0.4) / pw) : cols === 2 ? Math.min(1.6, (W * 0.8) / pw) : 1;
     const tabH = $(".sheet-tab", sheets[0]).offsetHeight;
     geo = { W, gap, cols, pw, ph, s0, tabH, rows: Math.ceil(n / cols) };
   }

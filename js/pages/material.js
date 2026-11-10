@@ -1,13 +1,13 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611101153";
-import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611101153";
-import { publishedFor } from "../lib/contributions.js?v=202611101153";
-import { archiveStatus } from "../components/status.js?v=202611101153";
-import { objectFigure } from "../components/figure.js?v=202611101153";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611101153";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611101153";
-import { identityFile } from "../components/identityFile.js?v=202611101153";
-import { translationRecord } from "../components/translationRecord.js?v=202611101153";
+import { esc, $, $$ } from "../lib/util.js?v=202611101219";
+import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611101219";
+import { publishedFor } from "../lib/contributions.js?v=202611101219";
+import { archiveStatus } from "../components/status.js?v=202611101219";
+import { objectFigure } from "../components/figure.js?v=202611101219";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611101219";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611101219";
+import { identityFile } from "../components/identityFile.js?v=202611101219";
+import { translationRecord } from "../components/translationRecord.js?v=202611101219";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
@@ -40,7 +40,7 @@ export function render(main, o) {
       </div>
       <div class="d-side">
       <nav class="d-index" aria-label="Material Library index">
-        <a class="d-index-back lg" href="${href.library}"><span class="dot-ring" aria-hidden="true"></span><span class="d-index-k">← Back to index</span><span class="d-index-t">Material Library</span></a>
+        <a class="d-index-back lg" href="${href.library}"><span class="dot-ring" aria-hidden="true"></span><span class="d-index-k">← Index</span><span class="visually-hidden">Back to the Material Library</span></a>
         <ol class="d-index-nos">${PUBLISHED.map(x => `<li><a class="lg" href="${href.object(x)}"${x.slug === o.slug ? ' aria-current="page"' : ""} title="Object ${x.no} ${esc(x.name)}">${x.no}</a></li>`).join("")}</ol>
       </nav>
       <div class="d-panel lg${refractOK() ? " lg--refract" : ""}">
