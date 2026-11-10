@@ -1,34 +1,34 @@
-// 01 Home: one isolated object in a nearly white room, tiny labels, manual arrows (Reference A).
-import { esc, $ } from "../lib/util.js?v=202611101219";
-import { PUBLISHED, href } from "../lib/library.js?v=202611101219";
-import { objectFigure } from "../components/figure.js?v=202611101219";
+// 01 Home: every published object drifting across the room at one steady speed,
+// with a clear liquid glass plate in front carrying the name and the way in.
+import { esc } from "../lib/util.js?v=202611101233";
+import { PUBLISHED, href } from "../lib/library.js?v=202611101233";
 
-let at = 0;
+// SVG refraction inside backdrop-filter only renders in Chromium browsers; others get the clear glass alone
+const refractOK = () => /Chrome\//.test(navigator.userAgent);
+
 export function render(main) {
-  const o = PUBLISHED[at % PUBLISHED.length];
+  const objs = PUBLISHED.filter(o => o.heroImage);
+  // three rows, each starting at a different object so no column lines up
+  const row = k => {
+    const list = objs.map((_, i) => objs[(i + k * 3) % objs.length]);
+    const items = list.map(o => `<a href="${href.object(o)}" tabindex="-1" title="Object ${o.no} ${esc(o.name)}"><img src="${esc(o.heroImage)}" alt="" loading="${k ? "lazy" : "eager"}" decoding="async"></a>`).join("");
+    return `<div class="h-row" style="--k:${k}"><div class="h-track">${items}${items}</div></div>`;
+  };
   main.innerHTML = `
-  <section class="home" aria-labelledby="home-title">
-    <div class="home-copy">
-      <p class="mono eyebrow">I.A.M. · Institute of Animate Matter</p>
-      <h1 id="home-title" class="home-title">The Living<br>Material Library</h1>
-      <p class="home-tag">One Material. Many Meanings.</p>
-      <p class="home-lede">Materials respond to the world through their physical behaviours. Through observation and embodied imagination, I.A.M. explores how these responses can be translated into many different voices.</p>
-      <a class="cta" href="${href.library}">Explore the Library <span aria-hidden="true">→</span></a>
-    </div>
-    <div class="home-stage">
-      <a class="home-object" href="${href.object(o)}" data-home-object aria-label="Open Object ${o.no}, ${esc(o.name)}">${objectFigure(o, { eager: true, alt: "" })}</a>
-      <div class="home-caption">
-        <button type="button" class="arrow" data-step="-1" aria-label="Previous material">‹</button>
-        <p class="mono home-label" aria-live="polite"><span>Object ${o.no}</span><span class="home-name">${esc(o.name)}</span><span>${esc(o.category)}</span></p>
-        <button type="button" class="arrow" data-step="1" aria-label="Next material">›</button>
-      </div>
-      <p class="mono home-count"><span>${String((at % PUBLISHED.length) + 1).padStart(2, "0")}</span> / ${String(PUBLISHED.length).padStart(2, "0")} published</p>
+  <section class="home2" aria-labelledby="home-title">
+    <div class="h-drift" aria-hidden="true">${row(0)}${row(1)}${row(2)}</div>
+    <svg class="lg-defs" aria-hidden="true" focusable="false" width="0" height="0"><filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="n"/>
+      <feGaussianBlur in="n" stdDeviation="2" result="nb"/>
+      <feDisplacementMap in="SourceGraphic" in2="nb" scale="38" xChannelSelector="R" yChannelSelector="G"/>
+    </filter></svg>
+    <div class="h-plate lg${refractOK() ? " lg--refract" : ""}">
+      <p class="h-inst mono"><span class="dot-ring" aria-hidden="true"></span>Institute of Animate Matter</p>
+      <p class="h-iam" aria-hidden="true">I.A.M.</p>
+      <h1 id="home-title" class="h-title">The Living Material Library</h1>
+      <p class="h-motto"><span>We shape materials.</span><i class="h-ball" aria-hidden="true"></i><span>Materials shape us.</span></p>
+      <a class="h-cta" href="${href.library}">Explore the Material Library <span aria-hidden="true">→</span></a>
+      <p class="h-count mono">${String(PUBLISHED.length).padStart(2, "0")} materials on record · One material, many meanings</p>
     </div>
   </section>`;
-  main.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => {
-    at = (at + +b.dataset.step + PUBLISHED.length) % PUBLISHED.length;
-    const fig = $("[data-home-object]", main);
-    fig.classList.add("is-leaving");
-    setTimeout(() => { render(main); const nb = main.querySelector(`[data-step="${b.dataset.step}"]`); nb && nb.focus(); }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220);
-  }));
 }

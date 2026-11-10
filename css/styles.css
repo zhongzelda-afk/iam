@@ -904,3 +904,56 @@ body.is-immersive { overflow: hidden; }
   .chapters li:nth-child(3) { border-left: 0; }
   .chapters li:nth-child(n+3) { border-top: 1px dashed rgba(210, 82, 79, .4); }
 }
+
+/* ---- round 3, 10 Nov: clearer glass, no irregular lines, new home ---- */
+body::before { background: none; }
+/* clearer liquid glass: almost no milk, light blur, bright rim and refraction carry the effect */
+.lg { background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(255,255,255,.04));
+  -webkit-backdrop-filter: blur(3px) saturate(1.6) brightness(1.04); backdrop-filter: blur(3px) saturate(1.6) brightness(1.04);
+  border-color: rgba(255,255,255,.85);
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(255,255,255,.6), inset 0 0 18px rgba(255,255,255,.45), inset 14px 0 26px -20px rgba(255,255,255,.95), 0 1px 2px rgba(40,30,20,.05), 0 20px 50px -14px rgba(40,30,20,.16); }
+.lg--refract { backdrop-filter: url(#lg-refract) blur(2px) saturate(1.6) brightness(1.04); }
+.d-sec--glass .ifile { background: linear-gradient(135deg, rgba(255,255,255,.26), rgba(255,255,255,.06));
+  -webkit-backdrop-filter: blur(4px) saturate(1.6) brightness(1.04); backdrop-filter: blur(4px) saturate(1.6) brightness(1.04); }
+.d-sec--glass .ifile-tab { background: rgba(255,255,255,.4); }
+.d-sec--glass .ifile-fig { background: rgba(255,255,255,.18); }
+.d-sec--glass > .d-pattern { opacity: .65; }
+
+/* home: objects drifting right in three rows, glass plate in front */
+.home2 { position: relative; isolation: isolate; display: grid; place-items: center; min-height: calc(100svh - 120px); padding: 40px var(--gut); overflow: hidden; }
+.h-drift { position: absolute; inset: 0; z-index: -1; display: grid; grid-template-rows: repeat(3, 1fr); align-items: center; pointer-events: none; }
+.h-row { overflow: hidden; }
+.h-track { display: flex; width: max-content; animation: h-slide 70s linear infinite; animation-delay: calc(var(--k) * -23s); }
+.h-track a { flex: none; width: clamp(130px, 13vw, 210px); margin: 0 clamp(20px, 3vw, 48px); pointer-events: auto; }
+.h-track img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 14px 18px rgba(40, 30, 20, .16)); }
+@keyframes h-slide { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .h-track { animation: none; } }
+.h-plate { position: relative; width: min(760px, 100%); padding: clamp(28px, 4.5vw, 56px) clamp(22px, 5vw, 64px) clamp(26px, 4vw, 44px); border-radius: 30px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.h-plate::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 60% at 15% 0%, rgba(255,255,255,.55), transparent 45%), radial-gradient(80% 40% at 100% 100%, rgba(255,255,255,.25), transparent 60%); mix-blend-mode: soft-light; }
+.h-inst { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 14px; color: var(--red); font-weight: 600; font-size: 11.5px; letter-spacing: .14em; }
+.h-iam { margin: 0; font-family: var(--f-display); font-size: clamp(54px, 9vw, 120px); line-height: 1; letter-spacing: .04em; color: var(--navy); -webkit-text-stroke: 1px currentColor; }
+.h-title { margin: 12px 0 0; font-family: var(--f-display); font-size: clamp(15px, 2vw, 24px); letter-spacing: .08em; text-transform: uppercase; color: var(--navy); -webkit-text-stroke: .6px currentColor; }
+.h-motto { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; margin: 18px 0 30px; font-family: var(--f-mono); font-size: clamp(12px, 1.2vw, 14px); font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-2); }
+.h-ball { width: 11px; height: 11px; border-radius: 50%; background: radial-gradient(circle closest-side at 42% 42%, #FFB3AD, #D2524F 55%, #8E2622 92%, transparent 100%); }
+.h-cta { display: inline-flex; align-items: center; justify-content: center; gap: 14px; min-height: 62px; padding: 0 34px; border-radius: 999px; background: var(--red); color: #fff; text-decoration: none;
+  font: 600 14px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; box-shadow: 0 0 0 6px rgba(210, 82, 79, .14), 0 16px 34px -10px rgba(210, 82, 79, .6); transition: transform .25s var(--ease), box-shadow .25s, background .25s; }
+.h-cta span { font-size: 18px; transition: transform .25s var(--ease); }
+.h-cta:hover, .h-cta:focus-visible { background: var(--navy); transform: translateY(-2px); box-shadow: 0 0 0 8px rgba(28, 38, 92, .12), 0 18px 36px -10px rgba(28, 38, 92, .55); }
+.h-cta:hover span { transform: translateX(4px); }
+.h-count { margin: 18px 0 0; color: var(--ink-3); }
+@media (max-width: 640px) {
+  .home2 { min-height: calc(100svh - 110px); padding: 24px 16px; }
+  .h-cta { min-height: 54px; padding: 0 22px; font-size: 12px; letter-spacing: .1em; }
+  .h-motto { flex-direction: column; gap: 4px; }
+  .h-ball { display: none; }
+}
+/* glass, clearer still: no added brightness, thin fill, the rim and refraction do the work */
+.lg { background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.02));
+  -webkit-backdrop-filter: blur(4px) saturate(1.5); backdrop-filter: blur(4px) saturate(1.5); }
+.lg--refract { backdrop-filter: url(#lg-refract) blur(3px) saturate(1.5); }
+.d-sec--glass .ifile { background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.03)); -webkit-backdrop-filter: blur(5px) saturate(1.5); backdrop-filter: blur(5px) saturate(1.5); }
+.h-plate { -webkit-backdrop-filter: blur(7px) saturate(1.5); backdrop-filter: blur(7px) saturate(1.5); }
+.h-plate.lg--refract { backdrop-filter: url(#lg-refract) blur(6px) saturate(1.5); }
+.h-plate > * { text-shadow: 0 0 18px rgba(255,255,255,.9); }
+.home2 { background: radial-gradient(70% 60% at 50% 50%, rgba(93, 134, 201, .10), transparent 70%); }
