@@ -1,14 +1,13 @@
 // 01 Home: every published object drifting across the room at one steady speed,
 // with a clear liquid glass plate in front carrying the name and the way in.
-import { esc } from "../lib/util.js?v=202611101233";
-import { PUBLISHED, href } from "../lib/library.js?v=202611101233";
+import { esc } from "../lib/util.js?v=202611101243";
+import { PUBLISHED, href } from "../lib/library.js?v=202611101243";
 
 // SVG refraction inside backdrop-filter only renders in Chromium browsers; others get the clear glass alone
 const refractOK = () => /Chrome\//.test(navigator.userAgent);
 
 export function render(main) {
   const objs = PUBLISHED.filter(o => o.heroImage);
-  // three rows, each starting at a different object so no column lines up
   const row = k => {
     const list = objs.map((_, i) => objs[(i + k * 3) % objs.length]);
     const items = list.map(o => `<a href="${href.object(o)}" tabindex="-1" title="Object ${o.no} ${esc(o.name)}"><img src="${esc(o.heroImage)}" alt="" loading="${k ? "lazy" : "eager"}" decoding="async"></a>`).join("");
@@ -16,7 +15,7 @@ export function render(main) {
   };
   main.innerHTML = `
   <section class="home2" aria-labelledby="home-title">
-    <div class="h-drift" aria-hidden="true">${row(0)}${row(1)}${row(2)}</div>
+    <div class="h-drift" aria-hidden="true">${row(0)}</div>
     <svg class="lg-defs" aria-hidden="true" focusable="false" width="0" height="0"><filter id="lg-refract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
       <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="7" result="n"/>
       <feGaussianBlur in="n" stdDeviation="2" result="nb"/>

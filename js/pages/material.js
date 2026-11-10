@@ -1,13 +1,13 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611101233";
-import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611101233";
-import { publishedFor } from "../lib/contributions.js?v=202611101233";
-import { archiveStatus } from "../components/status.js?v=202611101233";
-import { objectFigure } from "../components/figure.js?v=202611101233";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611101233";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611101233";
-import { identityFile } from "../components/identityFile.js?v=202611101233";
-import { translationRecord } from "../components/translationRecord.js?v=202611101233";
+import { esc, $, $$ } from "../lib/util.js?v=202611101243";
+import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611101243";
+import { publishedFor } from "../lib/contributions.js?v=202611101243";
+import { archiveStatus } from "../components/status.js?v=202611101243";
+import { objectFigure } from "../components/figure.js?v=202611101243";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611101243";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611101243";
+import { identityFile } from "../components/identityFile.js?v=202611101243";
+import { translationRecord } from "../components/translationRecord.js?v=202611101243";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
@@ -15,7 +15,7 @@ const the = o => `the ${o.name}`;
 const refractOK = () => /Chrome\//.test(navigator.userAgent);
 
 export function render(main, o) {
-  const p = o.physicalProfile || {}, obs = o.observation || {};
+  const p = o.physicalProfile || {};
   const { prev, next } = neighbours(o.slug);
   const images = [
     o.heroImage && { src: o.heroImage, alt: `${o.name}, object ${o.no}`, cap: o.imageTemporary ? "Temporary cut-out from a Workshop B video frame" : "Studio photograph, cut out from 4K footage", cut: true },
@@ -82,17 +82,8 @@ export function render(main, o) {
       ${o.experimentVideo ? videoPlayer(o.experimentVideo, { id: "exp-video", states: o.states }) : `<p class="missing">Experiment video not yet filmed.</p>`}
     </section>
 
-    <section class="d-sec" aria-labelledby="se">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">06</span></p><h2 id="se">I.A.M. observation</h2><p class="muted">Observed facts first, interpretation kept apart.</p></header>
-      <div class="report">
-        <div class="report-row"><h3 class="mono">Action applied</h3><p>${obs.action ? esc(obs.action) : '<span class="muted">Not recorded</span>'}</p></div>
-        <div class="report-row"><h3 class="mono">Physical response</h3><p>${obs.response ? esc(obs.response) : '<span class="muted">Not yet written</span>'}</p></div>
-        <div class="report-row report-row--interp"><h3 class="mono">I.A.M. interpretation</h3><p>${obs.interpretation ? esc(obs.interpretation) : '<span class="muted">Not yet written</span>'}</p><p class="mono report-note">An interpretation, not a claim that the material feels.</p></div>
-      </div>
-    </section>
-
     <section class="d-sec" id="d-translations" tabindex="-1" aria-labelledby="sf">
-      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">07</span></p><h2 id="sf">Material translations</h2><p class="muted">People imagining they are the ${esc(o.name.toLowerCase())} and speaking as it. Human voices, not the material's.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">06</span></p><h2 id="sf">Material translations</h2><p class="muted">People imagining they are the ${esc(o.name.toLowerCase())} and speaking as it. Human voices, not the material's.</p></header>
       <ul class="trs" data-trs>${tr.map(t => translationRecord(t, o)).join("") || `<li class="missing" data-empty>No translations recorded yet.</li>`}</ul>
     </section>
 
@@ -101,10 +92,10 @@ export function render(main, o) {
       <a class="cta cta--big" href="${href.become(o)}">Become ${esc(the(o))} <span aria-hidden="true">→</span></a>
     </section>
 
-    <nav class="d-nextprev mono" aria-label="Other materials">
-      <a href="${href.object(prev)}">← Object ${prev.no} ${esc(prev.name)}</a>
-      <a href="${href.library}">All materials</a>
-      <a href="${href.object(next)}">Object ${next.no} ${esc(next.name)} →</a>
+    <nav class="d-nextprev" aria-label="Other materials">
+      <a class="tab-link lg" href="${href.object(prev)}"><span class="dot-ring" aria-hidden="true"></span>← ${prev.no} ${esc(prev.name)}</a>
+      <a class="tab-link lg" href="${href.library}"><span class="dot-ring" aria-hidden="true"></span>Index</a>
+      <a class="tab-link lg" href="${href.object(next)}">${next.no} ${esc(next.name)} →<span class="dot-ring" aria-hidden="true"></span></a>
     </nav>
   </article>`;
 
