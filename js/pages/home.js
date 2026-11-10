@@ -1,7 +1,7 @@
 // 01 Home: one material at the centre, held in a ring of force (after the hero image),
 // the rest drifting past behind it; a small glass plate carries the name and the way in.
-import { esc, reduceMotion } from "../lib/util.js?v=202611101251";
-import { PUBLISHED, href } from "../lib/library.js?v=202611101251";
+import { esc, reduceMotion } from "../lib/util.js?v=202611101559";
+import { PUBLISHED, href } from "../lib/library.js?v=202611101559";
 
 const refractOK = () => /Chrome\//.test(navigator.userAgent);
 let at = 0;
@@ -30,7 +30,7 @@ export function render(main) {
       <p class="h-inst mono"><span class="dot-ring" aria-hidden="true"></span>I.A.M. · Institute of Animate Matter</p>
       <h1 id="home-title" class="h-title">The Living Material Library</h1>
       <p class="h-motto"><span>We shape materials.</span><i class="h-ball" aria-hidden="true"></i><span>Materials shape us.</span></p>
-      <a class="h-cta" href="${href.library}">Explore the Material Library <span aria-hidden="true">→</span></a>
+      <a class="h-cta h-cta--home" href="${href.library}"><i class="h-cta-ball" aria-hidden="true"></i><span class="h-cta-t">Explore the Material Library</span><span class="h-cta-arr" aria-hidden="true">→</span></a>
     </div>
   </section>`;
 
