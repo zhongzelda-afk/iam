@@ -1017,3 +1017,59 @@ body::before { background: none; }
 .d-become .cta--big, .panel-become.cta { min-height: 42px; padding: 0 22px; border-radius: 999px; border: 0; background: var(--red); color: #fff; font-size: 11px; letter-spacing: .12em; box-shadow: 0 8px 20px -10px rgba(210, 82, 79, .6); }
 .d-become .cta--big:hover, .panel-become.cta:hover { background: var(--navy); }
 .d-become { border-top: 1px dashed rgba(210, 82, 79, .5); padding: 56px 0 44px; }
+
+/* ===== one colour system (10 Nov): red = action and marks, navy = text and secondary, no black or oxblood ===== */
+:root { --accent: #D2524F; --accent-soft: rgba(210, 82, 79, .08); }
+.cta { min-height: 42px; padding: 0 22px; gap: 10px; border-radius: 999px; border: 1px solid var(--navy); background: transparent; color: var(--navy);
+  font-family: var(--f-mono); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; transition: background .2s, color .2s, border-color .2s, transform .2s var(--ease); }
+.cta:hover { gap: 10px; background: var(--navy); border-color: var(--navy); color: #fff; }
+.cta--fill, .cta--big, .cta--gold, .h-cta, .tb-start, .hand-bar .cta--big, .d-become .cta--big, .panel-become.cta {
+  min-height: 42px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--red); background: var(--red); color: #fff; font-size: 11px; font-weight: 600; letter-spacing: .12em; box-shadow: 0 8px 20px -10px rgba(210, 82, 79, .6); }
+.cta--fill:hover, .cta--big:hover, .cta--gold:hover, .h-cta:hover, .tb-start:hover, .hand-bar .cta--big:hover, .d-become .cta--big:hover, .panel-become.cta:hover { background: var(--navy); border-color: var(--navy); color: #fff; }
+.tb-start { min-height: 50px; padding: 0 28px; }
+.seg-btn[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.sheet-tab[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); }
+/* on the dark table: secondary buttons in light line, primary stays red */
+.become--immersive .cta:not(.cta--fill):not(.cta--big):not(.cta--gold) { border-color: rgba(246, 240, 232, .8); color: #F6F0E8; }
+.become--immersive .cta:not(.cta--fill):not(.cta--big):not(.cta--gold):hover { background: #F6F0E8; color: var(--navy); }
+.become--immersive .voice-actions .cta--fill { background: transparent; border-color: rgba(246, 240, 232, .8); color: #F6F0E8; box-shadow: none; }
+.become--immersive .voice-actions .cta--fill:hover { background: #F6F0E8; color: var(--navy); }
+.become--immersive .cta--fill:hover, .become--immersive .cta--big:hover, .become--immersive .cta--gold:hover, .become--immersive .tb-start:hover { background: #F6F0E8; border-color: #F6F0E8; color: var(--navy); }
+.zoom .cta { border-color: rgba(246, 240, 232, .8); color: #F6F0E8; }
+.ifile-no { background: var(--navy); }
+
+/* home, visual centre: one material inside a diffused ring of force */
+.home2 { grid-template-rows: auto auto; align-content: center; gap: 0; padding-top: 24px; padding-bottom: 32px; }
+.h-drift { align-items: center; }
+.h-drift .h-track img { filter: saturate(.25) opacity(.55); }
+.h-stage { position: relative; display: block; width: min(420px, 78vw); aspect-ratio: 1; text-decoration: none; }
+.h-stage.brackets::after { --b: 22px; inset: 0; }
+.h-glow { position: absolute; inset: -14%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle closest-side, rgba(255, 236, 222, .9) 0 22%, rgba(250, 196, 160, .5) 34%, rgba(236, 110, 60, .55) 46%, rgba(217, 138, 166, .45) 54%, rgba(236, 110, 60, .18) 64%, transparent 76%);
+  filter: blur(8px); animation: h-breathe 6s ease-in-out infinite; }
+@keyframes h-breathe { 50% { transform: scale(1.04); opacity: .85; } }
+.h-rings { position: absolute; inset: 4%; border-radius: 50%; pointer-events: none;
+  background: repeating-radial-gradient(circle closest-side, transparent 0 9.2%, rgba(210, 82, 79, .22) 9.5% 10%);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 60%, transparent 100%); mask-image: radial-gradient(circle closest-side, #000 60%, transparent 100%); }
+.h-obj { position: absolute; left: 50%; top: 50%; width: 54%; height: 54%; object-fit: contain; transform: translate(-50%, -50%) scale(.94); opacity: 0;
+  transition: opacity .9s var(--ease), transform 1.2s var(--ease); filter: drop-shadow(0 18px 22px rgba(40, 30, 20, .25)); }
+.h-obj.is-on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.h-stage:hover .h-obj.is-on { transform: translate(-50%, -52%) scale(1.03); }
+.h-force { position: absolute; left: 66%; top: 34%; width: 24%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none;
+  background:
+    radial-gradient(circle closest-side at 50% 50%, #FFC4BF 0, #D2524F 6%, #8E2622 10%, transparent 11.5%),
+    repeating-radial-gradient(circle closest-side at 50% 50%, transparent 0 21%, rgba(210, 82, 79, .6) 21.5% 23%),
+    radial-gradient(circle closest-side at 50% 50%, rgba(247, 205, 200, .55), rgba(247, 214, 214, .15));
+  box-shadow: 0 0 0 1px rgba(210, 82, 79, .7), 0 0 24px 4px rgba(217, 138, 166, .3); }
+.h-dot { position: absolute; width: 12px; height: 12px; border-radius: 50%; pointer-events: none; background: radial-gradient(circle closest-side at 42% 42%, #FFB3AD, #D2524F 55%, #8E2622 92%, transparent 100%); }
+.h-dot--1 { left: 14%; top: 18%; } .h-dot--2 { right: 6%; top: 58%; width: 9px; height: 9px; } .h-dot--3 { left: 30%; bottom: 6%; width: 14px; height: 14px; }
+.h-label { position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); white-space: nowrap; color: var(--red); font-weight: 600; letter-spacing: .14em; }
+.h-plate { width: min(470px, 100%); margin-top: 26px; padding: 20px 28px 22px; border-radius: 20px; }
+.h-inst { font-size: 9.5px; margin-bottom: 6px; }
+.h-title { font-size: 17px; margin-top: 0; color: var(--navy); }
+.h-motto { margin: 10px 0 16px; }
+.h-iam { display: none; }
+@media (max-width: 640px) { .h-stage { width: 80vw; } .h-plate { padding: 16px 18px 18px; } }
+/* the drifting row clears the stage, so nothing shows through the centre */
+.h-drift { -webkit-mask-image: linear-gradient(90deg, #000 0 30%, transparent 37% 63%, #000 70%); mask-image: linear-gradient(90deg, #000 0 30%, transparent 37% 63%, #000 70%); }
+@media (max-width: 760px) { .h-drift { display: none; } }

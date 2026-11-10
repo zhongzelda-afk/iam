@@ -1,17 +1,24 @@
 // Physical State Viewer: the four states as a small concertina booklet, like the printed State Booklet.
 // Folded, the sheets stack and "Trace through" shows every state at once so the change is visible.
 // Unfolded, the sheets open side by side (or in a column on small screens).
-import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611101243";
+import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611101251";
 
-// where the force went in each state, drawn like the booklet: red rings with a glossy core (x, y, size in % of the window)
-const FORCE = {
-  Before: [],
-  Pinched: [[42, 64, 13], [58, 64, 13]],
-  Pressed: [[50, 60, 24]],
-  Squeezed: [[50, 66, 34], [30, 68, 12], [70, 68, 12]]
+// where the force went, read off each state photo by eye (x, y, size in % of the window).
+// size 0 = untouched: a small diffused marker on the object.
+const FORCE_AT = {
+  "orange":          [[[50, 80, 0]], [[44, 71, 9], [53, 78, 9]], [[50, 79, 20]], [[53, 80, 26]]],
+  "ice":             [[[47, 70, 0]], [[29, 63, 9], [42, 61, 9]], [[50, 76, 20]], [[49, 55, 26]]],
+  "tomato":          [[[52, 82, 0]], [[46, 80, 9], [58, 74, 9]], [[52, 79, 20]], [[63, 72, 26]]],
+  "cream-foam":      [[[53, 78, 0]], [[52, 72, 10]], [[51, 78, 20]], [[60, 80, 26]]],
+  "rose":            [[[62, 62, 0]], [[50, 53, 9], [68, 56, 9]], [[33, 66, 16]], [[52, 32, 24]]],
+  "cabbage-leaf":    [[[50, 60, 0]], [[44, 58, 9], [55, 63, 9]], [[56, 75, 22]], [[45, 28, 24]]],
+  "aluminium-foil":  [[[47, 48, 0]], [[46, 64, 11]], [[45, 76, 22]], [[44, 25, 24]]],
+  "cleaning-sponge": [[[45, 40, 0]], [[36, 22, 9], [47, 15, 9]], [[53, 67, 22]], [[55, 37, 26]]]
 };
+const forceRing = ([x, y, d], k) => d
+  ? `<span class="force" style="left:${x}%;top:${y}%;--d:${d}%;--k:${k}"></span>`
+  : `<span class="force force--none" style="left:${x}%;top:${y}%;--d:8%"></span>`;
 const CONTACT = { Before: 'None  # untouched', Pinched: '"fingers + thumb"', Pressed: '"flat palm"', Squeezed: '"whole hand"' };
-const ring = ([x, y, d], k) => `<span class="force" style="left:${x}%;top:${y}%;--d:${d}%;--k:${k}"></span>`;
 const code = (o, s, i, n) => [
   `#I.A.M. ${o.no}  ${o.name.toUpperCase()}  state ${s.n} ${s.name.toUpperCase()}`,
   `${o.slug.replace(/-/g, "_")}=Material(no="${o.no}",action="${(o.primaryAction || "compression").toLowerCase()}")`,
@@ -33,7 +40,7 @@ export function stateViewer(o) {
           <img src="${esc(s.image)}" alt="${esc(o.name)}, state ${s.n}, ${esc(s.name.toLowerCase())}. Frame from the experiment video at ${fmtTime(s.t)}." loading="lazy" decoding="async">
           ${o.states.filter((_, j) => j !== i).map(g => `<img class="ghost" src="${esc(g.image)}" alt="" loading="lazy" decoding="async">`).join("")}
           <pre class="sheet-code" aria-hidden="true">${code(o, s, i, n)}</pre>
-          <span class="forces" aria-hidden="true">${(FORCE[s.name] || []).map(ring).join("") || '<span class="force force--none" style="left:50%;top:76%;--d:9%"></span>'}</span>
+          <span class="forces" aria-hidden="true">${((FORCE_AT[o.slug] || [])[i] || []).map(forceRing).join("")}</span>
         </div>
         <div class="sheet-body">
           <ol class="sheet-list" aria-hidden="true">${o.states.map((g, j) => `<li${j === i ? ' class="on"' : ""}>${g.n} / ${esc(g.name.toUpperCase())}</li>`).join("")}</ol>

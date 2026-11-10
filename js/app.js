@@ -1,16 +1,16 @@
 // I.A.M. The Living Material Library. Hash router and site navigation.
 // HOME > MATERIAL LIBRARY > MATERIAL DETAIL > BECOME A MATERIAL > MY COLLECTION > CONTRIBUTE TO THE LAB
-import { $, $$, reduceMotion } from "./lib/util.js?v=202611101243";
-import { bySlug, byKey, isOpen, href } from "./lib/library.js?v=202611101243";
-import * as col from "./lib/collection.js?v=202611101243";
-import * as Home from "./pages/home.js?v=202611101243";
-import * as Library from "./pages/library.js?v=202611101243";
-import * as Material from "./pages/material.js?v=202611101243";
-import * as Become from "./pages/become.js?v=202611101243";
-import * as Collection from "./pages/collection.js?v=202611101243";
-import * as Record from "./pages/record.js?v=202611101243";
-import * as Contribute from "./pages/contribute.js?v=202611101243";
-import * as About from "./pages/about.js?v=202611101243";
+import { $, $$, reduceMotion } from "./lib/util.js?v=202611101251";
+import { bySlug, byKey, isOpen, href } from "./lib/library.js?v=202611101251";
+import * as col from "./lib/collection.js?v=202611101251";
+import * as Home from "./pages/home.js?v=202611101251";
+import * as Library from "./pages/library.js?v=202611101251";
+import * as Material from "./pages/material.js?v=202611101251";
+import * as Become from "./pages/become.js?v=202611101251";
+import * as Collection from "./pages/collection.js?v=202611101251";
+import * as Record from "./pages/record.js?v=202611101251";
+import * as Contribute from "./pages/contribute.js?v=202611101251";
+import * as About from "./pages/about.js?v=202611101251";
 
 const main = $("#main");
 let cleanup = null;
@@ -36,7 +36,7 @@ function route() {
   if (cleanup) { try { cleanup(); } catch {} cleanup = null; }
   let nav = "home", title = "I.A.M. · The Living Material Library";
   const [a, b, c] = parts;
-  if (!a) Home.render(main);
+  if (!a) cleanup = Home.render(main);
   else if (a === "library") { nav = "library"; title = "Material Library · I.A.M."; Library.render(main); }
   else if (a === "object") {
     nav = "library";
