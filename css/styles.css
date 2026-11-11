@@ -1214,3 +1214,39 @@ body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .pa
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .chapters li + li { border-left-color: rgba(28, 38, 92, .1); }
 .chap.is-now { background: rgba(210, 82, 79, .1); }
+
+/* home: the booklet tracings at the centre; near invisible code in two corners */
+.h3-stage { width: min(36vh, 340px); }
+.h3-obj { filter: drop-shadow(0 18px 22px rgba(40, 50, 100, .12)); }
+.h3-code { position: absolute; z-index: 0; margin: 0; pointer-events: none; user-select: none;
+  font: 400 9.5px/1.6 var(--f-code); letter-spacing: 0; text-transform: none; white-space: pre; color: rgba(28, 38, 92, .16); }
+.h3-code--a { top: 118px; left: 44px; }
+.h3-code--b { bottom: 118px; right: 44px; text-align: left; }
+@media (max-width: 640px) { .h3-code { font-size: 7px; } .h3-code--a { top: 92px; left: 20px; } .h3-code--b { bottom: 92px; right: 20px; } }
+
+/* About: glass panels in two columns over the drifting library */
+.about2 { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 40px var(--gut) 60px; }
+.ab-head.lg, .ab-card.lg { position: relative; -webkit-backdrop-filter: blur(8px) saturate(1.5); backdrop-filter: blur(8px) saturate(1.5);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 0 18px rgba(255, 255, 255, .35), 0 12px 28px -14px rgba(28, 38, 92, .35); }
+.ab-head.lg.lg--refract, .ab-card.lg.lg--refract { backdrop-filter: url(#lg-refract) blur(6px) saturate(1.5); }
+.ab-head { padding: 30px 32px 26px; border-radius: 22px; margin-bottom: 22px; animation: in-left .8s cubic-bezier(.2, .8, .2, 1) both; }
+.ab-head::before, .ab-card::before { content: ""; position: absolute; inset: 6px; border: 1px dashed rgba(210, 82, 79, .45); border-radius: 16px; pointer-events: none; }
+.ab-eyebrow { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 10px; font: 400 12.5px/1.4 var(--f-sans); color: #3A4472; }
+.ab-eyebrow .dot-ring { width: 12px; height: 12px; }
+.ab-title { margin: 0 0 22px; font: 700 clamp(26px, 3vw, 38px)/1.1 var(--f-sans); letter-spacing: -.01em; color: var(--navy); }
+.ab-seq { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ab-seq li { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; font: 500 13px/1.3 var(--f-sans); color: var(--navy);
+  background: rgba(255, 255, 255, .45); border: 1px solid rgba(255, 255, 255, .85); box-shadow: inset 0 1px 0 #fff; position: relative; }
+.ab-seq li + li::before { content: ""; position: absolute; left: -9px; top: 50%; width: 8px; height: 1px; background: var(--red); }
+.ab-n { display: inline-grid; place-items: center; min-width: 26px; height: 20px; padding: 0 4px; border: 1px solid var(--red); color: var(--red); font: 600 11px/1 var(--f-sans); flex: none; }
+.ab-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+.ab-card { padding: 26px 28px 24px; border-radius: 20px; animation: in-up .85s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 80ms); }
+.ab-card h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; font: 700 17px/1.3 var(--f-sans); color: var(--navy); }
+.ab-card p { margin: 0; font: 400 15px/1.6 var(--f-sans); color: #2E3550; }
+.ab-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-top: 28px; font: 400 12.5px/1.5 var(--f-sans); color: #3A4472; animation: in-up .85s cubic-bezier(.2, .8, .2, 1) both; }
+.ab-foot p { margin: 0; }
+.h-track span { flex: none; width: clamp(70px, 6.5vw, 104px); margin: 0 clamp(26px, 3.4vw, 54px); }
+.h-track span img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; filter: saturate(.25) opacity(.55); }
+@media (max-width: 760px) { .ab-seq, .ab-grid { grid-template-columns: 1fr; } .ab-seq li + li::before { display: none; } .ab-head, .ab-card { padding: 22px 20px; } }
+@media (prefers-reduced-motion: reduce) { .ab-head, .ab-card, .ab-foot { animation: none; } }
+@media (max-width: 640px) { .h3-stage { width: 56vw; } }
