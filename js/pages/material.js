@@ -1,13 +1,13 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611102048";
-import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611102048";
-import { publishedFor } from "../lib/contributions.js?v=202611102048";
-import { archiveStatus } from "../components/status.js?v=202611102048";
-import { objectFigure } from "../components/figure.js?v=202611102048";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611102048";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611102048";
-import { identityFile } from "../components/identityFile.js?v=202611102048";
-import { translationRecord } from "../components/translationRecord.js?v=202611102048";
+import { esc, $, $$ } from "../lib/util.js?v=202611110009";
+import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611110009";
+import { publishedFor } from "../lib/contributions.js?v=202611110009";
+import { archiveStatus } from "../components/status.js?v=202611110009";
+import { objectFigure } from "../components/figure.js?v=202611110009";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611110009";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611110009";
+import { identityFile } from "../components/identityFile.js?v=202611110009";
+import { translationRecord } from "../components/translationRecord.js?v=202611110009";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;

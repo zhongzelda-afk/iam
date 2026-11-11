@@ -13,12 +13,12 @@
   --accent: #6B1D24;
   --accent-soft: rgba(107, 29, 36, .08);
   --glass: rgba(251, 250, 247, .72);
-  --f-sans: "Geist", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --f-sans: "Inter", "Geist", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --f-mono: var(--f-sans);
   /* only the barely legible code drawn on the booklet photos stays monospaced */
   --f-code: "Source Code Pro", ui-monospace, Menlo, monospace;
   /* quotes and voices: plain light sans (Lynn 10 Nov: the condensed serif was not liked) */
-  --f-voice: "Geist", "Helvetica Neue", Arial, sans-serif;
+  --f-voice: "Inter", "Geist", "Helvetica Neue", Arial, sans-serif;
   /* display caps, a free stand-in for Bank Gothic in the main elements sheet */
   --f-display: "Michroma", "Eurostile", "Helvetica Neue", Arial, sans-serif;
   --code: #A9A9C8;
@@ -1127,3 +1127,59 @@ em, i, cite, blockquote, q { font-style: normal; }
 /* no cross fade between pages: the new page is simply there, and its parts slide in */
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 main.enter { animation: none; }
+
+/* ---- round 7, 11 Nov: version B. Blue gradient bands top and bottom with a magenta edge (after the hero image), on every page ---- */
+body::before { box-shadow: none;
+  background:
+    linear-gradient(180deg, #C2477A 0 4px, transparent 4px),
+    linear-gradient(0deg, #C2477A 0 4px, transparent 4px),
+    linear-gradient(180deg, #3E6FB8 4px, #7EA6DA 30px, rgba(170, 198, 234, .75) 70px, rgba(214, 228, 242, .45) 120px, transparent 190px),
+    linear-gradient(0deg, #3E6FB8 4px, #7EA6DA 30px, rgba(170, 198, 234, .75) 70px, rgba(214, 228, 242, .45) 120px, transparent 190px),
+    linear-gradient(90deg, rgba(130, 165, 215, .30), rgba(150, 180, 220, .10) 9%, transparent 18%, transparent 82%, rgba(150, 180, 220, .10) 91%, rgba(130, 165, 215, .30));
+}
+body { background-color: #F7F2EA; }
+.site-head { background: rgba(255, 255, 255, .12); -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3); border-bottom: 1px solid rgba(255, 255, 255, .45); box-shadow: none; padding-top: 18px; }
+.site-head .brand-mark, .site-head .nav a[aria-current="page"] { color: var(--navy); }
+.site-head .brand-sub, .site-head .nav a { color: #2E3A6E; }
+.site-head .nav a[aria-current="page"] { border-bottom-color: var(--navy); }
+.site-foot { background: transparent; border-top: 1px solid rgba(255, 255, 255, .5); color: #2E3A6E; padding-bottom: 34px; }
+.site-foot a { color: var(--navy); }
+
+/* home, version B: nothing but one material, the way in, and four corners of small text */
+body[data-page="home"] .site-head, body[data-page="home"] .site-foot { display: none; }
+.home3 { position: relative; min-height: 100svh; padding: 0; overflow: hidden; }
+.h3-c { position: absolute; z-index: 2; display: flex; flex-direction: column; gap: 2px; font: 400 12.5px/1.5 var(--f-sans); color: #3A4472; }
+.h3-c b, .h3-c h1 { margin: 0; font: 600 12.5px/1.5 var(--f-sans); color: var(--navy); letter-spacing: 0; text-transform: none; }
+.h3-tl { top: 44px; left: 44px; } .h3-tr { top: 44px; right: 44px; flex-direction: row; gap: 22px; }
+.h3-bl { bottom: 44px; left: 44px; } .h3-br { bottom: 44px; right: 44px; text-align: right; align-items: flex-end; }
+.h3-tr a { color: var(--navy); text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid transparent; }
+.h3-tr a:hover { border-bottom-color: var(--navy); }
+.h3-mid { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 30px; }
+.h3-stage { position: relative; display: block; width: min(30vh, 290px); aspect-ratio: 1; }
+.h3-stage.brackets::after { --b: 20px; --w: 1.5px; inset: -26px; }
+.h3-obj { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .5s ease;
+  filter: drop-shadow(0 24px 26px rgba(40, 50, 100, .18)); }
+.h3-obj.is-on { opacity: 1; }
+.h3-go { display: inline-flex; align-items: center; gap: 14px; padding: 12px 24px 12px 18px; border-radius: 999px; text-decoration: none;
+  font: 600 14.5px/1 var(--f-sans); color: var(--navy);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .18)); border: 1px solid rgba(255, 255, 255, .85);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 0 14px rgba(255, 255, 255, .4), 0 0 0 1px rgba(28, 38, 92, .10), 0 12px 26px -14px rgba(28, 38, 92, .45);
+  transition: transform .25s var(--ease), box-shadow .25s; }
+.h3-go:hover, .h3-go:focus-visible { transform: translateY(-2px); box-shadow: inset 0 1.5px 0 #fff, inset 0 0 14px rgba(255, 255, 255, .5), 0 0 0 1px rgba(210, 82, 79, .45), 0 16px 30px -14px rgba(28, 38, 92, .5); }
+/* the red marker sends out rings, one after another */
+.h3-pulse { position: relative; width: 11px; height: 11px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 38% 34%, #FFD0CA, #E0504A 45%, #A8231F 90%); box-shadow: 0 1px 3px rgba(150, 30, 30, .35); }
+.h3-pulse::before, .h3-pulse::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(210, 82, 79, .8); animation: h3-ring 2.4s ease-out infinite; }
+.h3-pulse::after { animation-delay: 1.2s; }
+@keyframes h3-ring { from { transform: scale(1); opacity: .9; } to { transform: scale(3.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .h3-pulse::before, .h3-pulse::after { animation: none; transform: scale(2); opacity: .5; } }
+@media (max-width: 640px) {
+  .h3-c, .h3-c b, .h3-c h1 { font-size: 11.5px; }
+  .h3-tl, .h3-tr { top: 30px; } .h3-bl, .h3-br { bottom: 30px; }
+  .h3-tl, .h3-bl { left: 20px; } .h3-tr, .h3-br { right: 20px; }
+  .h3-bl, .h3-br { max-width: 46%; } .h3-tr { gap: 14px; }
+  .h3-stage { width: 54vw; }
+}
+.h3-mid { gap: 58px; }
+.site-head { box-shadow: inset 0 4px 0 #C2477A; }

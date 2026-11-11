@@ -1,9 +1,9 @@
 // 05 My Collection: the visitor's own translations, a private reading room (voice-led, not object-led).
-import { $ } from "../lib/util.js?v=202611102048";
-import { href, PUBLISHED } from "../lib/library.js?v=202611102048";
-import * as col from "../lib/collection.js?v=202611102048";
-import { sync } from "../lib/contributions.js?v=202611102048";
-import { recordCard } from "../components/recordCard.js?v=202611102048";
+import { $ } from "../lib/util.js?v=202611110009";
+import { href, PUBLISHED } from "../lib/library.js?v=202611110009";
+import * as col from "../lib/collection.js?v=202611110009";
+import { sync } from "../lib/contributions.js?v=202611110009";
+import { recordCard } from "../components/recordCard.js?v=202611110009";
 
 export function render(main) {
   const items = col.list();
@@ -28,11 +28,11 @@ export function render(main) {
     </header>
     ${items.length ? `
       <ul class="rcs">${items.map(recordCard).join("")}</ul>
-      <p class="c-more"><a class="h-cta h-cta--home" href="${href.library}"><i class="h-cta-ball" aria-hidden="true"></i><span class="h-cta-t">Translate another material</span><span class="h-cta-arr" aria-hidden="true">→</span></a></p>` : `
+      <p class="c-more"><a class="h3-go" href="${href.library}"><i class="h3-pulse" aria-hidden="true"></i>Translate another material</a></p>` : `
       <div class="c-empty lg${refract}">
         <p class="c-empty-k">Your collection is empty.</p>
         <p class="c-empty-q">“Every material has a possible voice. Your first translation is waiting to be written.”</p>
-        <a class="h-cta h-cta--home" href="${href.library}"><i class="h-cta-ball" aria-hidden="true"></i><span class="h-cta-t">Explore the Material Library</span><span class="h-cta-arr" aria-hidden="true">→</span></a>
+        <a class="h3-go" href="${href.library}"><i class="h3-pulse" aria-hidden="true"></i>Explore the Material Library</a>
       </div>`}
   </section>`;
   // resend held submissions and pick up Lynn's approvals, then redraw if anything changed
