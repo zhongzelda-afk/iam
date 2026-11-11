@@ -1183,3 +1183,34 @@ body[data-page="home"] .site-head, body[data-page="home"] .site-foot { display: 
 }
 .h3-mid { gap: 58px; }
 .site-head { box-shadow: inset 0 4px 0 #C2477A; }
+
+/* ---- 11 Nov: every remaining control in liquid glass (the paper library; the dark card table keeps its own look) ---- */
+:root { --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .18));
+  --glass-edge: inset 0 1.5px 0 rgba(255, 255, 255, .95), inset 0 0 14px rgba(255, 255, 255, .4), 0 0 0 1px rgba(28, 38, 92, .10), 0 12px 26px -14px rgba(28, 38, 92, .45); }
+body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .panel-become.cta, .d-become .cta--big) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 44px; padding: 0 22px 0 18px; border-radius: 999px;
+  background: var(--glass-bg); border: 1px solid rgba(255, 255, 255, .85); color: var(--navy);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5); box-shadow: var(--glass-edge);
+  font: 600 13.5px/1 var(--f-sans); letter-spacing: 0; text-transform: none; transition: transform .25s var(--ease), box-shadow .25s; }
+body:not(.is-immersive) :is(.cta--fill, .cta--big, .cta--gold, .h-cta, .panel-become.cta)::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #FFD0CA, #E0504A 45%, #A8231F 90%); box-shadow: 0 0 0 3px rgba(210, 82, 79, .15), 0 0 0 7px rgba(210, 82, 79, .07); }
+body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .panel-become.cta):hover { background: linear-gradient(135deg, rgba(255, 255, 255, .75), rgba(255, 255, 255, .3)); color: var(--navy); border-color: #fff; transform: translateY(-2px);
+  box-shadow: inset 0 1.5px 0 #fff, inset 0 0 14px rgba(255, 255, 255, .5), 0 0 0 1px rgba(210, 82, 79, .45), 0 16px 30px -14px rgba(28, 38, 92, .5); }
+/* segmented choices: one glass capsule, the chosen one a navy-tinted lens */
+.seg { border: 1px solid rgba(255, 255, 255, .85); border-radius: 999px; padding: 3px; gap: 2px; background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5); box-shadow: var(--glass-edge); }
+.seg-btn { border-radius: 999px; padding: 8px 14px; font: 500 12px/1 var(--f-sans); letter-spacing: .01em; text-transform: none; color: var(--navy); }
+.seg-btn + .seg-btn { border-left: 0; }
+.seg-btn[aria-pressed="true"] { background: linear-gradient(135deg, rgba(28, 38, 92, .92), rgba(46, 64, 140, .82)); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 10px -4px rgba(28, 38, 92, .6); }
+/* booklet controls panel */
+.states-bar { background: var(--glass-bg) !important; border: 1px solid rgba(255, 255, 255, .85) !important; border-radius: 22px !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.5); backdrop-filter: blur(12px) saturate(1.5); box-shadow: var(--glass-edge) !important; }
+/* booklet sheet tabs */
+.sheet-tab { background: linear-gradient(180deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .35)); border: 1px solid rgba(255, 255, 255, .9); border-bottom: 0; border-radius: 10px 10px 0 0;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: inset 0 1.5px 0 #fff; }
+.sheet-tab[aria-pressed="true"] { background: linear-gradient(135deg, rgba(28, 38, 92, .92), rgba(46, 64, 140, .82)); color: #fff; }
+/* video state index: glass cells */
+.chapters { border: 1px solid rgba(255, 255, 255, .85); border-radius: 16px; overflow: hidden; background: var(--glass-bg); box-shadow: var(--glass-edge);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.chapters li + li { border-left-color: rgba(28, 38, 92, .1); }
+.chap.is-now { background: rgba(210, 82, 79, .1); }
