@@ -1316,3 +1316,6 @@ input[type="text"], textarea { cursor: text; }
 @media (prefers-reduced-motion: reduce) { .g-item .figure .figure-trace { transition: none; } .g-link:hover .figure-scan { animation: none; } }
 @media (hover: none) { .figure-scan { display: none; } }
 a.g-link .figure img.figure-trace, a.g-link:is(:hover, :focus-visible) .figure img.figure-trace { filter: none; }
+/* v0.17 card art: own words sit on the lined glass of the blank Voice card */
+.pc-own { left: 18%; right: 18%; top: 47%; bottom: 14%; height: auto; font-family: var(--f-sans); font-style: normal; font-weight: 500; font-size: 7.2cqw; color: var(--ink); }
+.pc-own--hint { color: var(--red); font-size: 5.6cqw; letter-spacing: .06em; }

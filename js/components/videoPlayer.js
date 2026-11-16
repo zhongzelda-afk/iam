@@ -1,6 +1,6 @@
 // Video Evidence Player: the video in a booklet frame, state chapters as a red index,
 // with the written description kept for screen readers.
-import { esc, fmtTime, reduceMotion } from "../lib/util.js?v=202611161712";
+import { esc, fmtTime, reduceMotion } from "../lib/util.js?v=202611162135";
 
 export function videoPlayer(v, { id, states = [], label = "Experiment video" } = {}) {
   if (!v) return "";
