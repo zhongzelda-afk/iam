@@ -1294,6 +1294,6 @@ body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .pa
 .lib-rail, .lib-rail-word, .page-title, .lib-head, .lib-head .eyebrow, .lib-count, .g-item, .gallery { color: var(--ink); }
 .lib-rail::before, .lib-rail::after { background: var(--ink); }
 /* the pointer is a small orange; it grows a little over anything you can press */
-html, body { cursor: url("../assets/cursor-orange.png") 18 18, auto; }
-a, button, [role="button"], label, select, summary, input[type="range"], input[type="checkbox"], .pc, .seg-btn, .sheet-tab { cursor: url("../assets/cursor-orange-hover.png") 18 18, pointer; }
+html, body { cursor: url("../assets/cursor-orange.png") 11 11, auto; }
+a, button, [role="button"], label, select, summary, input[type="range"], input[type="checkbox"], .pc, .seg-btn, .sheet-tab { cursor: url("../assets/cursor-orange-hover.png") 11 11, pointer; }
 input[type="text"], textarea { cursor: text; }
