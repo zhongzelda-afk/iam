@@ -1,34 +1,61 @@
-// 01 Home: one isolated object in a nearly white room, tiny labels, manual arrows (Reference A).
-import { esc, $ } from "../lib/util.js?v=202611061414";
-import { PUBLISHED, href } from "../lib/library.js?v=202611061414";
-import { objectFigure } from "../components/figure.js?v=202611061414";
+// 01 Home: one material at the centre inside red corner marks, changing every few seconds;
+// the small text sits in the four corners; one way in, a glass pill with a pulsing red marker.
+import { esc, reduceMotion } from "../lib/util.js?v=202611161444";
+import { PUBLISHED, href } from "../lib/library.js?v=202611161444";
 
 let at = 0;
+
+// Lynn's booklet tracings (photo at low opacity, navy contour lines); only these objects appear on the home page
+const TRACED = ["orange", "aluminium-foil", "cleaning-sponge", "cream-foam", "rose"];
+const traceOf = o => `assets/tracings/${o.slug}.webp`;
+// near invisible code in two corners, written for the material at the centre
+const codeA = o => [
+  `# I.A.M. ${o.no} ${o.name.toUpperCase()}  state 01 BEFORE`,
+  `${o.slug.replace(/-/g, "_")} = Material(no="${o.no}", action="${(o.primaryAction || "compression").toLowerCase()}")`,
+  `frame = still("${o.slug.toUpperCase().replace(/-/g, "_")}_FILM", t="00:00")`,
+  `state = trace(frame, line="navy", photo=0.45)`,
+  `contact = None  # untouched`,
+  `press = None    # not measured, read by eye`,
+  `stack.add(state)  # sheet 1 of 4`,
+  `reading = ask(visitor)`].join("\n");
+const codeB = o => [
+  `for s in ${o.slug.replace(/-/g, "_")}.states:`,
+  `    sheet = trace(s.frame, line="navy")`,
+  `    force = locate(s.contact)  # where the hand went`,
+  `    booklet.fold(sheet)`,
+  `# we shape materials`,
+  `# materials shape us`,
+  `voice = translate(${o.slug.replace(/-/g, "_")}, by="human")`,
+  `collection.keep(voice)`].join("\n");
+
 export function render(main) {
-  const o = PUBLISHED[at % PUBLISHED.length];
+  const objs = PUBLISHED.filter(o => TRACED.includes(o.slug)).sort((x, y) => TRACED.indexOf(x.slug) - TRACED.indexOf(y.slug));
+  const o = objs[at % objs.length];
   main.innerHTML = `
-  <section class="home" aria-labelledby="home-title">
-    <div class="home-copy">
-      <p class="mono eyebrow">I.A.M. · Institute of Animate Matter</p>
-      <h1 id="home-title" class="home-title">The Living<br>Material Library</h1>
-      <p class="home-tag">One Material. Many Meanings.</p>
-      <p class="home-lede">Materials respond to the world through their physical behaviours. Through observation and embodied imagination, I.A.M. explores how these responses can be translated into many different voices.</p>
-      <a class="cta" href="${href.library}">Explore the Library <span aria-hidden="true">→</span></a>
-    </div>
-    <div class="home-stage">
-      <a class="home-object" href="${href.object(o)}" data-home-object aria-label="Open Object ${o.no}, ${esc(o.name)}">${objectFigure(o, { eager: true, alt: "" })}</a>
-      <div class="home-caption">
-        <button type="button" class="arrow" data-step="-1" aria-label="Previous material">‹</button>
-        <p class="mono home-label" aria-live="polite"><span>Object ${o.no}</span><span class="home-name">${esc(o.name)}</span><span>${esc(o.category)}</span></p>
-        <button type="button" class="arrow" data-step="1" aria-label="Next material">›</button>
-      </div>
-      <p class="mono home-count"><span>${String((at % PUBLISHED.length) + 1).padStart(2, "0")}</span> / ${String(PUBLISHED.length).padStart(2, "0")} published</p>
+  <section class="home3" aria-labelledby="home-title">
+    <pre class="h3-code h3-code--a" aria-hidden="true" data-code-a>${esc(codeA(o))}</pre>
+    <pre class="h3-code h3-code--b" aria-hidden="true" data-code-b>${esc(codeB(o))}</pre>
+    <div class="h3-c h3-tl"><b>I.A.M.</b><span>Institute of Animate Matter</span></div>
+    <nav class="h3-c h3-tr" aria-label="More"><a href="#/collection">My Collection</a><a href="#/about">About</a></nav>
+    <div class="h3-c h3-bl"><h1 id="home-title">The Living Material Library</h1><span>We shape materials. Materials shape us.</span></div>
+    <div class="h3-c h3-br"><b data-label>Object ${o.no} / ${esc(o.name)}</b><span>Lynn Zhong · MA UX Design · LCC, UAL</span></div>
+    <div class="h3-mid">
+      <a class="h3-stage brackets" href="${href.object(o)}" data-stage aria-label="Open Object ${o.no}, ${esc(o.name)}">
+        ${objs.map((x, i) => `<img class="h3-obj${x === o ? " is-on" : ""}" src="${traceOf(x)}" alt="" decoding="async">`).join("")}
+      </a>
+      <a class="h3-go" href="${href.library}"><i class="h3-pulse" aria-hidden="true"></i>Material Library</a>
     </div>
   </section>`;
-  main.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => {
-    at = (at + +b.dataset.step + PUBLISHED.length) % PUBLISHED.length;
-    const fig = $("[data-home-object]", main);
-    fig.classList.add("is-leaving");
-    setTimeout(() => { render(main); const nb = main.querySelector(`[data-step="${b.dataset.step}"]`); nb && nb.focus(); }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220);
-  }));
+
+  const stage = main.querySelector("[data-stage]"), label = main.querySelector("[data-label]"), imgs = [...main.querySelectorAll(".h3-obj")];
+  const show = i => {
+    at = i; const x = objs[i];
+    imgs.forEach((im, j) => im.classList.toggle("is-on", j === i));
+    stage.href = href.object(x); stage.setAttribute("aria-label", `Open Object ${x.no}, ${x.name}`);
+    label.textContent = `Object ${x.no} / ${x.name}`;
+    main.querySelector("[data-code-a]").textContent = codeA(x);
+    main.querySelector("[data-code-b]").textContent = codeB(x);
+  };
+  const timer = reduceMotion() ? 0 : setInterval(() => show((at + 1) % objs.length), 2600);
+  return () => clearInterval(timer);
 }

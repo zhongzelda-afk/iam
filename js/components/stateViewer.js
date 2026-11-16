@@ -1,7 +1,32 @@
 // Physical State Viewer: the four states as a small concertina booklet, like the printed State Booklet.
 // Folded, the sheets stack and "Trace through" shows every state at once so the change is visible.
 // Unfolded, the sheets open side by side (or in a column on small screens).
-import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611061414";
+import { esc, fmtTime, reduceMotion, $, $$ } from "../lib/util.js?v=202611161444";
+
+// where the force went, read off each state photo by eye (x, y, size in % of the window).
+// size 0 = untouched: a small diffused marker on the object.
+const FORCE_AT = {
+  "orange":          [[[50, 80, 0]], [[44, 71, 9], [53, 78, 9]], [[50, 79, 20]], [[53, 80, 26]]],
+  "ice":             [[[47, 70, 0]], [[29, 63, 9], [42, 61, 9]], [[50, 76, 20]], [[49, 55, 26]]],
+  "tomato":          [[[52, 82, 0]], [[46, 80, 9], [58, 74, 9]], [[52, 79, 20]], [[63, 72, 26]]],
+  "cream-foam":      [[[53, 78, 0]], [[52, 72, 10]], [[51, 78, 20]], [[60, 80, 26]]],
+  "rose":            [[[62, 62, 0]], [[50, 53, 9], [68, 56, 9]], [[33, 66, 16]], [[52, 32, 24]]],
+  "cabbage-leaf":    [[[50, 60, 0]], [[44, 58, 9], [55, 63, 9]], [[56, 75, 22]], [[45, 28, 24]]],
+  "aluminium-foil":  [[[47, 48, 0]], [[46, 64, 11]], [[45, 76, 22]], [[44, 25, 24]]],
+  "cleaning-sponge": [[[45, 40, 0]], [[36, 22, 9], [47, 15, 9]], [[53, 67, 22]], [[55, 37, 26]]]
+};
+const forceRing = ([x, y, d], k) => d
+  ? `<span class="force" style="left:${x}%;top:${y}%;--d:${d}%;--k:${k}"></span>`
+  : `<span class="force force--none" style="left:${x}%;top:${y}%;--d:8%"></span>`;
+const CONTACT = { Before: 'None  # untouched', Pinched: '"fingers + thumb"', Pressed: '"flat palm"', Squeezed: '"whole hand"' };
+const code = (o, s, i, n) => [
+  `#I.A.M. ${o.no}  ${o.name.toUpperCase()}  state ${s.n} ${s.name.toUpperCase()}`,
+  `${o.slug.replace(/-/g, "_")}=Material(no="${o.no}",action="${(o.primaryAction || "compression").toLowerCase()}")`,
+  `frame= still("WORKSHOP_B", t="${fmtTime(s.t)}")`,
+  `contact= ${CONTACT[s.name] || '"hand"'}`,
+  `press= ${i ? "observed  # not measured, read by eye" : "None"}`,
+  `stack.add(state)  #sheet ${i + 1} of ${n}`
+].map(esc).join("\n");
 
 export function stateViewer(o) {
   if (!o.states || !o.states.length) return `<p class="missing">States not yet documented.</p>`;
@@ -11,28 +36,40 @@ export function stateViewer(o) {
       <button type="button" class="sheet-tab" data-select="${i}" aria-pressed="${i === 0}" style="--tab:${i}">${s.n} ${esc(s.name)}</button>
       <div class="sheet-paper">
         <div class="sheet-head mono"><span>Object ${o.no}</span><span>${esc(o.name)}</span><span>State ${s.n} / ${String(n).padStart(2, "0")}</span></div>
-        <div class="sheet-window">
+        <div class="sheet-window brackets">
           <img src="${esc(s.image)}" alt="${esc(o.name)}, state ${s.n}, ${esc(s.name.toLowerCase())}. Frame from the experiment video at ${fmtTime(s.t)}." loading="lazy" decoding="async">
           ${o.states.filter((_, j) => j !== i).map(g => `<img class="ghost" src="${esc(g.image)}" alt="" loading="lazy" decoding="async">`).join("")}
+          <pre class="sheet-code" aria-hidden="true">${code(o, s, i, n)}</pre>
+          <span class="forces" aria-hidden="true">${((FORCE_AT[o.slug] || [])[i] || []).map(forceRing).join("")}</span>
         </div>
         <div class="sheet-body">
-          <p class="sheet-state"><span class="mono">${s.n} /</span> ${esc(s.name)}</p>
-          ${s.observation ? `<p class="sheet-obs">${esc(s.observation)}</p>` : `<p class="sheet-obs muted">Observation not yet written.</p>`}
+          <ol class="sheet-list" aria-hidden="true">${o.states.map((g, j) => `<li${j === i ? ' class="on"' : ""}>${g.n} / ${esc(g.name.toUpperCase())}</li>`).join("")}</ol>
+          <p class="visually-hidden">State ${s.n}, ${esc(s.name)}</p>
+          ${s.observation ? `<p class="sheet-obs">${esc(s.observation)}</p>` : ""}
           <p class="sheet-src mono">Video frame · ${fmtTime(s.t)}</p>
         </div>
       </div>
     </article>`).join("");
   return `
   <div class="states" data-states>
-    <div class="states-bar">
-      <div class="seg" role="group" aria-label="Booklet">
-        <button type="button" class="seg-btn" data-fold-to="0" aria-pressed="true">Folded</button>
-        <button type="button" class="seg-btn" data-fold-to="1" aria-pressed="false">Unfolded</button>
-      </div>
-      <label class="fold-range mono"><span>Fold</span><input type="range" min="0" max="100" value="0" aria-label="Fold or unfold the state booklet"><span>Open</span></label>
-      <label class="trace mono"><input type="checkbox" data-trace> Trace through</label>
-    </div>
     <div class="booklet" data-booklet>${sheets}</div>
+    <div class="states-bar">
+      <label class="fold-range">
+        <span class="fold-k mono">Drag to unfold the booklet</span>
+        <span class="fold-track">
+          <span class="fold-end mono" aria-hidden="true">Folded</span>
+          <input type="range" min="0" max="100" value="0" aria-label="Fold or unfold the state booklet" style="--p:0%">
+          <span class="fold-end mono" aria-hidden="true">Open</span>
+        </span>
+      </label>
+      <div class="states-opts">
+        <div class="seg" role="group" aria-label="Booklet">
+          <button type="button" class="seg-btn" data-fold-to="0" aria-pressed="true">Folded</button>
+          <button type="button" class="seg-btn" data-fold-to="1" aria-pressed="false">Unfolded</button>
+        </div>
+        <label class="trace mono"><input type="checkbox" data-trace> Trace through</label>
+      </div>
+    </div>
     <p class="states-hint mono" aria-live="polite"></p>
   </div>`;
 }
@@ -51,7 +88,7 @@ export function mountStateViewer(root, o, { onSelect } = {}) {
     sheets.forEach(s => { s.style.width = pw + "px"; s.style.height = "auto"; });
     const ph = Math.max(...sheets.map(s => $(".sheet-paper", s).offsetHeight));
     sheets.forEach(s => s.style.height = ph + "px");
-    const s0 = cols === 4 ? Math.min(1.55, (W * 0.48) / pw) : cols === 2 ? Math.min(1.6, (W * 0.8) / pw) : 1;
+    const s0 = cols === 4 ? Math.min(1.25, (W * 0.4) / pw) : cols === 2 ? Math.min(1.6, (W * 0.8) / pw) : 1;
     const tabH = $(".sheet-tab", sheets[0]).offsetHeight;
     geo = { W, gap, cols, pw, ph, s0, tabH, rows: Math.ceil(n / cols) };
   }
@@ -76,7 +113,7 @@ export function mountStateViewer(root, o, { onSelect } = {}) {
     box.classList.toggle("is-folded", e < 0.02);
     box.classList.toggle("is-open", e > 0.98);
     segs[0].setAttribute("aria-pressed", e < 0.02); segs[1].setAttribute("aria-pressed", e > 0.98);
-    range.value = Math.round(e * 100);
+    range.value = Math.round(e * 100); range.style.setProperty("--p", Math.round(e * 100) + "%");
   }
 
   function animateTo(target) {

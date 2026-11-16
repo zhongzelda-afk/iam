@@ -1,12 +1,13 @@
 // 03 Material Detail: large object + frosted information panel (Reference B), then the research record.
-import { esc, $, $$ } from "../lib/util.js?v=202611061414";
-import { href, neighbours, workshopTranslations } from "../lib/library.js?v=202611061414";
-import { publishedFor } from "../lib/contributions.js?v=202611061414";
-import { archiveStatus } from "../components/status.js?v=202611061414";
-import { objectFigure } from "../components/figure.js?v=202611061414";
-import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611061414";
-import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611061414";
-import { translationRecord } from "../components/translationRecord.js?v=202611061414";
+import { esc, $, $$ } from "../lib/util.js?v=202611161444";
+import { href, neighbours, workshopTranslations, PUBLISHED } from "../lib/library.js?v=202611161444";
+import { publishedFor } from "../lib/contributions.js?v=202611161444";
+import { archiveStatus } from "../components/status.js?v=202611161444";
+import { objectFigure } from "../components/figure.js?v=202611161444";
+import { stateViewer, mountStateViewer } from "../components/stateViewer.js?v=202611161444";
+import { videoPlayer, mountVideo } from "../components/videoPlayer.js?v=202611161444";
+import { identityFile } from "../components/identityFile.js?v=202611161444";
+import { translationRecord } from "../components/translationRecord.js?v=202611161444";
 
 const row = (k, v) => `<div class="kv"><dt>${k}</dt><dd>${v ?? '<span class="muted">Not recorded</span>'}</dd></div>`;
 const the = o => `the ${o.name}`;
@@ -14,7 +15,7 @@ const the = o => `the ${o.name}`;
 const refractOK = () => /Chrome\//.test(navigator.userAgent);
 
 export function render(main, o) {
-  const p = o.physicalProfile || {}, obs = o.observation || {};
+  const p = o.physicalProfile || {};
   const { prev, next } = neighbours(o.slug);
   const images = [
     o.heroImage && { src: o.heroImage, alt: `${o.name}, object ${o.no}`, cap: o.imageTemporary ? "Temporary cut-out from a Workshop B video frame" : "Studio photograph, cut out from 4K footage", cut: true },
@@ -31,52 +32,58 @@ export function render(main, o) {
         <feGaussianBlur in="n" stdDeviation="2" result="nb"/>
         <feDisplacementMap in="SourceGraphic" in2="nb" scale="38" xChannelSelector="R" yChannelSelector="G"/>
       </filter></svg>
-      <div class="d-stage" data-stage>
+      <div class="d-stage brackets" data-stage>
+        <span class="num-box d-stage-no" aria-hidden="true">Object ${o.no}</span>
         ${images.map((im, i) => `<figure class="d-img${im.cut ? " is-cut" : ""}${i ? "" : " is-on"}" data-img="${i}" ${i ? "aria-hidden=\"true\"" : ""}>${im.cut ? objectFigure(o, { eager: true, alt: im.alt }) : `<img src="${esc(im.src)}" alt="${esc(im.alt)}" loading="lazy">`}<figcaption class="mono">${esc(im.cap)}</figcaption></figure>`).join("")}
         ${images.length > 1 ? `<div class="d-stage-nav"><button type="button" class="arrow" data-img-step="-1" aria-label="Previous image">‹</button><span class="mono" data-img-count>01 / ${String(images.length).padStart(2, "0")}</span><button type="button" class="arrow" data-img-step="1" aria-label="Next image">›</button></div>` : ""}
         <p class="d-bignum" aria-hidden="true">${o.no}</p>
       </div>
+      <div class="d-side">
+      <nav class="d-index" aria-label="Material Library index">
+        <a class="d-index-back lg" href="${href.library}"><span class="dot-ring" aria-hidden="true"></span><span class="d-index-k">← Index</span><span class="visually-hidden">Back to the Material Library</span></a>
+        <ol class="d-index-nos">${PUBLISHED.map(x => `<li><a class="lg" href="${href.object(x)}"${x.slug === o.slug ? ' aria-current="page"' : ""} title="Object ${x.no} ${esc(x.name)}">${x.no}</a></li>`).join("")}</ol>
+      </nav>
       <div class="d-panel lg${refractOK() ? " lg--refract" : ""}">
-        <a class="mono back" href="${href.library}">← Material Library</a>
         <p class="mono d-obj">Object ${o.no}</p>
         <h1 id="d-title" class="d-title">${esc(o.name)}</h1>
-        <section aria-labelledby="sa"><h2 id="sa" class="mono sec-k">A · Catalogue metadata</h2>
+        <section aria-labelledby="sa"><h2 id="sa" class="mono sec-k"><span class="num-box">01</span> Catalogue metadata</h2>
           <dl class="kvs mono">
             ${row("Object", o.no)}${row("Name", esc(o.name).toUpperCase())}${row("Category", esc(o.category).toUpperCase())}
             ${row("Action", esc(o.primaryAction).toUpperCase())}${row("Collection", esc(o.collection).toUpperCase())}${row("Status", archiveStatus(o.status))}
           </dl>
         </section>
-        <details class="acc" open><summary><span class="mono sec-k">B · Physical profile</span><span class="acc-i" aria-hidden="true"></span></summary>
+        <details class="acc" open><summary><span class="mono sec-k"><span class="num-box">02</span> Physical profile</span><span class="acc-i" aria-hidden="true"></span></summary>
           <dl class="kvs kvs--text">
             ${row("Colour", p.colour && esc(p.colour))}${row("Shape &amp; surface texture", p.shape && esc(p.shape))}
             ${row("Lifespan", p.lifespan && esc(p.lifespan))}${row("Response to pressure", p.pressure && esc(p.pressure))}
           </dl>
         </details>
-        <a class="mono panel-jump" href="#d-translations" data-jump>Read ${tr.length ? tr.length + " " : ""}translations ↓</a>
+        <div class="panel-foot">
+          <a class="cta cta--fill panel-become" href="${href.become(o)}">Become ${esc(the(o))} <span aria-hidden="true">→</span></a>
+          <a class="mono panel-jump" href="#d-translations" data-jump>Read ${tr.length ? tr.length + " " : ""}translations ↓</a>
+        </div>
+      </div>
       </div>
     </section>
 
+    <section class="d-sec d-sec--glass" aria-labelledby="sid">
+      ${o.heroImage ? `<div class="d-pattern" aria-hidden="true"><div class="d-pattern-track">${Array.from({ length: 8 }, () => `<span><img src="${esc(o.heroImage)}" alt="" loading="lazy"></span>`).join("")}</div></div>` : ""}
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">03</span></p><h2 id="sid">Identity file</h2><p class="muted">Who the ${esc(o.name.toLowerCase())} is in a human-centred world. The same file as its acrylic plate.</p></header>
+      ${identityFile(o)}
+    </section>
+
     <section class="d-sec" aria-labelledby="sc">
-      <header class="d-sec-head"><p class="mono sec-k">C</p><h2 id="sc">Physical states</h2><p class="muted">Four documented states from the experiment video. Fold the booklet to stack them, unfold to read them side by side.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">04</span></p><h2 id="sc">Physical states</h2><p class="muted">Four states, where the force went. Fold to stack them, unfold to compare.</p></header>
       ${stateViewer(o)}
     </section>
 
     <section class="d-sec" aria-labelledby="sd">
-      <header class="d-sec-head"><p class="mono sec-k">D</p><h2 id="sd">Video evidence</h2><p class="muted">Documentation of the actual material being handled.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">05</span></p><h2 id="sd">Video evidence</h2><p class="muted">The real material, handled on camera.</p></header>
       ${o.experimentVideo ? videoPlayer(o.experimentVideo, { id: "exp-video", states: o.states }) : `<p class="missing">Experiment video not yet filmed.</p>`}
     </section>
 
-    <section class="d-sec" aria-labelledby="se">
-      <header class="d-sec-head"><p class="mono sec-k">E</p><h2 id="se">I.A.M. observation</h2><p class="muted">Observed facts first, interpretation kept apart.</p></header>
-      <div class="report">
-        <div class="report-row"><h3 class="mono">Action applied</h3><p>${obs.action ? esc(obs.action) : '<span class="muted">Not recorded</span>'}</p></div>
-        <div class="report-row"><h3 class="mono">Physical response</h3><p>${obs.response ? esc(obs.response) : '<span class="muted">Not yet written</span>'}</p></div>
-        <div class="report-row report-row--interp"><h3 class="mono">I.A.M. interpretation</h3><p>${obs.interpretation ? esc(obs.interpretation) : '<span class="muted">Not yet written</span>'}</p><p class="mono report-note">An interpretation, not a claim that the material feels.</p></div>
-      </div>
-    </section>
-
     <section class="d-sec" id="d-translations" tabindex="-1" aria-labelledby="sf">
-      <header class="d-sec-head"><p class="mono sec-k">F</p><h2 id="sf">Material translations</h2><p class="muted">People imagining they are the ${esc(o.name.toLowerCase())} and speaking as it. Human voices, not the material's.</p></header>
+      <header class="d-sec-head"><p class="mono sec-k"><span class="num-box">06</span></p><h2 id="sf">Material translations</h2><p class="muted">People imagining they are the ${esc(o.name.toLowerCase())} and speaking as it. Human voices, not the material's.</p></header>
       <ul class="trs" data-trs>${tr.map(t => translationRecord(t, o)).join("") || `<li class="missing" data-empty>No translations recorded yet.</li>`}</ul>
     </section>
 
@@ -85,10 +92,10 @@ export function render(main, o) {
       <a class="cta cta--big" href="${href.become(o)}">Become ${esc(the(o))} <span aria-hidden="true">→</span></a>
     </section>
 
-    <nav class="d-nextprev mono" aria-label="Other materials">
-      <a href="${href.object(prev)}">← Object ${prev.no} ${esc(prev.name)}</a>
-      <a href="${href.library}">All materials</a>
-      <a href="${href.object(next)}">Object ${next.no} ${esc(next.name)} →</a>
+    <nav class="d-nextprev" aria-label="Other materials">
+      <a class="tab-link lg" href="${href.object(prev)}"><span class="dot-ring" aria-hidden="true"></span>← ${prev.no} ${esc(prev.name)}</a>
+      <a class="tab-link lg" href="${href.library}"><span class="dot-ring" aria-hidden="true"></span>Index</a>
+      <a class="tab-link lg" href="${href.object(next)}">${next.no} ${esc(next.name)} →<span class="dot-ring" aria-hidden="true"></span></a>
     </nav>
   </article>`;
 
@@ -102,7 +109,7 @@ export function render(main, o) {
   $("[data-jump]", main).addEventListener("click", ev => { ev.preventDefault(); const s = $("#d-translations", main); s.scrollIntoView({ behavior: "smooth" }); s.focus({ preventScroll: true }); });
 
   const video = $("#exp-video", main);
-  const cleanup = mountStateViewer(main, o, { onSelect: s => { if (video && video.paused && video.readyState > 0) video.currentTime = s.t; } });
+  const cleanup = mountStateViewer(main, o, { onSelect: s => { if (video && video.readyState > 0) video.currentTime = s.t; } });
   mountVideo(main);
 
   // approved public contributions (if the database is switched on)
