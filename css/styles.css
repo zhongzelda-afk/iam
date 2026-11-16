@@ -1256,7 +1256,7 @@ body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .pa
   background-image:
     linear-gradient(180deg, #C2477A 0 4px, transparent 4px),
     linear-gradient(0deg, #C2477A 0 4px, transparent 4px),
-    linear-gradient(180deg, #4A7CC4 4px, #3A62A8 9%, #1E2A5E 24%, #141A3C 40%, #141A3C 60%, #1E2A5E 76%, #3A62A8 91%, #4A7CC4); background-attachment: fixed; }
+    linear-gradient(180deg, #A8C6F0 4px, #7FA6E0 14%, #5683C8 30%, #3A62A8 44%, #34599E 56%, #5683C8 70%, #7FA6E0 86%, #A8C6F0); background-attachment: fixed; }
 .become--immersive::before {
   background:
     radial-gradient(circle at 50% 50%, transparent 0 17%, rgba(236, 110, 60, .26) 23%, rgba(217, 138, 166, .18) 28%, rgba(236, 110, 60, .08) 33%, transparent 41%) center / min(140vh, 140vw) min(140vh, 140vw) no-repeat,
