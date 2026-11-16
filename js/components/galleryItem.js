@@ -1,8 +1,8 @@
 // One object in the Material Library gallery: isolated object, rotated number, compact label.
-import { esc } from "../lib/util.js?v=202611161444";
-import { href, isOpen } from "../lib/library.js?v=202611161444";
-import { objectFigure } from "./figure.js?v=202611161444";
-import { archiveStatus } from "./status.js?v=202611161444";
+import { esc } from "../lib/util.js?v=202611162135";
+import { href, isOpen } from "../lib/library.js?v=202611162135";
+import { objectFigure } from "./figure.js?v=202611162135";
+import { archiveStatus } from "./status.js?v=202611162135";
 
 export function galleryItem(o) {
   const open = isOpen(o);
@@ -20,6 +20,6 @@ export function galleryItem(o) {
     </span>`;
   const status = open ? "" : `<span class="g-status">${archiveStatus(o.status)}</span>`;
   const filter = open ? "published" : "progress";
-  if (open) return `<li class="g-item" data-filter="${filter}"><a class="g-link" href="${href.object(o)}" aria-label="Object ${o.no}, ${esc(o.name)}, ${esc(o.category)}">${objectFigure(o)}${label}</a></li>`;
-  return `<li class="g-item g-item--closed" data-filter="${filter}"><div class="g-link" role="group" aria-label="Object ${o.no}, ${esc(name)}: ${esc(sub)}. Record not yet available.">${objectFigure(o)}${label}${status}</div></li>`;
+  if (open) return `<li class="g-item" data-filter="${filter}"><a class="g-link" href="${href.object(o)}" aria-label="Object ${o.no}, ${esc(o.name)}, ${esc(o.category)}">${objectFigure(o, { trace: true })}${label}</a></li>`;
+  return `<li class="g-item g-item--closed" data-filter="${filter}"><div class="g-link" role="group" aria-label="Object ${o.no}, ${esc(name)}: ${esc(sub)}. Record not yet available.">${objectFigure(o, { trace: true })}${label}${status}</div></li>`;
 }

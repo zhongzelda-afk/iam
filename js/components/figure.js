@@ -1,5 +1,5 @@
 // Object image: a cut-out photograph, a dotted tracing outline (no footage yet), or an empty reserved slot.
-import { esc } from "../lib/util.js?v=202611161444";
+import { esc } from "../lib/util.js?v=202611162135";
 
 const OUTLINES = {
   sheet: '<path d="M22 70 L38 34 L61 41 L80 27 L97 47 L88 72 L63 80 L44 74 Z M38 34 L44 74 M61 41 L63 80 M80 27 L88 72"/>',
@@ -20,9 +20,12 @@ export function reservedMark() {
 }
 
 // object figure for gallery, home and detail hero
-export function objectFigure(o, { eager = false, alt } = {}) {
+// scanned tracings (photo + navy contour lines), shown in the gallery on hover
+const TRACED = ["orange", "aluminium-foil", "cleaning-sponge", "ice", "tomato", "cabbage-leaf", "pear", "cream-foam", "rose"];
+
+export function objectFigure(o, { eager = false, alt, trace = false } = {}) {
   if (o.reserved) return `<span class="figure figure--reserved">${reservedMark()}</span>`;
   const img = o.galleryImage || o.heroImage;
   if (!img) return `<span class="figure figure--outline">${outline(o.outline)}</span>`;
-  return `<span class="figure${o.status === "published" ? "" : " figure--faint"}"><img src="${esc(img)}" alt="${esc(alt ?? "")}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"><span class="figure-shadow" aria-hidden="true"></span></span>`;
+  return `<span class="figure${o.status === "published" ? "" : " figure--faint"}"><img src="${esc(img)}" alt="${esc(alt ?? "")}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">${trace && TRACED.includes(o.slug) ? `<img class="figure-trace" src="assets/tracings-g/${o.slug}.webp" alt="" decoding="async" aria-hidden="true"><span class="figure-scan" aria-hidden="true"></span>` : ""}<span class="figure-shadow" aria-hidden="true"></span></span>`;
 }

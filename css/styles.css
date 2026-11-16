@@ -1256,7 +1256,7 @@ body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .pa
   background-image:
     linear-gradient(180deg, #C2477A 0 4px, transparent 4px),
     linear-gradient(0deg, #C2477A 0 4px, transparent 4px),
-    linear-gradient(180deg, #4A7CC4 4px, #3A62A8 9%, #1E2A5E 24%, #141A3C 40%, #141A3C 60%, #1E2A5E 76%, #3A62A8 91%, #4A7CC4); background-attachment: fixed; }
+    linear-gradient(180deg, #A8C6F0 4px, #7FA6E0 14%, #5683C8 30%, #3A62A8 44%, #34599E 56%, #5683C8 70%, #7FA6E0 86%, #A8C6F0); background-attachment: fixed; }
 .become--immersive::before {
   background:
     radial-gradient(circle at 50% 50%, transparent 0 17%, rgba(236, 110, 60, .26) 23%, rgba(217, 138, 166, .18) 28%, rgba(236, 110, 60, .08) 33%, transparent 41%) center / min(140vh, 140vw) min(140vh, 140vw) no-repeat,
@@ -1300,3 +1300,22 @@ input[type="text"], textarea { cursor: text; }
 /* buttons on the table stay where they are on hover */
 .become--immersive :is(.cta, .cta--fill, .cta--big, .cta--gold, .tb-exit):is(:hover, :focus-visible) { transform: none; }
 .become--immersive .tb-start, .become--immersive .tb-start:is(:hover, :focus-visible, :active) { transform: translate(-50%, -50%); transition: background .25s, border-color .25s; }
+
+/* gallery: hover scans the object; a blue line passes down and leaves the navy tracing behind; leaving restores the photo */
+.g-item .figure .figure-trace { position: absolute; z-index: 2; left: 15%; top: 15%; width: 70%; height: 70%; object-fit: contain; pointer-events: none;
+  clip-path: inset(0 0 100% 0); transition: clip-path .9s cubic-bezier(.45, 0, .25, 1); filter: none; }
+.g-item .figure > img:not(.figure-trace) { transition: opacity .5s ease .2s, transform .4s var(--ease); }
+.figure-scan { position: absolute; z-index: 3; left: 8%; right: 8%; top: 15%; height: 2px; opacity: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent, #5D86C9 15%, #A9C4F0 50%, #5D86C9 85%, transparent);
+  box-shadow: 0 0 10px 2px rgba(93, 134, 201, .55), 0 0 26px 6px rgba(93, 134, 201, .2); }
+.figure-scan::after { content: ""; position: absolute; left: 0; right: 0; bottom: 2px; height: 46px; background: linear-gradient(0deg, rgba(93, 134, 201, .16), transparent); }
+@keyframes g-scan { 0% { top: 15%; opacity: 0; } 8% { opacity: 1; } 90% { top: 85%; opacity: 1; } 100% { top: 85%; opacity: 0; } }
+.g-link:is(:hover, :focus-visible) .figure .figure-trace { clip-path: inset(0 0 0 0); }
+.g-link:is(:hover, :focus-visible) .figure > img:not(.figure-trace) { opacity: .12; }
+.g-link:is(:hover, :focus-visible) .figure-scan { animation: g-scan 1s cubic-bezier(.45, 0, .25, 1) forwards; }
+@media (prefers-reduced-motion: reduce) { .g-item .figure .figure-trace { transition: none; } .g-link:hover .figure-scan { animation: none; } }
+@media (hover: none) { .figure-scan { display: none; } }
+a.g-link .figure img.figure-trace, a.g-link:is(:hover, :focus-visible) .figure img.figure-trace { filter: none; }
+/* v0.17 card art: own words sit on the lined glass of the blank Voice card */
+.pc-own { left: 18%; right: 18%; top: 47%; bottom: 14%; height: auto; font-family: var(--f-sans); font-style: normal; font-weight: 500; font-size: 7.2cqw; color: var(--ink); }
+.pc-own--hint { color: var(--red); font-size: 5.6cqw; letter-spacing: .06em; }
