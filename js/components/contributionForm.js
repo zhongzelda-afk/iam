@@ -1,7 +1,7 @@
 // Contribution Form: one short step. Optional name (blank = anonymous), one unchecked consent box, one button.
-import { $, announce } from "../lib/util.js?v=202611161444";
-import { submit } from "../lib/contributions.js?v=202611161444";
-import { submissionStatus } from "./status.js?v=202611161444";
+import { $, announce } from "../lib/util.js?v=202611161643";
+import { submit } from "../lib/contributions.js?v=202611161643";
+import { submissionStatus } from "./status.js?v=202611161643";
 
 export function contributionForm(t, { id = "share" } = {}) {
   return `
