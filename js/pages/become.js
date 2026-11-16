@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611162135";
-import { href } from "../lib/library.js?v=202611162135";
-import * as col from "../lib/collection.js?v=202611162135";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611162135";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611162135";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611162149";
+import { href } from "../lib/library.js?v=202611162149";
+import * as col from "../lib/collection.js?v=202611162149";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611162149";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611162149";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -111,7 +111,9 @@ const cSpeak = () => ({ set: "B", n: "Own words", file: CARD_IMG("B02"), word: "
 const cOwn = t => ({ set: "B", n: "Own words", file: CARD_IMG("B02"), word: "", text: "“" + t + "”", own: t, more: [] });
 
 // Lynn's printed cards (PDF PRINT 11, cut to one image per card in assets/cards/)
-const CARD_IMG = n => `assets/cards/${n.replace(" ", "")}.webp`;
+// materials without an Identity yet still get a v0.17 card ("No Identity card yet")
+const NO_ID = { rose: "I 07", "cabbage-leaf": "I 08" };
+const CARD_IMG = n => `assets/cards/${n.replace(" ", "")}.webp?c=17`;
 const BLANKS = Array.from({ length: 10 }, (_, i) => `B${String(i + 1).padStart(2, "0")}`);
 
 function face(c, k, o) {
@@ -127,7 +129,7 @@ function face(c, k, o) {
 }
 function back(set) {
   const bk = { A: "A", R: "R", T: "T", I: "I", V: "V", B: "V" }[set];
-  return `<div class="pc-face pc-back pc-face--img"><img src="assets/cards/back-${bk}.webp" alt="" draggable="false"></div>`;
+  return `<div class="pc-face pc-back pc-face--img"><img src="assets/cards/back-${bk}.webp?c=17" alt="" draggable="false"></div>`;
 }
 function cardEl(c, { down = false, tag = "div", k = 0 } = {}) {
   const el = document.createElement(tag);
@@ -144,7 +146,7 @@ export function render(main, o) {
   const idc = IDENTITIES[o.slug];
   const identity = idc
     ? { set: "I", n: idc.n, file: CARD_IMG(idc.n), word: idc.name, text: idc.note, more: [["Physical", idc.physical], ["Response", idc.response]] }
-    : { set: "I", n: "I —", word: `The ${o.name}`, text: "No Identity card yet. You play it as you find it.", img: o.heroImage, more: [] };
+    : { set: "I", n: "I —", word: `The ${o.name}`, text: "No Identity card yet. You play it as you find it.", ...(NO_ID[o.slug] ? { file: CARD_IMG(NO_ID[o.slug]) } : { img: o.heroImage }), more: [] };
 
   main.innerHTML = `
   <article class="become become--table become--immersive" aria-labelledby="b-title">

@@ -1,8 +1,8 @@
 // One object in the Material Library gallery: isolated object, rotated number, compact label.
-import { esc } from "../lib/util.js?v=202611162135";
-import { href, isOpen } from "../lib/library.js?v=202611162135";
-import { objectFigure } from "./figure.js?v=202611162135";
-import { archiveStatus } from "./status.js?v=202611162135";
+import { esc } from "../lib/util.js?v=202611162149";
+import { href, isOpen } from "../lib/library.js?v=202611162149";
+import { objectFigure } from "./figure.js?v=202611162149";
+import { archiveStatus } from "./status.js?v=202611162149";
 
 export function galleryItem(o) {
   const open = isOpen(o);
