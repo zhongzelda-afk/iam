@@ -1,8 +1,8 @@
 // Material Identity Archive: the same file as the acrylic plate for this material, so the online
 // record and the plate in the exhibition match. Content lives in js/data/archive.js (generated).
-import { esc } from "../lib/util.js?v=202611162135";
-import { ARCHIVE } from "../data/archive.js?v=202611162135";
-import { IDENTITIES } from "../data/cards.js?v=202611162135";
+import { esc } from "../lib/util.js?v=202611162149";
+import { ARCHIVE } from "../data/archive.js?v=202611162149";
+import { IDENTITIES } from "../data/cards.js?v=202611162149";
 
 const rows = list => list.map(([k, v]) => `<div class="if-row"><dt class="mono">${esc(k)}</dt><dd>${k === "Response" ? `<span class="if-resp">${esc(v)}</span>` : esc(v)}</dd></div>`).join("");
 
@@ -30,13 +30,13 @@ export function identityFile(o) {
         <p class="mono muted">Status: registered material</p>
         <dl class="if-rows"><p class="if-k mono"><span class="num-box">01</span> Identity <span class="muted">Imagined</span></p>${rows(a.identity)}</dl>
       </div>
-      ${card ? `<img class="ifile-card" src="assets/cards/${card.n.replace(" ", "")}.webp" alt="Identity card ${esc(card.n)}, ${esc(card.name)}" loading="lazy">` : ""}
+      ${card ? `<img class="ifile-card" src="assets/cards/${card.n.replace(" ", "")}.webp?c=17" alt="Identity card ${esc(card.n)}, ${esc(card.name)}" loading="lazy">` : ""}
     </div>
     <p class="ifile-motto">“${esc(a.motto)}”</p>
     <div class="ifile-cols">
       <dl class="if-rows"><p class="if-k mono"><span class="num-box">02</span> Human assignment <span class="muted">Imagined</span></p>${rows(a.assignment)}</dl>
       <dl class="if-rows"><p class="if-k mono"><span class="num-box">03</span> Material agency <span class="muted">Observed by I.A.M.</span></p>${rows(a.agency)}
-        ${rcode ? `<img class="ifile-rcard" src="assets/cards/${rcode}.webp" alt="Response card ${esc(resp)}" loading="lazy">` : ""}</dl>
+        ${rcode ? `<img class="ifile-rcard" src="assets/cards/${rcode}.webp?c=17" alt="Response card ${esc(resp)}" loading="lazy">` : ""}</dl>
     </div>
     <div class="ifile-stmt">
       <p class="if-k mono"><span class="num-box">04</span> Personal statement <span class="muted">Imagined</span></p>
