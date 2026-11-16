@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611111912";
-import { href } from "../lib/library.js?v=202611111912";
-import * as col from "../lib/collection.js?v=202611111912";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611111912";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611111912";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611161437";
+import { href } from "../lib/library.js?v=202611161437";
+import * as col from "../lib/collection.js?v=202611161437";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611161437";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611161437";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
@@ -148,6 +148,22 @@ export function render(main, o) {
 
   main.innerHTML = `
   <article class="become become--table become--immersive" aria-labelledby="b-title">
+    <pre class="tb-code tb-code--a" aria-hidden="true">${esc(`# I.A.M. ${o.no} ${o.name.toUpperCase()}  the table
+${o.slug.replace(/-/g, "_")} = Material(no="${o.no}", action="${(o.primaryAction || "compression").toLowerCase()}")
+human = Seat("the human", hand=ACTIONS)
+you = Seat("${o.slug.replace(/-/g, "_")}", hand=RESPONSES, identity="${identity.word}")
+while human.wants_more():
+    act = human.play(face_down=True)
+    you.answer(act)  # no stop button
+human.leave(with_card="RELEASE")`)}</pre>
+    <pre class="tb-code tb-code--b" aria-hidden="true">${esc(`for s in ${o.slug.replace(/-/g, "_")}.states:
+    sheet = trace(s.frame, line="navy")
+    force = locate(s.contact)  # where the hand went
+    booklet.fold(sheet)
+# we shape materials
+# materials shape us
+voice = translate(${o.slug.replace(/-/g, "_")}, by="human")
+collection.keep(voice)`)}</pre>
     <div class="tb-head">
       <a class="tb-exit" href="${href.object(o)}" aria-label="Leave the table and go back to Object ${o.no} ${esc(o.name)}"><span aria-hidden="true">←</span> Leave the table</a>
       <h1 id="b-title" class="tb-title">Become the ${esc(o.name)}.</h1>

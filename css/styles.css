@@ -1250,3 +1250,50 @@ body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .pa
 @media (max-width: 760px) { .ab-seq, .ab-grid { grid-template-columns: 1fr; } .ab-seq li + li::before { display: none; } .ab-head, .ab-card { padding: 22px 20px; } }
 @media (prefers-reduced-motion: reduce) { .ab-head, .ab-card, .ab-foot { animation: none; } }
 @media (max-width: 640px) { .h3-stage { width: 56vw; } }
+
+/* ---- 16 Nov: card table follows the library: blue gradient top and bottom, more rings, glass buttons with the red marker ---- */
+.become--immersive { background-color: #141A3C;
+  background-image:
+    linear-gradient(180deg, #C2477A 0 4px, transparent 4px),
+    linear-gradient(0deg, #C2477A 0 4px, transparent 4px),
+    linear-gradient(180deg, #4A7CC4 4px, #3A62A8 9%, #1E2A5E 24%, #141A3C 40%, #141A3C 60%, #1E2A5E 76%, #3A62A8 91%, #4A7CC4); background-attachment: fixed; }
+.become--immersive::before {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 17%, rgba(236, 110, 60, .26) 23%, rgba(217, 138, 166, .18) 28%, rgba(236, 110, 60, .08) 33%, transparent 41%) center / min(140vh, 140vw) min(140vh, 140vw) no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400' fill='none' stroke='%23FFB4A8' stroke-width='.45' opacity='.26'%3E%3Ccircle cx='200' cy='200' r='22'/%3E%3Ccircle cx='200' cy='200' r='40'/%3E%3Ccircle cx='200' cy='200' r='56'/%3E%3Ccircle cx='200' cy='200' r='70'/%3E%3Ccircle cx='200' cy='200' r='85'/%3E%3Ccircle cx='200' cy='200' r='100'/%3E%3Ccircle cx='200' cy='200' r='115'/%3E%3Ccircle cx='200' cy='200' r='130'/%3E%3Ccircle cx='200' cy='200' r='145'/%3E%3Ccircle cx='200' cy='200' r='160'/%3E%3Ccircle cx='200' cy='200' r='175'/%3E%3Ccircle cx='200' cy='200' r='190'/%3E%3C/svg%3E") center / min(96vh, 96vw) min(96vh, 96vw) no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400' fill='none' stroke='%23A9C4F0' stroke-width='.4' stroke-dasharray='2 4' opacity='.3'%3E%3Ccircle cx='200' cy='200' r='48'/%3E%3Ccircle cx='200' cy='200' r='92'/%3E%3Ccircle cx='200' cy='200' r='138'/%3E%3Ccircle cx='200' cy='200' r='182'/%3E%3C/svg%3E") center / min(120vh, 120vw) min(120vh, 120vw) no-repeat; }
+/* glass buttons on the dark table */
+.become--immersive :is(.cta, .cta--fill, .cta--big, .cta--gold, .tb-start, .tb-exit) {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 46px; padding: 0 24px 0 18px; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .05)); border: 1px solid rgba(255, 255, 255, .45); color: #F6F0E8;
+  -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .45), inset 0 0 16px rgba(255, 255, 255, .08), 0 14px 30px -14px rgba(0, 0, 0, .6);
+  font: 600 14px/1 var(--f-sans); letter-spacing: 0; text-transform: none; transition: transform .25s var(--ease), background .25s, border-color .25s; }
+.become--immersive :is(.cta--fill, .cta--big, .cta--gold, .tb-start)::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #FFD0CA, #E0504A 45%, #A8231F 90%); box-shadow: 0 0 0 3px rgba(210, 82, 79, .25), 0 0 0 7px rgba(210, 82, 79, .1); animation: tb-pulse 2.4s ease-out infinite; }
+@keyframes tb-pulse { 0% { box-shadow: 0 0 0 0 rgba(210, 82, 79, .55), 0 0 0 0 rgba(210, 82, 79, .3); } 100% { box-shadow: 0 0 0 10px rgba(210, 82, 79, 0), 0 0 0 20px rgba(210, 82, 79, 0); } }
+.become--immersive :is(.cta, .cta--fill, .cta--big, .cta--gold, .tb-start, .tb-exit):hover,
+.become--immersive :is(.cta, .cta--fill, .cta--big, .cta--gold, .tb-start, .tb-exit):focus-visible {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, .1)); border-color: rgba(255, 180, 176, .8); color: #fff; transform: translateY(-2px); }
+.become--immersive .tb-exit { min-height: 38px; padding: 0 16px; font-size: 12.5px; }
+.become--immersive .tb-start span, .become--immersive .cta--big span { font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .become--immersive .cta--big::before, .become--immersive .tb-start::before { animation: none; } }
+.become--immersive > .tb-code { position: fixed; z-index: 0; margin: 0; pointer-events: none; user-select: none;
+  font: 400 10px/1.65 var(--f-code); white-space: pre; letter-spacing: 0; color: rgba(214, 226, 250, .2); }
+.tb-code--a { top: 118px; left: 70px; }
+.tb-code--b { bottom: 70px; right: 70px; }
+@media (max-width: 900px) { .become--immersive > .tb-code { display: none; } }
+.become--immersive > .tb-code { font-size: 8.5px; }
+.tb-code--b { right: 44px; bottom: 110px; }
+/* identity file number: the same red outlined box as every section number */
+.ifile .ifile-no, .ifile-no, .ifile .ifile-badge, .ifile-badge { display: inline-grid; place-items: center; min-height: 26px; padding: 0 8px; background: transparent !important; color: var(--red) !important;
+  border: 1px solid var(--red); box-shadow: none; font: 600 12px/1 var(--f-sans) !important; letter-spacing: .04em !important; text-transform: none; }
+.ifile-badge { min-height: 26px; padding: 0 10px; margin: 0; }
+/* no black text anywhere: ink is deep blue */
+:root { --ink: #1C265C; --ink-2: #3A4472; --ink-3: #5F6790; }
+.lib-rail, .lib-rail-word, .page-title, .lib-head, .lib-head .eyebrow, .lib-count, .g-item, .gallery { color: var(--ink); }
+.lib-rail::before, .lib-rail::after { background: var(--ink); }
+/* the pointer is a small orange; it grows a little over anything you can press */
+html, body { cursor: url("../assets/cursor-orange.png") 18 18, auto; }
+a, button, [role="button"], label, select, summary, input[type="range"], input[type="checkbox"], .pc, .seg-btn, .sheet-tab { cursor: url("../assets/cursor-orange-hover.png") 18 18, pointer; }
+input[type="text"], textarea { cursor: text; }
