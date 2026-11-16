@@ -1297,3 +1297,6 @@ body:not(.is-immersive) :is(.cta, .cta--fill, .cta--big, .cta--gold, .h-cta, .pa
 html, body { cursor: url("../assets/cursor-orange.png") 11 11, auto; }
 a, button, [role="button"], label, select, summary, input[type="range"], input[type="checkbox"], .pc, .seg-btn, .sheet-tab { cursor: url("../assets/cursor-orange-hover.png") 11 11, pointer; }
 input[type="text"], textarea { cursor: text; }
+/* buttons on the table stay where they are on hover */
+.become--immersive :is(.cta, .cta--fill, .cta--big, .cta--gold, .tb-exit):is(:hover, :focus-visible) { transform: none; }
+.become--immersive .tb-start, .become--immersive .tb-start:is(:hover, :focus-visible, :active) { transform: translate(-50%, -50%); transition: background .25s, border-color .25s; }

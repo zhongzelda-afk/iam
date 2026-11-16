@@ -1,6 +1,6 @@
 // About: the method, what the translations are (and are not), and where data lives.
 // Glass panels in columns over the drifting library, like My Collection.
-import { href, PUBLISHED } from "../lib/library.js?v=202611161437";
+import { href, PUBLISHED } from "../lib/library.js?v=202611161444";
 
 const SECTIONS = [
   ["Become a Material", "Each record documents one everyday material under a physical action. Workshop participants watched the material change, watched how others embodied that action with their bodies, imagined becoming the material, and said what it might say, in the first person."],

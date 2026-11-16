@@ -1,7 +1,7 @@
 // 02 Material Library: numbered object gallery (Reference C) with archive status and a simple filter.
-import { $$ } from "../lib/util.js?v=202611161437";
-import { ENTRIES, OBJECTS, PUBLISHED, RESERVED_SLOTS } from "../lib/library.js?v=202611161437";
-import { galleryItem } from "../components/galleryItem.js?v=202611161437";
+import { $$ } from "../lib/util.js?v=202611161444";
+import { ENTRIES, OBJECTS, PUBLISHED, RESERVED_SLOTS } from "../lib/library.js?v=202611161444";
+import { galleryItem } from "../components/galleryItem.js?v=202611161444";
 
 let filter = "all";
 export function render(main) {

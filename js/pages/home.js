@@ -1,7 +1,7 @@
 // 01 Home: one material at the centre inside red corner marks, changing every few seconds;
 // the small text sits in the four corners; one way in, a glass pill with a pulsing red marker.
-import { esc, reduceMotion } from "../lib/util.js?v=202611161437";
-import { PUBLISHED, href } from "../lib/library.js?v=202611161437";
+import { esc, reduceMotion } from "../lib/util.js?v=202611161444";
+import { PUBLISHED, href } from "../lib/library.js?v=202611161444";
 
 let at = 0;
 

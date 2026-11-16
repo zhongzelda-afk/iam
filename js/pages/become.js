@@ -5,11 +5,11 @@
 // The human decides how many rounds (3 to 5) and always ends with RELEASE, then leaves.
 // You have no stop button: that is the point. Last, you are dealt Voice cards and a
 // blank card: the card you play becomes your entry, kept in My Collection or given to the Library.
-import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611161437";
-import { href } from "../lib/library.js?v=202611161437";
-import * as col from "../lib/collection.js?v=202611161437";
-import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611161437";
-import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611161437";
+import { esc, $, $$, announce, reduceMotion } from "../lib/util.js?v=202611161444";
+import { href } from "../lib/library.js?v=202611161444";
+import * as col from "../lib/collection.js?v=202611161444";
+import { contributionForm, mountContributionForm } from "../components/contributionForm.js?v=202611161444";
+import { ACTIONS, RESPONSES, TRANSLATIONS, VOICES, IDENTITIES, MAX_ROUNDS } from "../data/cards.js?v=202611161444";
 
 const DRAFT = slug => `iam.draft.${slug}`;
 const readDraft = slug => { try { return sessionStorage.getItem(DRAFT(slug)) || ""; } catch { return ""; } };
